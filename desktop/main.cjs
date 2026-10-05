@@ -103,7 +103,7 @@ process.env.MCPHELM_HOME = DATA_ROOT;
 
 const DESKTOP_DATA = path.join(DATA_ROOT, 'desktop');
 const EXPORTS_DIR = path.join(DATA_ROOT, 'exports');
-for (const sub of ['userData', 'sessionData', 'cache', 'temp', 'logs', 'crashDumps']) {
+for (const sub of ['userData', 'sessionData', 'cache', 'temp', 'logs', 'crashDumps', 'dictionaries']) {
   const target = path.join(DESKTOP_DATA, sub);
   mkdirSync(target, { recursive: true });
   app.setPath(sub, target);
