@@ -508,6 +508,10 @@ async function boot() {
 }
 
 app.setName('MCPHelm');
+// Windows 应用身份（AppUserModelID）：不声明时，任务栏会把窗口归并到启动它的
+// 父应用按钮上（例如从其它 Electron 应用内启动时），导致图标显示成别的软件。
+// 声明后无论从哪里启动，任务栏都会显示独立的 MCPHelm 按钮与舵轮图标。
+if (process.platform === 'win32') app.setAppUserModelId('dev.mcphelm.app');
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

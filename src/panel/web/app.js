@@ -163,6 +163,9 @@ const I18N = {
     guideProgress: '{d} / {t} 步已完成',
     guideStepsT: '六步上手', guideStepsS: '每一步完成会自动打勾；现在停在哪一步，就从那一步的按钮往下走',
     gDone: '已完成', gTodo: '待完成',
+    wizStepOf: '第 {i} 步，共 {n} 步',
+    wizPrev: '上一步', wizNext: '下一步',
+    wizFinish: '去概览看看', wizHelpT: '常见问题 · 官方链接',
     gs1T: '打开软件，认识界面',
     gs1D: '双击桌面的 MCPHelm 图标就能打开。左侧是导航：概览、隧道、服务器、日志、体检、设置。右上角 X 只是把窗口收进托盘（隧道不会断）；想彻底退出：右下角托盘图标右键，选退出。',
     gs2T: '下载运行环境（发动机）',
@@ -355,6 +358,9 @@ const I18N = {
     guideProgress: '{d} / {t} steps done',
     guideStepsT: 'Six steps', guideStepsS: 'Each step ticks itself off when done — start from whichever is still open',
     gDone: 'Done', gTodo: 'To do',
+    wizStepOf: 'Step {i} of {n}',
+    wizPrev: 'Back', wizNext: 'Next',
+    wizFinish: 'Go to overview', wizHelpT: 'FAQ · Official links',
     gs1T: 'Open the app, meet the console',
     gs1D: 'Double-click the MCPHelm icon on your desktop. The left sidebar holds Overview, Tunnels, Servers, Logs, Doctor and Settings. The X button only hides the window to the tray while tunnels keep running; to quit fully, right-click the tray icon and choose Exit.',
     gs2T: 'Download the runtime (the engine)',
@@ -479,6 +485,7 @@ const ICONS = {
   download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>',
   copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
   arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>',
+  prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
   zap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
   globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
   terminal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6M12 19h8"/></svg>',
@@ -498,6 +505,7 @@ const app = {
   ui: { language: 'zh', minimizeToTray: false, autoLaunch: false },
   desktop: false,
   keyringSupported: false,
+  guideIdx: 0,
 };
 
 function viewMeta(v) {
@@ -1092,27 +1100,29 @@ function renderSettings(c, s) {
 
   // 界面与偏好
   html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('settings') + '</span>' + esc(t('secPrefs')) + '</div><div class="card-sub">' + esc(t('secPrefsSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
-  html += '<div class="kv"><div class="kv-k">' + esc(t('languageLabel')) + '</div>' +
-    '<select class="select" id="prefLang" style="max-width:220px">' +
+  html += '<div class="set-row"><div class="set-row-k">' + esc(t('languageLabel')) + '</div>' +
+    '<select class="select" id="prefLang">' +
     '<option value="zh"' + (app.ui.language !== 'en' ? ' selected' : '') + '>中文</option>' +
     '<option value="en"' + (app.ui.language === 'en' ? ' selected' : '') + '>English</option>' +
     '</select></div>';
-  html += '<label style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;font-size:13px;color:var(--text-2);cursor:pointer"><input type="checkbox" id="prefTray"' + (app.ui.minimizeToTray ? ' checked' : '') + ' style="margin-top:2px"> <span>' + esc(t('prefTray')) + '</span></label>';
-  html += '<label style="display:flex;align-items:flex-start;gap:8px;margin-top:8px;font-size:13px;color:var(--text-2);cursor:pointer"><input type="checkbox" id="prefAuto"' + (app.ui.autoLaunch ? ' checked' : '') + ' style="margin-top:2px"> <span>' + esc(t('prefAutoLaunch')) + '</span></label>';
-  html += '<div style="margin-top:14px"><button class="btn primary small" id="prefSave"><span class="ico">' + icon('check') + '</span>' + esc(t('savePrefs')) + '</button></div>';
+  html += '<div class="set-rows"><label class="check-row"><input type="checkbox" id="prefTray"' + (app.ui.minimizeToTray ? ' checked' : '') + '> <span>' + esc(t('prefTray')) + '</span></label>' +
+    '<label class="check-row"><input type="checkbox" id="prefAuto"' + (app.ui.autoLaunch ? ' checked' : '') + '> <span>' + esc(t('prefAutoLaunch')) + '</span></label></div>';
+  html += '<div class="card-actions"><button class="btn primary small" id="prefSave"><span class="ico">' + icon('check') + '</span>' + esc(t('savePrefs')) + '</button></div>';
   html += '</div></div>';
 
   // 运行环境
   html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('download') + '</span>' + esc(t('secRuntime')) + '</div><div class="card-sub">' + esc(t('secRuntimeSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
   if (s.runtime.found) {
-    html += kv(t('rtStatus'), t('rtReady'), false, 'ok');
-    html += kv(t('rtVersion'), s.runtime.version || t('rtUnknown'));
-    html += kv(t('rtSource'), s.runtime.source || '—');
-    html += kv(t('rtPath'), s.runtime.path || '—', true);
+    html += '<div class="set-rows">' +
+      setRow(t('rtStatus'), '<span class="pill ok">' + esc(t('rtReady')) + '</span>') +
+      setRow(t('rtVersion'), s.runtime.version || t('rtUnknown')) +
+      setRow(t('rtSource'), s.runtime.source || '—') +
+      setRow(t('rtPath'), s.runtime.path || '—', true) +
+      '</div>';
   } else {
     html += '<div class="notice warn" style="margin-bottom:12px"><span class="ico">' + icon('warn') + '</span><div>' + t('rtMissing') + '</div></div>';
   }
-  html += '<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">' +
+  html += '<div class="card-actions">' +
     '<button class="btn primary small" id="runtimeBtn"><span class="ico">' + icon('download') + '</span>' + esc(s.runtime.found ? t('redownload') : t('downloadNow')) + '</button>' +
     '<button class="btn ghost small" id="runtimeImportBtn"><span class="ico">' + icon('folder') + '</span>' + esc(t('importLocal')) + '</button>' +
   '</div>';
@@ -1122,25 +1132,27 @@ function renderSettings(c, s) {
   {
     const dl = s.dataLocation || null;
     const sizes = (dl && dl.sizes) || {};
-    html += '<div class="card span-2"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('folder') + '</span>' + esc(t('secData')) + '</div><div class="card-sub">' + esc(t('secDataSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
+    html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('folder') + '</span>' + esc(t('secData')) + '</div><div class="card-sub">' + esc(t('secDataSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
     if (dl) {
-      html += kv(t('dlRoot'), dl.dataRoot, true);
-      html += kv(t('dlRuntime'), fmtBytes(sizes.bin || 0));
-      html += kv(t('dlLogs'), fmtBytes(sizes.logs || 0));
-      html += kv(t('dlCache'), fmtBytes(sizes.cache || 0));
-      html += kv(t('dlDesktop'), fmtBytes(sizes.desktop || 0));
-      html += '<div class="notice ok" style="margin-top:12px"><span class="ico">' + icon('check') + '</span><div>' + esc(t('dlHint')) + '</div></div>';
+      html += '<div class="set-rows">' +
+        setRow(t('dlRoot'), dl.dataRoot, true) +
+        setRow(t('dlRuntime'), fmtBytes(sizes.bin || 0)) +
+        setRow(t('dlLogs'), fmtBytes(sizes.logs || 0)) +
+        setRow(t('dlCache'), fmtBytes(sizes.cache || 0)) +
+        setRow(t('dlDesktop'), fmtBytes(sizes.desktop || 0)) +
+        '</div>';
+      html += '<div class="notice ok"><span class="ico">' + icon('check') + '</span><div>' + esc(t('dlHint')) + '</div></div>';
       if (dl.fallback) {
         html += '<div class="notice warn" style="margin-top:8px"><span class="ico">' + icon('warn') + '</span><div>' + esc(t('dlFallbackWarn')) + '</div></div>';
       }
-      html += '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">' +
+      html += '<div class="card-actions">' +
         '<button class="btn ghost small" data-open="home"><span class="ico">' + icon('folder') + '</span>' + esc(t('dlOpen')) + '</button>' +
         (dl.canMigrate ? '<button class="btn primary small" id="dlMigrateBtn"><span class="ico">' + icon('arrow') + '</span>' + esc(t('dlMigrate')) + '</button>' : '') +
       '</div>';
     } else {
-      html += kv(t('dlRoot'), s.home, true);
-      html += '<div class="notice info" style="margin-top:12px"><span class="ico">' + icon('info') + '</span><div>' + esc(t('dlNoMigrate')) + '</div></div>';
-      html += '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">' +
+      html += '<div class="set-rows">' + setRow(t('dlRoot'), s.home, true) + '</div>';
+      html += '<div class="notice info"><span class="ico">' + icon('info') + '</span><div>' + esc(t('dlNoMigrate')) + '</div></div>';
+      html += '<div class="card-actions">' +
         '<button class="btn ghost small" data-open="home"><span class="ico">' + icon('folder') + '</span>' + esc(t('dlOpen')) + '</button>' +
       '</div>';
     }
@@ -1149,12 +1161,14 @@ function renderSettings(c, s) {
 
   // 本地环境
   html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('folder') + '</span>' + esc(t('secLocal')) + '</div><div class="card-sub">' + esc(t('secLocalSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
-  html += kv(t('kvVersion'), s.brand.name + ' v' + s.brand.version);
-  html += kv(t('kvHome'), s.home, true);
-  html += kv(t('kvConfig'), s.configPath, true);
-  html += kv(t('kvLogs'), s.logsDir, true);
-  html += kv(t('kvScope'), s.configScope || '—');
-  html += '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">' +
+  html += '<div class="set-rows">' +
+    setRow(t('kvVersion'), s.brand.name + ' v' + s.brand.version) +
+    setRow(t('kvHome'), s.home, true) +
+    setRow(t('kvConfig'), s.configPath, true) +
+    setRow(t('kvLogs'), s.logsDir, true) +
+    setRow(t('kvScope'), s.configScope || '—') +
+    '</div>';
+  html += '<div class="card-actions">' +
     '<button class="btn ghost small" data-open="home"><span class="ico">' + icon('folder') + '</span>' + esc(t('openHome')) + '</button>' +
     '<button class="btn ghost small" data-open="logs"><span class="ico">' + icon('folder') + '</span>' + esc(t('openLogs')) + '</button>' +
     '<button class="btn ghost small" id="backupBtn"><span class="ico">' + icon('download') + '</span>' + esc(t('backupConfig')) + '</button>' +
@@ -1177,10 +1191,10 @@ function renderSettings(c, s) {
   html += '</div></div></div>';
 
   // 关于
-  html += '<div class="card span-2"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('info') + '</span>' + esc(t('secAbout')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
-  html += '<p style="font-size:13px;color:var(--text-2);line-height:1.8">' + esc(t('aboutP')) + '</p>';
-  html += kv(t('aboutRepo'), s.brand.repoUrl || '', true);
-  html += '<div class="notice info" style="margin-top:12px"><span class="ico">' + icon('info') + '</span><div>' + esc(t('aboutSafe')) + '</div></div>';
+  html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('info') + '</span>' + esc(t('secAbout')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
+  html += '<p style="font-size:13px;color:var(--text-2);line-height:1.8;margin:0">' + esc(t('aboutP')) + '</p>';
+  html += '<div class="set-rows">' + setRow(t('aboutRepo'), s.brand.repoUrl || '', true) + '</div>';
+  html += '<div class="notice info"><span class="ico">' + icon('info') + '</span><div>' + esc(t('aboutSafe')) + '</div></div>';
   html += '</div></div>';
 
   html += '</div>';
@@ -1232,6 +1246,12 @@ function kv(k, v, mono, pillKind) {
   return '<div class="kv"><div class="kv-k">' + esc(k) + '</div>' + val + '</div>';
 }
 
+// 设置页专用紧凑行：键在左、值在右，单行排列，行高分组统一
+function setRow(k, v, mono) {
+  return '<div class="set-row"><div class="set-row-k">' + esc(k) + '</div>' +
+    '<div class="set-row-v' + (mono ? ' mono' : '') + '">' + v + '</div></div>';
+}
+
 
 /* ---------------- 新手指南页 ---------------- */
 function guideSteps(s) {
@@ -1276,56 +1296,77 @@ function renderGuide(c, s) {
   const done = steps.filter((x) => x.done).length;
   const pct = Math.round((done / steps.length) * 100);
 
+  // 完成状态变化时：如果当前看的这一步刚被标记完成，自动推进一步
+  const curDone = steps[app.guideIdx] && steps[app.guideIdx].done;
+  if (curDone && app.guideIdx < steps.length - 1 && app.view === 'guide') {
+    const next = steps.findIndex((x, i) => i > app.guideIdx && !x.done);
+    if (next !== -1) app.guideIdx = next;
+  }
+  if (app.guideIdx >= steps.length) app.guideIdx = steps.length - 1;
+
+  const i = app.guideIdx;
+  const st = steps[i];
+
   let html = '<div class="hero">' +
     '<h2>' + esc(t('guideHeroT')) + '</h2>' +
     '<p>' + esc(t('guideHeroP')) + '</p>' +
     '<div class="hero-progress"><div class="hero-progress-bar"><div class="hero-progress-fill" style="width:' + pct + '%"></div></div><span class="hero-progress-text">' + esc(t('guideProgress', { d: done, t: steps.length })) + '</span></div>' +
     '</div>';
 
-  html += '<div class="section-title"><span class="ico">' + icon('book') + '</span>' + esc(t('guideStepsT')) + '</div>';
-  html += '<div class="section-sub">' + esc(t('guideStepsS')) + '</div>';
-  const currentIdx = steps.findIndex((x) => !x.done);
-  html += '<div class="step-list">';
-  steps.forEach((st, i) => {
-    const cls = st.done ? 'done' : (i === currentIdx ? 'current' : '');
-    html += '<div class="step-item ' + cls + '">' +
-      '<div class="step-num">' + (st.done ? icon('check') : (i + 1)) + '</div>' +
-      '<div class="step-info"><div class="step-name">' + esc(st.name) + ' <span class="pill ' + (st.done ? 'ok' : 'muted') + '">' + esc(st.done ? t('gDone') : t('gTodo')) + '</span></div>' +
-      '<div class="step-desc">' + esc(st.desc) + '</div></div>';
-    if (st.actions.length > 0) {
-      html += '<div class="step-actions">';
-      st.actions.forEach((a, j) => {
-        const inner = (a.icon ? '<span class="ico">' + icon(a.icon) + '</span>' : '') + esc(a.label);
-        if (a.href) html += '<a class="btn ' + a.kind + ' small" href="' + esc(a.href) + '" target="_blank" rel="noopener">' + inner + '</a>';
-        else html += '<button class="btn ' + a.kind + ' small" data-gact="' + i + '-' + j + '">' + inner + '</button>';
-      });
-      html += '</div>';
-    }
-    html += '</div>';
+  // 步骤圆点导航
+  html += '<div class="wizard-dots">';
+  steps.forEach((x, j) => {
+    const cls = (j === i) ? 'cur' : (x.done ? 'done' : '');
+    html += '<button class="wizard-dot ' + cls + '" data-gnav="' + j + '" title="' + esc(x.name) + '" aria-label="' + esc(t('wizStepOf', { i: j + 1, n: steps.length })) + '">' + (x.done ? icon('check') : (j + 1)) + '</button>';
   });
   html += '</div>';
 
-  html += '<div class="section-title"><span class="ico">' + icon('heartbeat') + '</span>' + esc(t('guideTipsT')) + '</div>';
+  // 当前步骤大卡片
+  html += '<div class="wizard-card">' +
+    '<div class="wizard-step-tag">' + esc(t('wizStepOf', { i: i + 1, n: steps.length })) +
+      (st.done ? ' <span class="pill ok">' + esc(t('gDone')) + '</span>' : '') +
+    '</div>' +
+    '<h3 class="wizard-name">' + esc(st.name) + '</h3>' +
+    '<p class="wizard-desc">' + esc(st.desc) + '</p>';
+  if (st.actions.length > 0) {
+    html += '<div class="wizard-actions">';
+    st.actions.forEach((a, j) => {
+      const inner = (a.icon ? '<span class="ico">' + icon(a.icon) + '</span>' : '') + esc(a.label);
+      if (a.href) html += '<a class="btn ' + a.kind + '" href="' + esc(a.href) + '" target="_blank" rel="noopener">' + inner + '</a>';
+      else html += '<button class="btn ' + a.kind + '" data-gact="' + i + '-' + j + '">' + inner + '</button>';
+    });
+    html += '</div>';
+  }
+  html += '<div class="wizard-nav">' +
+    '<button class="btn ghost" data-gnav="' + (i - 1) + '"' + (i === 0 ? ' disabled' : '') + '><span class="ico">' + icon('prev') + '</span>' + esc(t('wizPrev')) + '</button>';
+  if (i < steps.length - 1) {
+    html += '<button class="btn primary" data-gnav="' + (i + 1) + '">' + esc(t('wizNext')) + '<span class="ico">' + icon('arrow') + '</span></button>';
+  } else {
+    html += '<button class="btn primary" data-gnav-end="1"><span class="ico">' + icon('check') + '</span>' + esc(t('wizFinish')) + '</button>';
+  }
+  html += '</div></div>';
+
+  // 帮助收进一处，想看再展开
+  html += '<details class="wizard-help"><summary><span class="ico">' + icon('info') + '</span>' + esc(t('wizHelpT')) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="wizard-help-body">';
   html += '<div class="guide-tips">';
   [['zap', 'tip1T', 'tip1D'], ['refresh', 'tip2T', 'tip2D'], ['heartbeat', 'tip3T', 'tip3D']].forEach((row) => {
     html += '<div class="guide-tip"><div class="t"><span class="ico">' + icon(row[0]) + '</span>' + esc(t(row[1])) + '</div><div class="d">' + esc(t(row[2])) + '</div></div>';
   });
   html += '</div>';
-
-  html += '<div class="section-title"><span class="ico">' + icon('info') + '</span>' + esc(t('guideFaqT')) + '</div>';
+  html += '<div class="section-title" style="margin-top:20px"><span class="ico">' + icon('info') + '</span>' + esc(t('guideFaqT')) + '</div>';
   html += '<div class="faq-list">';
-  for (let i = 1; i <= 5; i++) {
-    html += '<details class="faq"><summary><span class="ico">' + icon('info') + '</span>' + esc(t('faqQ' + i)) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="faq-a">' + esc(t('faqA' + i)) + '</div></details>';
+  for (let k = 1; k <= 5; k++) {
+    html += '<details class="faq"><summary><span class="ico">' + icon('info') + '</span>' + esc(t('faqQ' + k)) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="faq-a">' + esc(t('faqA' + k)) + '</div></details>';
   }
   html += '</div>';
-
-  html += '<div class="section-title"><span class="ico">' + icon('link') + '</span>' + esc(t('guideLinksT')) + '</div>';
+  html += '<div class="section-title" style="margin-top:20px"><span class="ico">' + icon('link') + '</span>' + esc(t('guideLinksT')) + '</div>';
   html += '<div class="card"><div class="card-body" style="padding-top:8px"><div class="link-row">';
   const docs = s.docs || {};
   [['platformTunnels', 'lnkTunnels'], ['platformApiKeys', 'lnkApiKeys'], ['chatgptConnectors', 'lnkConnectors'], ['secureTunnelGuide', 'lnkGuide'], ['tunnelClientRepo', 'lnkRepo']].forEach((row) => {
     if (docs[row[0]]) html += '<a class="link-item" href="' + esc(docs[row[0]]) + '" target="_blank" rel="noopener"><span class="ico">' + icon('ext') + '</span>' + esc(t(row[1])) + '<span class="arrow">' + icon('arrow') + '</span></a>';
   });
   html += '</div></div></div>';
+  html += '</div></details>';
 
   c.innerHTML = html;
   $$('[data-gact]', c).forEach((b) => b.addEventListener('click', () => {
@@ -1334,6 +1375,12 @@ function renderGuide(c, s) {
     const a = st && st.actions[Number(parts[1])];
     if (a && a.fn) a.fn();
   }));
+  $$('[data-gnav]', c).forEach((b) => b.addEventListener('click', () => {
+    const j = Number(b.dataset.gnav);
+    if (j >= 0 && j < steps.length) { app.guideIdx = j; renderView(); }
+  }));
+  const endBtn = $('[data-gnav-end]', c);
+  if (endBtn) endBtn.addEventListener('click', () => setView('dashboard'));
 }
 
 /* ---------------- 服务器表单 ---------------- */

@@ -180,6 +180,10 @@ a:hover { text-decoration: underline; }
 .hero-progress-fill { height: 100%; border-radius: 4px; background: #fff; transition: width .4s; }
 .hero-progress-text { font-size: 12.5px; font-weight: 600; }
 
+/* 新手指南：单步聚焦向导 */
+.wizard-dots { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+
+/* 概览页入门步骤（未完成初始化时显示） */
 .step-list { display: flex; flex-direction: column; gap: 12px; }
 .step-item {
   display: flex; align-items: center; gap: 16px;
@@ -199,6 +203,33 @@ a:hover { text-decoration: underline; }
 .step-name { font-weight: 700; font-size: 14.5px; display: flex; align-items: center; gap: 8px; }
 .step-desc { font-size: 12.5px; color: var(--text-3); margin-top: 2px; }
 .step-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.wizard-dot {
+  width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--border-strong);
+  background: var(--surface-2); color: var(--text-3); font-weight: 700; font-size: 13px;
+  display: grid; place-items: center; cursor: pointer; transition: all .15s; padding: 0;
+}
+.wizard-dot:hover { border-color: var(--primary); color: var(--primary); }
+.wizard-dot.cur { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 0 0 4px rgba(79,110,247,.18); }
+.wizard-dot.done { background: var(--green); border-color: var(--green); color: #fff; }
+.wizard-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl);
+  box-shadow: var(--shadow-md); padding: 28px 30px 24px; margin-bottom: 16px;
+}
+.wizard-step-tag { font-size: 12px; font-weight: 600; color: var(--text-3); display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.wizard-name { font-size: 19px; font-weight: 700; margin: 0 0 10px; }
+.wizard-desc { font-size: 14px; color: var(--text-2); line-height: 1.8; margin: 0 0 20px; max-width: 640px; }
+.wizard-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
+.wizard-nav { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 18px; }
+.wizard-help { margin-top: 4px; }
+.wizard-help summary { display: flex; align-items: center; gap: 8px; padding: 11px 14px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-3); list-style: none; border-radius: var(--r-md); transition: background .12s; }
+.wizard-help summary::-webkit-details-marker { display: none; }
+.wizard-help summary:hover { background: var(--surface-2); color: var(--text-2); }
+.wizard-help summary .ico { width: 15px; height: 15px; color: var(--primary); }
+.wizard-help summary .chev { margin-left: auto; width: 14px; height: 14px; display: inline-flex; transition: transform .15s; }
+.wizard-help summary .chev svg { width: 14px; height: 14px; }
+.wizard-help[open] summary .chev { transform: rotate(90deg); }
+.wizard-help-body { padding: 12px 4px 4px; }
 
 /* ============ 隧道/服务器卡片 ============ */
 .entity-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
@@ -383,8 +414,20 @@ a:hover { text-decoration: underline; }
 .check-detail { font-size: 12.5px; color: var(--text-2); margin-top: 2px; word-break: break-all; }
 
 /* ============ 设置页 ============ */
-.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
 .settings-grid > .span-2 { grid-column: 1 / -1; }
+.settings-grid > .card { height: 100%; display: flex; flex-direction: column; }
+.settings-grid > .card .card-body { flex: 1; display: flex; flex-direction: column; }
+.card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 14px; }
+.set-rows { display: flex; flex-direction: column; }
+.set-row { display: flex; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.set-row:last-child { border-bottom: none; }
+.set-row-k { font-size: 12px; color: var(--text-3); flex-shrink: 0; width: 108px; }
+.set-row-v { font-size: 13px; font-weight: 500; word-break: break-all; min-width: 0; flex: 1; }
+.set-row-v.mono { font-size: 12px; font-family: var(--mono); }
+.check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text-2); cursor: pointer; padding: 6px 0; }
+.check-row input { margin-top: 2px; }
+#prefLang { max-width: 200px; }
 .kv { display: flex; flex-direction: column; gap: 2px; padding: 11px 0; border-bottom: 1px solid var(--border); }
 .kv:last-child { border-bottom: none; }
 .kv-k { font-size: 12px; color: var(--text-3); }
