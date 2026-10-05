@@ -46,8 +46,10 @@ function encodePNG(width, height, rgba) {
 // ---------- 颜色与渐变 ----------
 function lerp(a, b, t) { return a + (b - a) * t; }
 function hex(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
-const BG_TOP = hex('#0b1f3a'), BG_BOT = hex('#123a6b');
-const WHEEL = hex('#22d3ee'), WHEEL_HI = hex('#7df3ff');
+// 底色：亮蓝渐变（任务栏小尺寸下足够醒目，不会被误认为白色）
+const BG_TOP = hex('#2563eb'), BG_BOT = hex('#1d4ed8');
+// 舵轮：纯白（高对比度，任何背景下都清晰）
+const WHEEL = hex('#ffffff'), WHEEL_HI = hex('#e0f2fe');
 
 // ---------- 画布 ----------
 function render(size) {
@@ -56,11 +58,11 @@ function render(size) {
   const inset = S * 0.035;                    // 四周留白，避免图标贴边
   const half = S / 2 - inset;                 // 圆角方块半径
   const corner = S * 0.20;                    // 圆角半径
-  const wheelR = S * 0.30;                    // 舵轮外圆半径
-  const ringW = S * 0.045;                    // 舵轮环宽
-  const spokeW = S * 0.030;                   // 辐条宽
-  const spokeLen = S * 0.40;                  // 辐条长（超出外环）
-  const hubR = S * 0.085;                     // 中心毂半径
+  const wheelR = S * 0.28;                    // 舵轮外圆半径
+  const ringW = S * 0.055;                    // 舵轮环宽（加粗，小尺寸更清晰）
+  const spokeW = S * 0.035;                   // 辐条宽（加粗）
+  const spokeLen = S * 0.38;                  // 辐条长
+  const hubR = S * 0.095;                     // 中心毂半径（加大）
 
   function inRoundedRect(x, y) {
     const dx = Math.max(Math.abs(x - c) - (half - corner), 0);

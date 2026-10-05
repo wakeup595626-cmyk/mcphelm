@@ -506,6 +506,7 @@ const app = {
   desktop: false,
   keyringSupported: false,
   guideIdx: 0,
+  guideAutoAdvance: true, // 首次进入指南时允许自动推进到第一个未完成步骤
 };
 
 function viewMeta(v) {
@@ -1296,11 +1297,15 @@ function renderGuide(c, s) {
   const done = steps.filter((x) => x.done).length;
   const pct = Math.round((done / steps.length) * 100);
 
-  // 完成状态变化时：如果当前看的这一步刚被标记完成，自动推进一步
-  const curDone = steps[app.guideIdx] && steps[app.guideIdx].done;
-  if (curDone && app.guideIdx < steps.length - 1 && app.view === 'guide') {
+  // 自动推进只在「当前步骤从未完成变为已完成」时触发一次；
+  // 手动导航（上一步/圆点）后不再弹回，让用户自由翻看
+  const curDone = !!(steps[app.guideIdx] && steps[app.guideIdx].done);
+  if (curDone && app.guideAutoAdvance !== false && app.guideIdx < steps.length - 1) {
     const next = steps.findIndex((x, i) => i > app.guideIdx && !x.done);
-    if (next !== -1) app.guideIdx = next;
+    if (next !== -1) {
+      app.guideIdx = next;
+      app.guideAutoAdvance = false; // 推进过一次后锁定，后续手动导航不再被弹回
+    }
   }
   if (app.guideIdx >= steps.length) app.guideIdx = steps.length - 1;
 
@@ -1377,7 +1382,11 @@ function renderGuide(c, s) {
   }));
   $$('[data-gnav]', c).forEach((b) => b.addEventListener('click', () => {
     const j = Number(b.dataset.gnav);
-    if (j >= 0 && j < steps.length) { app.guideIdx = j; renderView(); }
+    if (j >= 0 && j < steps.length) {
+      app.guideIdx = j;
+      app.guideAutoAdvance = false; // 手动导航后锁定自动推进
+      renderView();
+    }
   }));
   const endBtn = $('[data-gnav-end]', c);
   if (endBtn) endBtn.addEventListener('click', () => setView('dashboard'));
