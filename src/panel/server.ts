@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createServer } from 'node:http';
@@ -7,11 +8,20 @@ import { BRAND } from '../brand.ts';
 import { runDoctor } from '../doctor.ts';
 import { describeConfigScope, logFileFor } from '../paths.ts';
 import type { AppPaths } from '../paths.ts';
-import { listStatuses, probeHealth, readLogTail, startTunnel, stopTunnel } from '../runtime.ts';
-import { findTunnel, serverTarget } from '../store.ts';
-import type { AppConfig, ConfigIssue } from '../store.ts';
-import { findRuntime } from '../tunnelclient.ts';
-import { bold, cyan, dim, yellow } from '../util.ts';
+import { listStatuses, probeHealth, readLogTail, readState, startTunnel, stopTunnel } from '../runtime.ts';
+import {
+  findServer,
+  findTunnel,
+  isValidName,
+  isValidTunnelId,
+  resolveApiKey,
+  saveConfig,
+  serverTarget,
+  validateConfig,
+} from '../store.ts';
+import type { AppConfig, ConfigIssue, McpServerConfig, ServerKind, TunnelConfig } from '../store.ts';
+import { findRuntime, installRuntime } from '../tunnelclient.ts';
+import { bold, cyan, dim, isProcessAlive, nowIso, yellow } from '../util.ts';
 
 const WEB_DIR = fileURLToPath(new URL('./web/', import.meta.url));
 
@@ -93,18 +103,217 @@ function serveStatic(res: ServerResponse, urlPath: string): void {
   }
 }
 
+/* ------------------------------------------------------------------ 请求体解析 */
+
+function bodyObject(body: unknown): Record<string, unknown> | null {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return null;
+  return body as Record<string, unknown>;
+}
+
+function bodyString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value.trim() : undefined;
+}
+
+const ENV_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+interface ServerPayload {
+  kind: ServerKind;
+  command?: string;
+  url?: string;
+  description?: string;
+  headers?: Record<string, string>;
+}
+
+function parseServerPayload(
+  raw: Record<string, unknown>
+): { ok: true; value: ServerPayload } | { ok: false; error: string } {
+  const kind = raw.kind === 'stdio' || raw.kind === 'http' ? raw.kind : null;
+  if (!kind) return { ok: false, error: '服务器类型必须是 stdio 或 http' };
+  const command = bodyString(raw.command);
+  const url = bodyString(raw.url);
+  const description = bodyString(raw.description);
+  if (kind === 'stdio') {
+    if (!command) return { ok: false, error: 'stdio 服务器需要填写启动命令（command）' };
+    return { ok: true, value: { kind, command, description: description || undefined } };
+  }
+  if (!url) return { ok: false, error: 'HTTP 服务器需要填写 MCP 端点地址（url）' };
+  if (!/^https?:\/\//.test(url)) return { ok: false, error: 'HTTP 端点需要以 http:// 或 https:// 开头' };
+  let headers: Record<string, string> | undefined;
+  if (raw.headers !== undefined && raw.headers !== null) {
+    const obj = bodyObject(raw.headers);
+    if (!obj) return { ok: false, error: '请求头格式不对（应为键值对）' };
+    headers = {};
+    for (const [entryKey, entryValue] of Object.entries(obj)) {
+      const text = bodyString(entryValue);
+      if (!entryKey.trim() || text === undefined) return { ok: false, error: '请求头格式不对：' + entryKey };
+      headers[entryKey.trim()] = text;
+    }
+    if (Object.keys(headers).length === 0) headers = undefined;
+  }
+  return { ok: true, value: { kind, url, description: description || undefined, headers } };
+}
+
+type TunnelKeyPayload =
+  | { mode: 'env'; envName: string }
+  | { mode: 'inline'; value?: string }
+  | { mode: 'clear' }
+  | { mode: 'keep' };
+
+interface TunnelPayload {
+  tunnelId: string;
+  server: string;
+  healthPort?: number;
+  key: TunnelKeyPayload;
+}
+
+function parseTunnelPayload(
+  raw: Record<string, unknown>,
+  config: AppConfig,
+  mode: 'create' | 'update'
+): { ok: true; value: TunnelPayload } | { ok: false; error: string } {
+  const tunnelId = bodyString(raw.tunnelId) ?? '';
+  if (!isValidTunnelId(tunnelId)) {
+    return { ok: false, error: '隧道 ID 格式不对（应为 tunnel_ 加 32 位小写十六进制）' };
+  }
+  const server = bodyString(raw.server) ?? '';
+  if (!server || !findServer(config, server)) {
+    return { ok: false, error: '绑定的 MCP 服务器不存在：' + (server || '（未选择）') };
+  }
+  let healthPort: number | undefined;
+  if (raw.healthPort !== undefined && raw.healthPort !== null && raw.healthPort !== '') {
+    const num = Number(raw.healthPort);
+    if (!Number.isInteger(num) || num < 1 || num > 65535) {
+      return { ok: false, error: '健康端口需要是 1-65535 的整数' };
+    }
+    healthPort = num;
+  }
+  const keyModeRaw = bodyString(raw.keyMode) ?? (mode === 'create' ? 'env' : 'keep');
+  let key: TunnelKeyPayload;
+  if (keyModeRaw === 'env') {
+    const envName = bodyString(raw.apiKeyEnv) ?? 'CONTROL_PLANE_API_KEY';
+    if (!ENV_NAME_RE.test(envName)) {
+      return { ok: false, error: '环境变量名不合法，例如 CONTROL_PLANE_API_KEY' };
+    }
+    key = { mode: 'env', envName };
+  } else if (keyModeRaw === 'inline') {
+    const value = bodyString(raw.apiKey) ?? '';
+    if (mode === 'create' && !value) {
+      return { ok: false, error: '直接填写密钥的模式需要填写 runtime key' };
+    }
+    key = { mode: 'inline', value: value || undefined };
+  } else if (keyModeRaw === 'clear') {
+    key = { mode: 'clear' };
+  } else if (keyModeRaw === 'keep' && mode === 'update') {
+    key = { mode: 'keep' };
+  } else {
+    return { ok: false, error: '密钥来源参数不合法：' + keyModeRaw };
+  }
+  return { ok: true, value: { tunnelId, server, healthPort, key } };
+}
+
+function applyTunnelKey(tunnel: TunnelConfig, key: TunnelKeyPayload): void {
+  switch (key.mode) {
+    case 'env':
+      tunnel.apiKeyEnv = key.envName;
+      delete tunnel.apiKey;
+      break;
+    case 'inline':
+      if (key.value !== undefined) tunnel.apiKey = key.value;
+      delete tunnel.apiKeyEnv;
+      break;
+    case 'clear':
+      delete tunnel.apiKeyEnv;
+      delete tunnel.apiKey;
+      break;
+    default:
+      break;
+  }
+}
+
+function openFolder(folderPath: string): void {
+  const command =
+    process.platform === 'win32' ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+  const child = spawn(command, [folderPath], { detached: true, stdio: 'ignore', windowsHide: true });
+  child.unref();
+}
+
+/* ------------------------------------------------------------------ 面板主体 */
+
+interface RuntimeJob {
+  kind: 'fetch' | 'import';
+  running: boolean;
+  startedAt: string;
+  finishedAt: string | null;
+  ok: boolean | null;
+  error: string | null;
+  lines: string[];
+}
+
 export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
   const host = opts.host ?? '127.0.0.1';
   const busy = new Set<string>();
-  let runtimeCache = { at: 0, path: null as string | null, version: null as string | null };
+  let runtimeCache = { at: 0, path: null as string | null, version: null as string | null, source: 'none' };
+  let runtimeJob: RuntimeJob | null = null;
 
-  function runtimeInfo(): { path: string | null; version: string | null } {
+  function invalidateRuntimeCache(): void {
+    runtimeCache.at = 0;
+  }
+
+  function runtimeInfo(): { path: string | null; version: string | null; source: string } {
     const now = Date.now();
     if (now - runtimeCache.at > 15000) {
       const info = findRuntime(opts.paths);
-      runtimeCache = { at: now, path: info.path, version: info.version };
+      runtimeCache = { at: now, path: info.path, version: info.version, source: info.source };
     }
-    return { path: runtimeCache.path, version: runtimeCache.version };
+    return { path: runtimeCache.path, version: runtimeCache.version, source: runtimeCache.source };
+  }
+
+  function startRuntimeJob(
+    kind: RuntimeJob['kind'],
+    jobOpts: { version?: string; skipVerify?: boolean; zipPath?: string }
+  ): boolean {
+    if (runtimeJob && runtimeJob.running) return false;
+    runtimeJob = {
+      kind,
+      running: true,
+      startedAt: nowIso(),
+      finishedAt: null,
+      ok: null,
+      error: null,
+      lines: [kind === 'fetch' ? '开始下载官方 tunnel-client 运行时 …' : '开始导入本地运行时压缩包 …'],
+    };
+    const push = (line: string): void => {
+      if (!runtimeJob) return;
+      runtimeJob.lines.push(line);
+      if (runtimeJob.lines.length > 240) runtimeJob.lines.splice(0, runtimeJob.lines.length - 240);
+    };
+    installRuntime({
+      paths: opts.paths,
+      version: jobOpts.version,
+      skipVerify: jobOpts.skipVerify,
+      zipPath: jobOpts.zipPath,
+      log: push,
+    })
+      .then((result) => {
+        if (!runtimeJob) return;
+        runtimeJob.ok = true;
+        push('完成：' + result.path + (result.verified ? '（官方 SHA-256 校验通过）' : '（未校验）'));
+        opts.onLog?.('面板下载了官方运行时：' + result.path);
+      })
+      .catch((err: unknown) => {
+        if (!runtimeJob) return;
+        runtimeJob.ok = false;
+        runtimeJob.error = err instanceof Error ? err.message : String(err);
+        push('失败：' + runtimeJob.error);
+      })
+      .finally(() => {
+        if (runtimeJob) {
+          runtimeJob.running = false;
+          runtimeJob.finishedAt = nowIso();
+        }
+        invalidateRuntimeCache();
+      });
+    return true;
   }
 
   async function buildState(): Promise<unknown> {
@@ -114,12 +323,15 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
     for (const status of statuses) {
       const health =
         status.state === 'running' && status.healthAddr ? await probeHealth(status.healthAddr, 1500) : null;
+      const cfg = findTunnel(opts.config, status.name);
+      const key = cfg ? resolveApiKey(cfg) : { ok: false, error: '隧道配置缺失' };
       tunnels.push({
         name: status.name,
         tunnelIdMasked: status.tunnelIdMasked,
         server: status.server,
         target: status.target,
         healthAddr: status.healthAddr,
+        healthPort: cfg?.healthPort ?? opts.config.defaults?.healthPort ?? null,
         status: {
           state: status.state,
           pid: status.pid,
@@ -128,22 +340,42 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         },
         health,
         lastError: status.lastError,
+        key: {
+          ready: key.ok,
+          source: key.ok ? (key.source ?? null) : null,
+          envName: cfg?.apiKeyEnv ?? null,
+        },
       });
     }
+    const usedBy = new Map<string, string[]>();
+    for (const tunnel of opts.config.tunnels) {
+      const list = usedBy.get(tunnel.server) ?? [];
+      list.push(tunnel.name);
+      usedBy.set(tunnel.server, list);
+    }
+    const issues = validateConfig(opts.config);
+    const running = statuses.filter((status) => status.state === 'running').length;
     return {
       brand: { name: BRAND.name, slug: BRAND.slug, version: BRAND.version, repoUrl: BRAND.repoUrl },
       configPath: opts.paths.configFile,
       configExists: opts.paths.configScope !== 'missing',
       configScope: describeConfigScope(opts.paths.configScope),
       home: opts.paths.home,
-      runtime: { path: runtime.path, version: runtime.version, found: runtime.path !== null },
+      logsDir: opts.paths.logsDir,
+      runtime: { path: runtime.path, version: runtime.version, found: runtime.path !== null, source: runtime.source },
+      runtimeJob: runtimeJob
+        ? { kind: runtimeJob.kind, running: runtimeJob.running, ok: runtimeJob.ok, error: runtimeJob.error }
+        : null,
+      configIssues: issues,
       servers: opts.config.servers.map((server) => ({
         name: server.name,
         kind: server.kind,
         target: serverTarget(server),
         description: server.description ?? '',
+        usedBy: usedBy.get(server.name) ?? [],
       })),
       tunnels,
+      counts: { servers: opts.config.servers.length, tunnels: statuses.length, running },
       docs: BRAND.docs,
       panelVersion: BRAND.version,
     };
@@ -174,14 +406,49 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         return;
       }
 
+      if (method === 'GET' && path === '/api/config') {
+        sendJson(res, 200, {
+          ok: true,
+          configPath: opts.paths.configFile,
+          configScope: describeConfigScope(opts.paths.configScope),
+          config: {
+            version: opts.config.version,
+            defaults: opts.config.defaults ?? {},
+            servers: opts.config.servers,
+            tunnels: opts.config.tunnels.map((tunnel) => {
+              const { apiKey, ...rest } = tunnel;
+              return { ...rest, apiKeySet: Boolean(apiKey) };
+            }),
+          },
+        });
+        return;
+      }
+
       if (method === 'GET' && path === '/api/doctor') {
         const checks = await runDoctor({
           paths: opts.paths,
           config: opts.config,
-          configIssues: opts.configIssues ?? [],
+          configIssues: validateConfig(opts.config),
           online: url.searchParams.get('online') === '1',
         });
         sendJson(res, 200, { ok: true, checks });
+        return;
+      }
+
+      if (method === 'GET' && path === '/api/runtime/job') {
+        sendJson(res, 200, { ok: true, job: runtimeJob });
+        return;
+      }
+
+      if (method === 'GET' && path === '/api/logs') {
+        sendJson(res, 200, {
+          ok: true,
+          logsDir: opts.paths.logsDir,
+          files: opts.config.tunnels.map((tunnel) => ({
+            name: tunnel.name,
+            logFile: logFileFor(opts.paths, tunnel.name),
+          })),
+        });
         return;
       }
 
@@ -201,7 +468,205 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         return;
       }
 
-      const actionMatch = /^\/api\/tunnels\/([^/]+)\/(start|stop)$/.exec(path);
+      /* ---------------------------------------------------------- 服务器增删改 */
+
+      if (method === 'POST' && path === '/api/servers') {
+        const body = bodyObject(await readBody(req));
+        if (!body) {
+          sendJson(res, 400, { ok: false, error: '请求体需要是 JSON 对象' });
+          return;
+        }
+        const name = bodyString(body.name) ?? '';
+        if (!isValidName(name)) {
+          sendJson(res, 400, { ok: false, error: '名称不合法（只允许字母数字与 . _ -，最长 40 字符）' });
+          return;
+        }
+        const parsed = parseServerPayload(body);
+        if (!parsed.ok) {
+          sendJson(res, 400, { ok: false, error: parsed.error });
+          return;
+        }
+        const existing = findServer(opts.config, name);
+        if (existing && body.overwrite !== true) {
+          sendJson(res, 409, { ok: false, error: '服务器已存在：' + name });
+          return;
+        }
+        const value = parsed.value;
+        const server: McpServerConfig = { name, kind: value.kind, description: value.description };
+        if (value.kind === 'stdio') {
+          server.command = value.command ?? '';
+        } else {
+          server.url = value.url ?? '';
+          if (value.headers) server.headers = value.headers;
+        }
+        if (existing) {
+          opts.config.servers[opts.config.servers.indexOf(existing)] = server;
+        } else {
+          opts.config.servers.push(server);
+        }
+        saveConfig(opts.paths, opts.config);
+        opts.onLog?.('面板保存了 MCP 服务器：' + name);
+        sendJson(res, 200, { ok: true, message: '已保存 MCP 服务器：' + name });
+        return;
+      }
+
+      const serverUpdateMatch = /^\/api\/servers\/([^/]+)\/update$/.exec(path);
+      if (method === 'POST' && serverUpdateMatch) {
+        const name = serverUpdateMatch[1] ?? '';
+        const server = findServer(opts.config, name);
+        if (!server) {
+          sendJson(res, 404, { ok: false, error: '未找到服务器：' + name });
+          return;
+        }
+        const body = bodyObject(await readBody(req));
+        if (!body) {
+          sendJson(res, 400, { ok: false, error: '请求体需要是 JSON 对象' });
+          return;
+        }
+        const parsed = parseServerPayload(body);
+        if (!parsed.ok) {
+          sendJson(res, 400, { ok: false, error: parsed.error });
+          return;
+        }
+        const value = parsed.value;
+        const updated: McpServerConfig = { name, kind: value.kind, description: value.description };
+        if (value.kind === 'stdio') {
+          updated.command = value.command ?? '';
+        } else {
+          updated.url = value.url ?? '';
+          if (value.headers) updated.headers = value.headers;
+        }
+        opts.config.servers[opts.config.servers.indexOf(server)] = updated;
+        saveConfig(opts.paths, opts.config);
+        opts.onLog?.('面板更新了 MCP 服务器：' + name);
+        sendJson(res, 200, { ok: true, message: '已更新 MCP 服务器：' + name });
+        return;
+      }
+
+      const serverRemoveMatch = /^\/api\/servers\/([^/]+)\/remove$/.exec(path);
+      if (method === 'POST' && serverRemoveMatch) {
+        const name = serverRemoveMatch[1] ?? '';
+        const server = findServer(opts.config, name);
+        if (!server) {
+          sendJson(res, 404, { ok: false, error: '未找到服务器：' + name });
+          return;
+        }
+        const used = opts.config.tunnels.filter((tunnel) => tunnel.server === name).map((tunnel) => tunnel.name);
+        if (used.length > 0) {
+          sendJson(res, 409, {
+            ok: false,
+            error: '该服务器正被这些隧道使用：' + used.join('、') + '。请先删除或改绑它们，再删除服务器。',
+          });
+          return;
+        }
+        opts.config.servers.splice(opts.config.servers.indexOf(server), 1);
+        saveConfig(opts.paths, opts.config);
+        opts.onLog?.('面板删除了 MCP 服务器：' + name);
+        sendJson(res, 200, { ok: true, message: '已删除 MCP 服务器：' + name });
+        return;
+      }
+
+      /* ---------------------------------------------------------- 隧道增删改 */
+
+      if (method === 'POST' && path === '/api/tunnels') {
+        const body = bodyObject(await readBody(req));
+        if (!body) {
+          sendJson(res, 400, { ok: false, error: '请求体需要是 JSON 对象' });
+          return;
+        }
+        const name = bodyString(body.name) ?? '';
+        if (!isValidName(name)) {
+          sendJson(res, 400, { ok: false, error: '名称不合法（只允许字母数字与 . _ -，最长 40 字符）' });
+          return;
+        }
+        const parsed = parseTunnelPayload(body, opts.config, 'create');
+        if (!parsed.ok) {
+          sendJson(res, 400, { ok: false, error: parsed.error });
+          return;
+        }
+        const existing = findTunnel(opts.config, name);
+        if (existing && body.overwrite !== true) {
+          sendJson(res, 409, { ok: false, error: '隧道已存在：' + name });
+          return;
+        }
+        const value = parsed.value;
+        const tunnel: TunnelConfig = { name, tunnelId: value.tunnelId, server: value.server };
+        if (value.healthPort !== undefined) tunnel.healthPort = value.healthPort;
+        applyTunnelKey(tunnel, value.key);
+        if (existing) {
+          opts.config.tunnels[opts.config.tunnels.indexOf(existing)] = tunnel;
+        } else {
+          opts.config.tunnels.push(tunnel);
+        }
+        saveConfig(opts.paths, opts.config);
+        opts.onLog?.('面板保存了隧道：' + name);
+        const keyCheck = resolveApiKey(tunnel);
+        sendJson(res, 200, {
+          ok: true,
+          message: '已保存隧道：' + name,
+          warning: keyCheck.ok ? null : '还没有配置 runtime key，启动前请补上（环境变量或直接填写密钥）。',
+        });
+        return;
+      }
+
+      const tunnelUpdateMatch = /^\/api\/tunnels\/([^/]+)\/update$/.exec(path);
+      if (method === 'POST' && tunnelUpdateMatch) {
+        const name = tunnelUpdateMatch[1] ?? '';
+        const tunnel = findTunnel(opts.config, name);
+        if (!tunnel) {
+          sendJson(res, 404, { ok: false, error: '未找到隧道：' + name });
+          return;
+        }
+        const body = bodyObject(await readBody(req));
+        if (!body) {
+          sendJson(res, 400, { ok: false, error: '请求体需要是 JSON 对象' });
+          return;
+        }
+        const parsed = parseTunnelPayload(body, opts.config, 'update');
+        if (!parsed.ok) {
+          sendJson(res, 400, { ok: false, error: parsed.error });
+          return;
+        }
+        const value = parsed.value;
+        tunnel.tunnelId = value.tunnelId;
+        tunnel.server = value.server;
+        if (value.healthPort !== undefined) tunnel.healthPort = value.healthPort;
+        else delete tunnel.healthPort;
+        applyTunnelKey(tunnel, value.key);
+        saveConfig(opts.paths, opts.config);
+        opts.onLog?.('面板更新了隧道：' + name);
+        const keyCheck = resolveApiKey(tunnel);
+        sendJson(res, 200, {
+          ok: true,
+          message: '已更新隧道：' + name + '（若正在运行，重启后生效）',
+          warning: keyCheck.ok ? null : '该隧道当前没有可用的 runtime key，启动前请补上。',
+        });
+        return;
+      }
+
+      const tunnelRemoveMatch = /^\/api\/tunnels\/([^/]+)\/remove$/.exec(path);
+      if (method === 'POST' && tunnelRemoveMatch) {
+        const name = tunnelRemoveMatch[1] ?? '';
+        const tunnel = findTunnel(opts.config, name);
+        if (!tunnel) {
+          sendJson(res, 404, { ok: false, error: '未找到隧道：' + name });
+          return;
+        }
+        const state = readState(opts.paths, name);
+        if (state && isProcessAlive(state.pid)) {
+          sendJson(res, 409, { ok: false, error: '隧道 ' + name + ' 正在运行，请先停止再删除。' });
+          return;
+        }
+        opts.config.tunnels.splice(opts.config.tunnels.indexOf(tunnel), 1);
+        saveConfig(opts.paths, opts.config);
+        opts.onLog?.('面板删除了隧道：' + name);
+        sendJson(res, 200, { ok: true, message: '已删除隧道：' + name });
+        return;
+      }
+
+      /* ---------------------------------------------------------- 隧道启停 */
+
+      const actionMatch = /^\/api\/tunnels\/([^/]+)\/(start|stop|restart)$/.exec(path);
       if (method === 'POST' && actionMatch) {
         const name = actionMatch[1] ?? '';
         const action = actionMatch[2] ?? '';
@@ -217,39 +682,116 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         busy.add(name);
         try {
           await readBody(req);
-          if (action === 'start') {
-            const result = await startTunnel({ paths: opts.paths, config: opts.config, tunnel });
-            if (!result.ok) {
-              sendJson(res, 400, { ok: false, error: result.error ?? '启动失败' });
-              return;
-            }
-            const state = result.state;
-            opts.onLog?.('面板启动了隧道 ' + name + '（PID ' + String(state?.pid ?? '?') + '）');
-            sendJson(res, 200, {
-              ok: true,
-              message:
-                '隧道 ' +
-                name +
-                ' 已启动（PID ' +
-                String(state?.pid ?? '?') +
-                '，健康端点 ' +
-                String(state?.healthAddr ?? '') +
-                '）',
-              state: 'running',
+          if (action === 'stop') {
+            const stopped = await stopTunnel(opts.paths, name);
+            opts.onLog?.('面板停止了隧道 ' + name);
+            sendJson(res, stopped.ok ? 200 : 400, {
+              ok: stopped.ok,
+              message: stopped.message,
+              state: stopped.ok ? 'stopped' : 'error',
             });
             return;
           }
-          const stopped = await stopTunnel(opts.paths, name);
-          opts.onLog?.('面板停止了隧道 ' + name);
-          sendJson(res, stopped.ok ? 200 : 400, {
-            ok: stopped.ok,
-            message: stopped.message,
-            state: stopped.ok ? 'stopped' : 'error',
+          if (action === 'restart') {
+            const state = readState(opts.paths, name);
+            if (state && isProcessAlive(state.pid)) {
+              const stopped = await stopTunnel(opts.paths, name);
+              if (!stopped.ok) {
+                sendJson(res, 400, { ok: false, error: '重启失败（停止阶段）：' + stopped.message });
+                return;
+              }
+            }
+          }
+          const result = await startTunnel({ paths: opts.paths, config: opts.config, tunnel });
+          if (!result.ok) {
+            sendJson(res, 400, { ok: false, error: result.error ?? '启动失败' });
+            return;
+          }
+          const state = result.state;
+          opts.onLog?.(
+            (action === 'restart' ? '面板重启了隧道 ' : '面板启动了隧道 ') +
+              name +
+              '（PID ' +
+              String(state?.pid ?? '?') +
+              '）'
+          );
+          sendJson(res, 200, {
+            ok: true,
+            message:
+              (action === 'restart' ? '隧道 ' + name + ' 已重启' : '隧道 ' + name + ' 已启动') +
+              '（PID ' +
+              String(state?.pid ?? '?') +
+              '，健康端点 ' +
+              String(state?.healthAddr ?? '') +
+              '）',
+            state: 'running',
           });
           return;
         } finally {
           busy.delete(name);
         }
+      }
+
+      /* ---------------------------------------------------------- 运行时 */
+
+      if (method === 'POST' && path === '/api/runtime/fetch') {
+        const body = bodyObject(await readBody(req)) ?? {};
+        const runtime = runtimeInfo();
+        const force = body.force === true;
+        if (runtime.path && !force) {
+          sendJson(res, 200, {
+            ok: true,
+            skipped: true,
+            message: '运行时已存在：' + runtime.path + '（如需重新下载，请选择“重新下载”）',
+          });
+          return;
+        }
+        const version = bodyString(body.version);
+        if (!startRuntimeJob('fetch', { version, skipVerify: body.skipVerify === true })) {
+          sendJson(res, 409, { ok: false, error: '已有一个运行时任务在进行中' });
+          return;
+        }
+        sendJson(res, 200, { ok: true, started: true, message: '已开始下载官方运行时' });
+        return;
+      }
+
+      if (method === 'POST' && path === '/api/runtime/import') {
+        const body = bodyObject(await readBody(req));
+        if (!body) {
+          sendJson(res, 400, { ok: false, error: '请求体需要是 JSON 对象' });
+          return;
+        }
+        const zipPath = bodyString(body.zipPath);
+        if (!zipPath) {
+          sendJson(res, 400, { ok: false, error: '请填写压缩包完整路径' });
+          return;
+        }
+        const version = bodyString(body.version);
+        if (!startRuntimeJob('import', { version, skipVerify: body.skipVerify === true, zipPath })) {
+          sendJson(res, 409, { ok: false, error: '已有一个运行时任务在进行中' });
+          return;
+        }
+        sendJson(res, 200, { ok: true, started: true, message: '已开始导入本地压缩包' });
+        return;
+      }
+
+      if (method === 'POST' && path === '/api/open') {
+        const body = bodyObject(await readBody(req)) ?? {};
+        const target = bodyString(body.target) ?? '';
+        const map: Record<string, string> = {
+          config: opts.paths.configDir,
+          logs: opts.paths.logsDir,
+          home: opts.paths.home,
+          bin: opts.paths.binDir,
+        };
+        const folder = map[target];
+        if (!folder) {
+          sendJson(res, 400, { ok: false, error: '未知的打开目标：' + target });
+          return;
+        }
+        openFolder(folder);
+        sendJson(res, 200, { ok: true, path: folder });
+        return;
       }
 
       sendJson(res, 404, { ok: false, error: '未知接口：' + method + ' ' + path });
@@ -298,3 +840,4 @@ export function panelBanner(url: string, configFile: string): string {
 export function panelStopHint(): string {
   return yellow('面板已停止');
 }
+

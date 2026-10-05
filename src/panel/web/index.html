@@ -1,71 +1,58 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <title>MCPHelm 控制台</title>
-    <link rel="icon" href="/favicon.svg" />
-    <link rel="stylesheet" href="/style.css" />
-  </head>
-  <body>
-    <header class="top">
-      <div class="brand">
-        <img src="/favicon.svg" alt="" width="30" height="30" />
-        <div>
-          <h1 id="brandName">MCPHelm</h1>
-          <p class="sub" id="configPath">正在加载配置信息 …</p>
-        </div>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'" />
+<title>MCPHelm · 把本地 AI 能力安全接进 ChatGPT</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f6ef7'/%3E%3Cpath d='M10 22V10l6 7 6-7v12' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="url(#g)"/><path d="M10 22V10l6 7 6-7v12" stroke="white" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b7cff"/><stop offset="1" stop-color="#7c4dff"/></linearGradient></defs></svg>
       </div>
-      <div class="top-actions">
-        <span class="chip" id="runtimeChip">运行时检查中 …</span>
-        <button class="btn" id="btnDoctor" type="button">环境体检</button>
-        <button class="btn" id="btnRefresh" type="button">刷新</button>
+      <div class="brand-text">
+        <div class="brand-name">MCPHelm</div>
+        <div class="brand-sub">本地隧道控制台</div>
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-view="dashboard"><span class="nav-ico" data-ico="dashboard"></span><span class="nav-label">概览</span></button>
+      <button class="nav-item" data-view="tunnels"><span class="nav-ico" data-ico="tunnels"></span><span class="nav-label">隧道</span><span class="nav-badge hidden" id="navBadgeTunnels"></span></button>
+      <button class="nav-item" data-view="servers"><span class="nav-ico" data-ico="servers"></span><span class="nav-label">服务器</span><span class="nav-badge hidden" id="navBadgeServers"></span></button>
+      <button class="nav-item" data-view="logs"><span class="nav-ico" data-ico="logs"></span><span class="nav-label">日志</span></button>
+      <button class="nav-item" data-view="doctor"><span class="nav-ico" data-ico="doctor"></span><span class="nav-label">体检</span><span class="nav-badge warn hidden" id="navBadgeDoctor"></span></button>
+      <button class="nav-item" data-view="settings"><span class="nav-ico" data-ico="settings"></span><span class="nav-label">设置</span></button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="env-chip" id="envChip" title="本地运行环境状态">
+        <span class="dot dot-muted" id="envDot"></span><span id="envText">检测中…</span>
+      </div>
+      <div class="version" id="versionText">MCPHelm</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <h1 class="page-title" id="pageTitle">概览</h1>
+        <p class="page-sub" id="pageSub">一眼看清整个接入进度</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn ghost" id="btnRefresh" title="刷新数据"><span class="ico" data-ico="refresh"></span>刷新</button>
+        <button class="btn primary" id="btnQuickAction"><span class="ico" data-ico="plus"></span>新建隧道</button>
       </div>
     </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
 
-    <main>
-      <section class="panel" id="doctorCard" hidden>
-        <div class="panel-head">
-          <h2>环境体检</h2>
-          <div class="panel-tools">
-            <label class="hint"><input type="checkbox" id="doctorOnline" /> 顺带联网查最新版</label>
-            <button class="btn ghost" id="btnDoctorClose" type="button">收起</button>
-          </div>
-        </div>
-        <div class="checks" id="doctorBody"></div>
-      </section>
-
-      <section>
-        <div class="section-head">
-          <h2>隧道</h2>
-          <span class="hint" id="tunnelHint"></span>
-        </div>
-        <div class="grid" id="tunnels"></div>
-      </section>
-
-      <section>
-        <div class="section-head">
-          <h2>本地 MCP 服务器</h2>
-          <span class="hint">用命令行 <code>mcphelm server add</code> 注册后这里会自动出现</span>
-        </div>
-        <div class="grid" id="servers"></div>
-      </section>
-    </main>
-
-    <aside class="drawer" id="drawer" hidden>
-      <div class="panel-head">
-        <h2>日志 · <span id="logName">-</span></h2>
-        <div class="panel-tools">
-          <label class="hint"><input type="checkbox" id="logAuto" checked /> 自动刷新</label>
-          <button class="btn ghost" id="btnLogClose" type="button">关闭</button>
-        </div>
-      </div>
-      <pre class="log" id="logBody"></pre>
-    </aside>
-
-    <div class="toasts" id="toasts"></div>
-    <footer class="footer" id="footer">本地控制台 · 数据全部来自本机</footer>
-    <script src="/app.js"></script>
-  </body>
+<div class="toast-root" id="toastRoot"></div>
+<div class="modal-root" id="modalRoot"></div>
+<script src="app.js"></script>
+</body>
 </html>
