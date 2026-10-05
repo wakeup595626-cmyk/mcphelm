@@ -10,7 +10,6 @@ import {
   readdirSync,
   rmSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { basename, isAbsolute, join, resolve } from 'node:path';
 import { BRAND } from './brand.ts';
 import { envKey } from './paths.ts';
@@ -268,13 +267,15 @@ export async function installRuntime(opts: InstallOptions): Promise<InstallResul
   let zipPath: string;
   let stageDir: string;
 
+  // 下载/解压的暂存目录放在数据根下的 tmp\，不占用系统 TEMP（通常在 C 盘）
+  ensureDir(opts.paths.tmpDir);
   if (opts.zipPath) {
     const raw = expandHome(opts.zipPath);
     zipPath = isAbsolute(raw) ? raw : resolve(opts.paths.cwd, raw);
     if (!fileExists(zipPath)) throw new Error('找不到压缩包：' + zipPath);
     version = version ?? versionFromZipName(zipPath);
     asset = basename(zipPath);
-    stageDir = mkdtempSync(join(tmpdir(), 'mcphelm-import-'));
+    stageDir = mkdtempSync(join(opts.paths.tmpDir, 'import-'));
   } else {
     if (!version) {
       log('查询官方最新版本 ...');
@@ -282,7 +283,7 @@ export async function installRuntime(opts: InstallOptions): Promise<InstallResul
       log('最新版本：' + version);
     }
     asset = runtimeAssetName(version);
-    stageDir = mkdtempSync(join(tmpdir(), 'mcphelm-download-'));
+    stageDir = mkdtempSync(join(opts.paths.tmpDir, 'download-'));
     zipPath = join(stageDir, asset);
     log('下载 ' + asset + ' ...');
     let lastBucket = -1;

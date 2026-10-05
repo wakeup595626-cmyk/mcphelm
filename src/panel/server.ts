@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { readFileSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createServer } from 'node:http';
@@ -49,6 +50,17 @@ export interface PanelOptions {
   port: number;
   host?: string;
   onLog?: (line: string) => void;
+  /** 桌面版注入的数据目录信息；CLI 面板没有这一项 */
+  dataLocation?: {
+    dataRoot: string;
+    desktopDir: string;
+    isDesktop: boolean;
+    canMigrate: boolean;
+    /** 安装目录不可写时退回到的用户目录位置（会在界面提示） */
+    fallback?: boolean;
+    chooseFolder?: (defaultPath?: string) => Promise<string | null>;
+    migrate?: (newRoot: string) => Promise<string>;
+  };
 }
 
 export interface PanelHandle {
@@ -271,6 +283,38 @@ function openFolder(folderPath: string): void {
   child.unref();
 }
 
+/** 统计目录占用字节数；目录不存在或个别文件被占用时尽力而为，不抛异常 */
+function folderSizeBytes(dir: string): number {
+  try {
+    if (!existsSync(dir)) return 0;
+    let total = 0;
+    for (const entry of readdirSync(dir)) {
+      try {
+        const full = join(dir, entry);
+        const stat = statSync(full);
+        if (stat.isDirectory()) total += folderSizeBytes(full);
+        else total += stat.size;
+      } catch {
+        // 单文件被占用就跳过
+      }
+    }
+    return total;
+  } catch {
+    return 0;
+  }
+}
+
+/** 目录体积带 60 秒缓存：状态轮询频繁时不必反复遍历大量小文件 */
+const sizeCache = new Map<string, { at: number; value: number }>();
+function folderSizeCached(dir: string): number {
+  const now = Date.now();
+  const hit = sizeCache.get(dir);
+  if (hit && now - hit.at < 60000) return hit.value;
+  const value = folderSizeBytes(dir);
+  sizeCache.set(dir, { at: now, value });
+  return value;
+}
+
 /* ------------------------------------------------------------------ 安全校验 */
 
 /** 只允许本机回环地址的 Host 头，挡住 DNS rebinding 之类借域名访问 127.0.0.1 的请求 */
@@ -426,6 +470,22 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
       runtime: { path: runtime.path, version: runtime.version, found: runtime.path !== null, source: runtime.source },
       runtimeJob: runtimeJob
         ? { kind: runtimeJob.kind, running: runtimeJob.running, ok: runtimeJob.ok, error: runtimeJob.error }
+        : null,
+      dataLocation: opts.dataLocation
+        ? {
+            isDesktop: opts.dataLocation.isDesktop,
+            canMigrate: opts.dataLocation.canMigrate,
+            fallback: opts.dataLocation.fallback === true,
+            dataRoot: opts.dataLocation.dataRoot,
+            desktopDir: opts.dataLocation.desktopDir,
+            sizes: {
+              dataRoot: folderSizeCached(opts.dataLocation.dataRoot),
+              bin: folderSizeCached(opts.paths.binDir),
+              logs: folderSizeCached(opts.paths.logsDir),
+              cache: folderSizeCached(opts.paths.cacheDir),
+              desktop: folderSizeCached(opts.dataLocation.desktopDir),
+            },
+          }
         : null,
       configIssues: issues,
       security: { keyringSupported: keyringSupported() },
@@ -903,6 +963,43 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         }
         openFolder(folder);
         sendJson(res, 200, { ok: true, path: folder });
+        return;
+      }
+
+      /* ---------------------------------------------------------- 数据目录迁移 */
+
+      if (method === 'POST' && path === '/api/data-location/choose') {
+        if (!opts.dataLocation || !opts.dataLocation.canMigrate || !opts.dataLocation.chooseFolder) {
+          sendJson(res, 400, { ok: false, error: '当前运行方式不支持迁移数据目录（仅桌面版可用）' });
+          return;
+        }
+        const chosen = await opts.dataLocation.chooseFolder(opts.dataLocation.dataRoot);
+        sendJson(res, 200, { ok: true, path: chosen });
+        return;
+      }
+
+      if (method === 'POST' && path === '/api/data-location/migrate') {
+        if (!opts.dataLocation || !opts.dataLocation.canMigrate || !opts.dataLocation.migrate) {
+          sendJson(res, 400, { ok: false, error: '当前运行方式不支持迁移数据目录（仅桌面版可用）' });
+          return;
+        }
+        const body = bodyObject(await readBody(req)) ?? {};
+        const target = bodyString(body.target) ?? '';
+        if (!target) {
+          sendJson(res, 400, { ok: false, error: '缺少目标目录' });
+          return;
+        }
+        try {
+          const newRoot = await opts.dataLocation.migrate(target);
+          sendJson(res, 200, {
+            ok: true,
+            newRoot,
+            needRestart: true,
+            message: '数据已复制到新目录，重启 MCPHelm 后生效；原目录保留作为备份，可确认无误后自行删除。',
+          });
+        } catch (err) {
+          sendJson(res, 400, { ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
         return;
       }
 

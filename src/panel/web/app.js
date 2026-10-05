@@ -87,6 +87,14 @@ const I18N = {
     secLocal: '本地环境', secLocalSub: 'MCPHelm 在你电脑上的位置',
     kvVersion: '版本', kvHome: '数据目录', kvConfig: '配置文件', kvLogs: '日志目录', kvScope: '配置来源',
     openHome: '打开数据目录', openLogs: '打开日志目录',
+    secData: '数据位置', secDataSub: '软件产生的所有文件都在这一个目录里，C 盘零占用',
+    dlRoot: '数据总目录', dlRuntime: '运行时（tunnel-client）', dlLogs: '日志', dlCache: '第三方缓存', dlDesktop: '桌面版数据',
+    dlHint: '配置、日志、运行时、下载缓存、临时文件、窗口会话数据全部保存在这里。系统盘（C 盘）不会产生任何文件。',
+    dlOpen: '打开数据总目录', dlMigrate: '迁移到其他盘…', dlMigrating: '正在迁移…', dlRestart: '迁移完成',
+    dlRestartHint: '数据已复制到新目录。请完全退出 MCPHelm（托盘图标右键 → 退出）再重新打开，新位置才会生效。原目录保留作为备份，确认无误后可手动删除。',
+    dlNoMigrate: '当前以命令行方式运行，可用环境变量 MCPHELM_HOME 指定数据目录。',
+    dlSameWarn: '迁移只复制不删除，原目录会保留作为备份。',
+    dlFallbackWarn: '程序安装目录不可写，数据暂时退回到系统用户目录。建议点“迁移到其他盘”换到非系统盘位置。',
     secRuntime: '运行环境', secRuntimeSub: 'OpenAI 官方 tunnel-client',
     rtStatus: '状态', rtReady: '已就绪', rtVersion: '版本', rtSource: '来源', rtPath: '路径', rtUnknown: '未知',
     rtMissing: '<strong>运行环境缺失。</strong>隧道无法启动，请先下载官方 tunnel-client。',
@@ -232,6 +240,14 @@ const I18N = {
     secLocal: 'Local environment', secLocalSub: 'Where MCPHelm lives on your machine',
     kvVersion: 'Version', kvHome: 'Data folder', kvConfig: 'Config file', kvLogs: 'Logs folder', kvScope: 'Config scope',
     openHome: 'Open data folder', openLogs: 'Open logs folder',
+    secData: 'Data location', secDataSub: 'Everything MCPHelm writes lives in one folder — zero footprint on your system drive',
+    dlRoot: 'Data folder', dlRuntime: 'Runtime (tunnel-client)', dlLogs: 'Logs', dlCache: 'Package caches', dlDesktop: 'Desktop app data',
+    dlHint: 'Config, logs, runtime, download caches, temp files and window session data all live here. Nothing is written to the system drive (C:).',
+    dlOpen: 'Open data folder', dlMigrate: 'Move to another drive…', dlMigrating: 'Migrating…', dlRestart: 'Migration done',
+    dlRestartHint: 'Data was copied to the new folder. Fully quit MCPHelm (tray icon → Quit) and reopen it for the new location to take effect. The old folder is kept as a backup — delete it once you have verified everything.',
+    dlNoMigrate: 'Running from the command line — set the MCPHELM_HOME environment variable to choose the data folder.',
+    dlSameWarn: 'Migration copies only; the old folder stays as a backup.',
+    dlFallbackWarn: 'The install folder is not writable, so data lives in your user folder for now. Use "Move to another drive" to place it outside the system drive.',
     secRuntime: 'Runtime', secRuntimeSub: 'Official OpenAI tunnel-client',
     rtStatus: 'Status', rtReady: 'Ready', rtVersion: 'Version', rtSource: 'Source', rtPath: 'Path', rtUnknown: 'Unknown',
     rtMissing: '<strong>Runtime missing.</strong> Tunnels cannot start — download the official tunnel-client first.',
@@ -346,6 +362,15 @@ function fmtUptime(ms) {
   const h = Math.floor(m / 60);
   if (h < 24) return currentLang === 'en' ? h + 'h ' + (m % 60) + 'm' : h + ' 小时 ' + (m % 60) + ' 分';
   return currentLang === 'en' ? Math.floor(h / 24) + 'd ' + (h % 24) + 'h' : Math.floor(h / 24) + ' 天 ' + (h % 24) + ' 小时';
+}
+
+function fmtBytes(n) {
+  if (!n || n <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let v = n;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i += 1; }
+  return (v >= 100 || i === 0 ? Math.round(v) : v.toFixed(1)) + ' ' + units[i];
 }
 
 /* ---------------- 图标 ---------------- */
@@ -986,6 +1011,35 @@ function renderSettings(c, s) {
   html += '<div style="margin-top:14px"><button class="btn primary small" id="prefSave"><span class="ico">' + icon('check') + '</span>' + esc(t('savePrefs')) + '</button></div>';
   html += '</div></div>';
 
+  // 数据位置（C 盘零占用说明 + 图形化迁移）
+  {
+    const dl = s.dataLocation || null;
+    const sizes = (dl && dl.sizes) || {};
+    html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('folder') + '</span>' + esc(t('secData')) + '</div><div class="card-sub">' + esc(t('secDataSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
+    if (dl) {
+      html += kv(t('dlRoot'), dl.dataRoot, true);
+      html += kv(t('dlRuntime'), fmtBytes(sizes.bin || 0));
+      html += kv(t('dlLogs'), fmtBytes(sizes.logs || 0));
+      html += kv(t('dlCache'), fmtBytes(sizes.cache || 0));
+      html += kv(t('dlDesktop'), fmtBytes(sizes.desktop || 0));
+      html += '<div class="notice ok" style="margin-top:12px"><span class="ico">' + icon('check') + '</span><div>' + esc(t('dlHint')) + '</div></div>';
+      if (dl.fallback) {
+        html += '<div class="notice warn" style="margin-top:8px"><span class="ico">' + icon('warn') + '</span><div>' + esc(t('dlFallbackWarn')) + '</div></div>';
+      }
+      html += '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">' +
+        '<button class="btn ghost small" data-open="home"><span class="ico">' + icon('folder') + '</span>' + esc(t('dlOpen')) + '</button>' +
+        (dl.canMigrate ? '<button class="btn primary small" id="dlMigrateBtn"><span class="ico">' + icon('arrow') + '</span>' + esc(t('dlMigrate')) + '</button>' : '') +
+      '</div>';
+    } else {
+      html += kv(t('dlRoot'), s.home, true);
+      html += '<div class="notice info" style="margin-top:12px"><span class="ico">' + icon('info') + '</span><div>' + esc(t('dlNoMigrate')) + '</div></div>';
+      html += '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">' +
+        '<button class="btn ghost small" data-open="home"><span class="ico">' + icon('folder') + '</span>' + esc(t('dlOpen')) + '</button>' +
+      '</div>';
+    }
+    html += '</div></div>';
+  }
+
   // 本地环境
   html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('folder') + '</span>' + esc(t('secLocal')) + '</div><div class="card-sub">' + esc(t('secLocalSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
   html += kv(t('kvVersion'), s.brand.name + ' v' + s.brand.version);
@@ -1048,6 +1102,22 @@ function renderSettings(c, s) {
   const bb = $('#backupBtn', c); if (bb) bb.addEventListener('click', () => {
     const token = getToken();
     window.open('/api/config/export' + (token ? '?token=' + encodeURIComponent(token) : ''), '_blank');
+  });
+  const dmb = $('#dlMigrateBtn', c); if (dmb) dmb.addEventListener('click', async () => {
+    try {
+      dmb.disabled = true;
+      dmb.textContent = t('dlMigrating');
+      const picked = await api('/api/data-location/choose', { body: {} });
+      if (!picked || !picked.path) { refreshState(true); return; }
+      const result = await api('/api/data-location/migrate', { body: { target: picked.path } });
+      openModal({
+        title: t('dlRestart'),
+        body: '<div class="notice ok"><span class="ico">' + icon('check') + '</span><div>' + esc(result.message || t('dlRestartHint')) + '</div></div>' +
+          '<div class="notice warn" style="margin-top:10px"><span class="ico">' + icon('warn') + '</span><div>' + esc(t('dlSameWarn')) + '</div></div>' +
+          '<div class="kv" style="margin-top:10px"><div class="kv-k">' + esc(t('dlRoot')) + '</div><div class="kv-v mono">' + esc(result.newRoot || '') + '</div></div>',
+        actions: [{ label: t('confirm'), kind: 'primary' }],
+      });
+    } catch (e) { toast(e.message, 'err'); refreshState(true); }
   });
   const ps = $('#prefSave', c); if (ps) ps.addEventListener('click', async () => {
     try {

@@ -107,9 +107,19 @@ export function buildRunArgs(tunnel: TunnelConfig, server: McpServerConfig, heal
   return args;
 }
 
-export function childEnv(apiKey: string | undefined): NodeJS.ProcessEnv {
+export function childEnv(apiKey: string | undefined, cacheDir?: string): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env };
   if (apiKey) env.CONTROL_PLANE_API_KEY = apiKey;
+  if (cacheDir) {
+    // 用户的 MCP 服务器常用 npx/uvx/pip 拉起，把这些包管理器的下载缓存
+    // 也引到数据根下，避免默认写进 C 盘的 %LOCALAPPDATA%\npm-cache 等位置
+    const npmCache = cacheDir + '\\npm';
+    env.NPM_CONFIG_CACHE = env.NPM_CONFIG_CACHE ?? npmCache;
+    env.npm_config_cache = env.npm_config_cache ?? npmCache;
+    env.PIP_CACHE_DIR = env.PIP_CACHE_DIR ?? cacheDir + '\\pip';
+    env.UV_CACHE_DIR = env.UV_CACHE_DIR ?? cacheDir + '\\uv';
+    env.XDG_CACHE_HOME = env.XDG_CACHE_HOME ?? cacheDir;
+  }
   return env;
 }
 
@@ -166,13 +176,17 @@ export async function startTunnel(opts: StartOptions): Promise<StartResult> {
   let pid: number | undefined;
   try {
     writeSync(fd, header);
+    // 在桌面版（Electron）里 process.execPath 是 MCPHelm.exe 而不是 node；
+    // 加上 ELECTRON_RUN_AS_NODE 才能把它当纯 Node 用来跑守护进程脚本。
+    const runAsNode = process.versions.electron ? { ELECTRON_RUN_AS_NODE: '1' } : {};
     const child = spawn(process.execPath, [SUPERVISOR_PATH, runtimePath, '--', ...args], {
       cwd: opts.paths.cwd,
       detached: true,
       windowsHide: true,
       stdio: ['ignore', fd, fd],
       env: {
-        ...childEnv(key.value),
+        ...runAsNode,
+        ...childEnv(key.value, opts.paths.cacheDir),
         MCPHELM_SUPERVISOR_NAME: tunnel.name,
         MCPHELM_SUPERVISOR_STOP: stopFileFor(opts.paths, tunnel.name),
       },

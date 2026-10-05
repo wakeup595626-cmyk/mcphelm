@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { buildRunArgs, maskTunnelId, readLogTail } from '../src/runtime.ts';
+import { buildRunArgs, childEnv, maskTunnelId, readLogTail } from '../src/runtime.ts';
 import type { McpServerConfig, TunnelConfig } from '../src/store.ts';
 
 const TUNNEL_ID = 'tunnel_' + '0f'.repeat(16);
@@ -70,4 +70,40 @@ test('readLogTail 对不存在的日志文件保持安静', () => {
   const result = readLogTail(join(tmpdir(), 'mcphelm-not-exists-' + String(Date.now()) + '.log'), 10);
   assert.deepEqual(result.lines, []);
   assert.equal(result.truncated, false);
+});
+
+const CACHE_ENV_KEYS = ['NPM_CONFIG_CACHE', 'npm_config_cache', 'PIP_CACHE_DIR', 'UV_CACHE_DIR', 'XDG_CACHE_HOME'];
+
+function withoutCacheEnv<T>(fn: () => T): T {
+  const saved = CACHE_ENV_KEYS.map((key) => [key, process.env[key]] as const);
+  for (const key of CACHE_ENV_KEYS) delete process.env[key];
+  try {
+    return fn();
+  } finally {
+    for (const [key, value] of saved) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+test('childEnv 把 npx/pip/uv 的缓存引到数据根（C 盘零占用）', () => {
+  const cacheDir = join(tmpdir(), 'mcphelm-cache-demo');
+  withoutCacheEnv(() => {
+    const env = childEnv('sk-test', cacheDir);
+    assert.equal(env.NPM_CONFIG_CACHE, join(cacheDir, 'npm'));
+    assert.equal(env.npm_config_cache, join(cacheDir, 'npm'));
+    assert.equal(env.PIP_CACHE_DIR, join(cacheDir, 'pip'));
+    assert.equal(env.UV_CACHE_DIR, join(cacheDir, 'uv'));
+    assert.equal(env.XDG_CACHE_HOME, cacheDir);
+    assert.equal(env.CONTROL_PLANE_API_KEY, 'sk-test');
+  });
+});
+
+test('childEnv 尊重用户已设置的缓存位置，不强行覆盖', () => {
+  withoutCacheEnv(() => {
+    process.env.NPM_CONFIG_CACHE = 'D:/my-npm-cache';
+    const env = childEnv(undefined, join(tmpdir(), 'mcphelm-cache-demo'));
+    assert.equal(env.NPM_CONFIG_CACHE, 'D:/my-npm-cache');
+  });
 });

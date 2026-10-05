@@ -14,6 +14,12 @@ export interface AppPaths {
   runDir: string;
   logsDir: string;
   binDir: string;
+  /** 软件自己的临时目录（下载/解压暂存），不落在系统 TEMP（通常在 C 盘） */
+  tmpDir: string;
+  /** 第三方包管理器缓存目录（npx/pip/uv 拉取 MCP 服务器时的下载缓存） */
+  cacheDir: string;
+  /** 桌面版窗口/会话数据、日志、崩溃转储目录（由 desktop 主进程重定向到这里） */
+  desktopDir: string;
 }
 
 export interface PathOptions {
@@ -58,6 +64,9 @@ export function resolvePaths(opts: PathOptions = {}): AppPaths {
     runDir: join(home, 'run'),
     logsDir: join(home, 'logs'),
     binDir: join(home, 'bin'),
+    tmpDir: join(home, 'tmp'),
+    cacheDir: join(home, 'cache'),
+    desktopDir: join(home, 'desktop'),
   };
 }
 
@@ -66,6 +75,7 @@ export function ensureRuntimeDirs(paths: AppPaths): void {
   ensureDir(paths.runDir);
   ensureDir(paths.logsDir);
   ensureDir(paths.binDir);
+  ensureDir(paths.tmpDir);
 }
 
 export function sanitizeName(name: string): string {

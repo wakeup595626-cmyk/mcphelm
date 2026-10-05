@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { resolvePaths } from '../src/paths.ts';
+import { ensureRuntimeDirs, resolvePaths } from '../src/paths.ts';
 import {
   emptyConfig,
   findServer,
@@ -137,4 +137,20 @@ test('emptyConfig 是新手的起点', () => {
   assert.equal(config.version, 1);
   assert.deepEqual(config.servers, []);
   assert.deepEqual(config.tunnels, []);
+});
+
+test('resolvePaths 把临时目录与缓存目录都归在数据根下（可整体挪出 C 盘）', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mcphelm-paths-'));
+  try {
+    const home = join(dir, 'home');
+    const paths = resolvePaths({ cwd: dir, env: { MCPHELM_HOME: home } });
+    assert.equal(paths.home, home);
+    assert.equal(paths.tmpDir, join(home, 'tmp'));
+    assert.equal(paths.cacheDir, join(home, 'cache'));
+    assert.equal(paths.desktopDir, join(home, 'desktop'));
+    ensureRuntimeDirs(paths);
+    assert.equal(existsSync(paths.tmpDir), true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

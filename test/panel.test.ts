@@ -23,6 +23,9 @@ beforeEach(() => {
     runDir: join(dir, 'run'),
     logsDir: join(dir, 'logs'),
     binDir: join(dir, 'bin'),
+    tmpDir: join(dir, 'tmp'),
+    cacheDir: join(dir, 'cache'),
+    desktopDir: join(dir, 'desktop'),
   };
 });
 
