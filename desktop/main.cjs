@@ -101,9 +101,24 @@ try {
 mkdirSync(DATA_ROOT, { recursive: true });
 process.env.MCPHELM_HOME = DATA_ROOT;
 
+/* 启动诊断：最早可写日志的位置，打包后排查“双击无窗口”用，正常后保持静默无异常 */
+const BOOT_LOG = path.join(DATA_ROOT, 'desktop', 'logs', 'boot.log');
+function bootDbg(msg) {
+  try {
+    mkdirSync(path.dirname(BOOT_LOG), { recursive: true });
+    require('node:fs').appendFileSync(BOOT_LOG, new Date().toISOString() + ' ' + msg + '\n', 'utf8');
+  } catch { /* 日志写不进也不能影响启动 */ }
+}
+bootDbg('main loaded, isPackaged=' + app.isPackaged + ' exe=' + app.getPath('exe') + ' DATA_ROOT=' + DATA_ROOT);
+
 const DESKTOP_DATA = path.join(DATA_ROOT, 'desktop');
 const EXPORTS_DIR = path.join(DATA_ROOT, 'exports');
-for (const sub of ['userData', 'sessionData', 'cache', 'temp', 'logs', 'crashDumps', 'dictionaries']) {
+// 注意：app.setPath 只接受 Electron 官方列出的目录名，传入不支持的名称会同步抛
+// "Failed to set path"（主进程在加载阶段直接崩溃，表现为双击无窗口）。已实测：
+// 'dictionaries' 在 Electron 44 不受支持；'temp' 虽支持，但用 TEMP/TMP 环境变量
+// 引导子进程临时目录更稳妥（见下方 envDefaults）。两份名单都不要凭记忆扩充，
+// 改动前先以探针脚本验证。
+for (const sub of ['userData', 'sessionData', 'cache', 'logs', 'crashDumps']) {
   const target = path.join(DESKTOP_DATA, sub);
   mkdirSync(target, { recursive: true });
   app.setPath(sub, target);
@@ -471,15 +486,22 @@ function createWindow(url) {
 }
 
 async function boot() {
+  const dbg = bootDbg;
+  dbg('boot start');
   try {
+    dbg('calling startBackend');
     const handle = await startBackend();
+    dbg('startBackend ok url=' + handle.url);
     buildMenu();
     applyLoginItem();
     ensureTray();
+    dbg('creating window');
     createWindow(handle.url);
+    dbg('window created');
     watchTunnelHealth();
     setupAutoUpdate();
   } catch (err) {
+    dbg('boot FAILED: ' + String((err && err.stack) || err));
     dialog.showErrorBox('MCPHelm 启动失败', String((err && err.message) || err));
     app.quit();
   }
