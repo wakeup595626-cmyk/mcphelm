@@ -156,6 +156,7 @@ try {
 const DIST = path.join(__dirname, '..', 'dist');
 const ICON = path.join(__dirname, '..', 'build', 'icon.ico');
 const ICON_32 = path.join(__dirname, '..', 'build', 'icon-32.png');
+const ICON_256 = path.join(__dirname, '..', 'build', 'icon-256.png');
 const importDist = (rel) => import(pathToFileURL(path.join(DIST, rel)).href);
 
 let mainWindow = null;
@@ -265,8 +266,14 @@ function notify(title, body) {
 }
 
 function trayIcon() {
-  const file = existsSync(ICON_32) ? ICON_32 : ICON;
-  const image = nativeImage.createFromPath(file);
+  // 托盘图标优先用 32px PNG（清晰、色彩还原准）。
+  // 绝不回退 .ico —— 在浅色任务栏主题下 .ico 取色可能失真发白，
+  // 这正是"白色图标"问题的根因；缺 PNG 时宁可用空图标也要暴露问题。
+  if (!existsSync(ICON_32)) {
+    try { console.error('[MCPHelm] 托盘图标 build/icon-32.png 缺失，请检查打包是否完整'); } catch {}
+    return undefined;
+  }
+  const image = nativeImage.createFromPath(ICON_32);
   return image.isEmpty() ? undefined : image;
 }
 
@@ -432,6 +439,15 @@ function buildMenu() {
 }
 
 function createWindow(url) {
+  // 任务栏按钮图标：优先用 256px PNG。
+  // 不用 .ico —— Windows 图标缓存会对"反复覆盖安装的 exe 路径"记住早期提取
+  // 失败的白色剪影且不再重提，PNG 路径完全绕开这条被污染的链路，与托盘同源。
+  let windowIcon = undefined;
+  for (const p of [ICON_256, ICON_32, ICON]) {
+    if (!existsSync(p)) continue;
+    const img = nativeImage.createFromPath(p);
+    if (!img.isEmpty()) { windowIcon = img; break; }
+  }
   mainWindow = new BrowserWindow({
     width: 1240,
     height: 820,
@@ -441,13 +457,19 @@ function createWindow(url) {
     title: 'MCPHelm',
     backgroundColor: '#0b1220',
     autoHideMenuBar: true,
-    icon: existsSync(ICON) ? ICON : undefined,
+    icon: windowIcon,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
     },
   });
+
+  // 双保险：窗口创建后再显式 setIcon 一次，防止个别 Electron/Windows
+  // 组合忽略构造参数。setIcon 失败不影响启动。
+  if (windowIcon) {
+    try { mainWindow.setIcon(windowIcon); } catch {}
+  }
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.on('close', (event) => {
