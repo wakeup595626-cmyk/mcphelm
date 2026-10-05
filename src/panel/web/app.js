@@ -12,7 +12,7 @@ const I18N = {
     metaServersT: '服务器', metaServersS: '管理你本机的 MCP 服务器',
     metaLogsT: '日志', metaLogsS: '查看每条隧道的运行输出',
     metaDoctorT: '体检', metaDoctorS: '自动检查环境和配置有没有问题',
-    metaGuideT: '新手指南', metaGuideS: '零基础也能看懂：大约 10 分钟把电脑接进 ChatGPT',
+    metaGuideT: '新手指南', metaGuideS: '零基础也能看懂：大约 10 分钟、五个真实操作把电脑接进 ChatGPT',
     metaSettingsT: '设置', metaSettingsS: '界面偏好、路径、密钥状态与帮助入口',
     refresh: '刷新', newTunnel: '新建隧道', downloadRuntime: '下载运行环境',
     close: '关闭', cancel: '取消', confirm: '确定', delete: '删除', save: '保存修改',
@@ -30,28 +30,13 @@ const I18N = {
     offline: '无法连接本地服务：',
     envMissing: '缺少运行环境', envOk: '环境正常', envBadCfg: '配置有 {n} 个问题',
     statTunnels: '隧道总数', statRunning: '运行中', statHealthy: '健康通过', statAttention: '需要关注',
-    heroTitle: '三步把你的本地 AI 能力接进 ChatGPT',
-    heroP: 'MCPHelm 帮你把运行在本机的 MCP 服务器，通过 OpenAI 官方安全隧道接到 ChatGPT。全程不用敲命令，跟着下面三步走就行。',
+    heroTitle: '五步把你的本地 AI 能力接进 ChatGPT',
+    heroP: 'MCPHelm 帮你把运行在本机的 MCP 服务器，通过 OpenAI 官方安全隧道接到 ChatGPT。全程不用敲命令，跟着下面五个真实操作走就行，和新手指南是同一套流程。',
     heroProgress: '{d} / {t} 步已完成',
-    stepRuntime: '准备运行环境',
-    stepRuntimeDone: '官方 tunnel-client 已就绪', stepRuntimeDoneV: '（v{v}）',
-    stepRuntimeTodo: '下载 OpenAI 官方 tunnel-client，这是隧道能跑起来的发动机',
+    heroContinue: '继续第 {n} 步',
     redownload: '重新下载', oneClickDownload: '一键下载',
-    stepServer: '添加 MCP 服务器',
-    stepServerDone: '已登记 {n} 个服务器',
-    stepServerTodo: '告诉 MCPHelm 你本地要暴露哪个 MCP 服务器（命令或地址）',
     addAnother: '再添加一个', addServer: '添加服务器',
-    stepTunnel: '创建并启动隧道',
-    stepTunnelDone: '已有 {n} 条隧道，随时可以启动',
-    stepTunnelTodo: '填入 OpenAI 平台发的隧道 ID 和密钥，把服务器接到 ChatGPT',
     manageTunnels: '管理隧道', createTunnel: '创建隧道',
-    whereTitle: '隧道 ID 和密钥要去哪拿？',
-    whereP1: '① 打开 {a}，用你的 OpenAI 账号创建一个隧道，拿到 tunnel_ 开头的隧道 ID；',
-    whereP1a: 'OpenAI 平台 · 隧道管理',
-    whereP2: '② 打开 {a}，生成一把 runtime key 当作密钥，粘贴到第 ③ 步的表单里；',
-    whereP2a: 'OpenAI 平台 · API 密钥',
-    whereP3: '③ 回到这里点"创建隧道"，填好 ID 和密钥，点启动，就能在 {a} 里看到它、直接用了。',
-    whereP3a: 'ChatGPT 连接器设置',
     attentionLine: '<strong>有 {n} 处需要关注。</strong> 去<a href="#" data-goto="doctor">体检</a>看看具体问题和修复建议。',
     dashTunnels: '隧道一览', dashTunnelsSub: '点击卡片上的按钮即可启动、停止或查看日志',
     stRunningOk: '运行正常', stHealthBad: '健康检查未过', stRunning: '运行中', stError: '出错了',
@@ -159,15 +144,13 @@ const I18N = {
 
     /* 新手指南（软件内教程） */
     guideHeroT: '从这里开始：10 分钟把电脑接进 ChatGPT',
-    guideHeroP: 'MCPHelm 用 OpenAI 官方安全隧道，把本机的 MCP 服务器安全地连给 ChatGPT。全程不用敲命令，跟着下面六步点鼠标就行。',
+    guideHeroP: 'MCPHelm 用 OpenAI 官方安全隧道，把本机的 MCP 服务器安全地连给 ChatGPT。全程不用敲命令，跟着下面五步点鼠标就行——和概览页是同一套流程，进度互通。',
     guideProgress: '{d} / {t} 步已完成',
-    guideStepsT: '六步上手', guideStepsS: '每一步完成会自动打勾；现在停在哪一步，就从那一步的按钮往下走',
+    guideStepsT: '五步上手', guideStepsS: '每一步完成会自动打勾；现在停在哪一步，就从那一步的按钮往下走',
     gDone: '已完成', gTodo: '待完成',
     wizStepOf: '第 {i} 步，共 {n} 步',
     wizPrev: '上一步', wizNext: '下一步',
-    wizFinish: '去概览看看', wizHelpT: '常见问题 · 官方链接',
-    gs1T: '打开软件，认识界面',
-    gs1D: '双击桌面的 MCPHelm 图标就能打开。左侧是导航：概览、隧道、服务器、日志、体检、设置。右上角 X 只是把窗口收进托盘（隧道不会断）；想彻底退出：右下角托盘图标右键，选退出。',
+    wizFinish: '去概览看看', wizHelpT: '常见问题 · 官方链接', wizOpenHere: '在这里继续这一步',
     gs2T: '下载运行环境（发动机）',
     gs2D: '隧道要跑起来，需要 OpenAI 官方的 tunnel-client。MCPHelm 会从官方仓库自动下载并做完整性校验，点按钮等进度走完即可。如果网络到不了官方仓库，可以手动下载 zip，再到「设置 → 运行环境 → 导入本地安装包」导入。',
     gs3T: '添加 MCP 服务器（你要接入的能力）',
@@ -225,28 +208,13 @@ const I18N = {
     offline: 'Cannot reach the local service: ',
     envMissing: 'Runtime missing', envOk: 'Environment OK', envBadCfg: '{n} config issue(s)',
     statTunnels: 'Tunnels', statRunning: 'Running', statHealthy: 'Healthy', statAttention: 'Attention',
-    heroTitle: 'Connect your local AI power to ChatGPT in 3 steps',
-    heroP: 'MCPHelm bridges MCP servers running on this machine to ChatGPT through the official OpenAI secure tunnel. No commands to remember — just follow the three steps below.',
+    heroTitle: 'Connect your local AI power to ChatGPT in 5 steps',
+    heroP: 'MCPHelm bridges MCP servers running on this machine to ChatGPT through the official OpenAI secure tunnel. No commands to remember — five real actions below, the exact same flow as the Getting-started guide.',
     heroProgress: '{d} / {t} steps done',
-    stepRuntime: 'Prepare the runtime',
-    stepRuntimeDone: 'Official tunnel-client is ready', stepRuntimeDoneV: ' (v{v})',
-    stepRuntimeTodo: 'Download the official OpenAI tunnel-client — the engine that powers tunnels',
+    heroContinue: 'Continue step {n}',
     redownload: 'Re-download', oneClickDownload: 'Download',
-    stepServer: 'Add an MCP server',
-    stepServerDone: '{n} server(s) registered',
-    stepServerTodo: 'Tell MCPHelm which local MCP server to expose (a command or an address)',
     addAnother: 'Add another', addServer: 'Add server',
-    stepTunnel: 'Create and start a tunnel',
-    stepTunnelDone: '{n} tunnel(s) configured, ready to start',
-    stepTunnelTodo: 'Paste the tunnel ID and key from the OpenAI platform to wire a server into ChatGPT',
     manageTunnels: 'Manage tunnels', createTunnel: 'Create tunnel',
-    whereTitle: 'Where do I get a tunnel ID and key?',
-    whereP1: '1. Open {a}, sign in with your OpenAI account and create a tunnel to get a tunnel_ ID;',
-    whereP1a: 'OpenAI Platform · Tunnels',
-    whereP2: '2. Open {a} and generate a runtime key — that is the secret you paste in step 3;',
-    whereP2a: 'OpenAI Platform · API keys',
-    whereP3: '3. Back here, press "Create tunnel", fill in the ID and key, press start — then use it in {a}.',
-    whereP3a: 'ChatGPT connector settings',
     attentionLine: '<strong>{n} thing(s) need attention.</strong> Open <a href="#" data-goto="doctor">Doctor</a> for details and fixes.',
     dashTunnels: 'Your tunnels', dashTunnelsSub: 'Use the buttons on each card to start, stop or view logs',
     stRunningOk: 'Healthy', stHealthBad: 'Health check failing', stRunning: 'Running', stError: 'Error',
@@ -354,15 +322,13 @@ const I18N = {
 
     /* In-app guide */
     guideHeroT: 'Start here: connect your machine to ChatGPT in about 10 minutes',
-    guideHeroP: 'MCPHelm uses the official OpenAI secure tunnel to connect a local MCP server to ChatGPT. No commands to type — follow the six steps below with your mouse.',
+    guideHeroP: 'MCPHelm uses the official OpenAI secure tunnel to connect a local MCP server to ChatGPT. No commands to type — five steps below, the exact same flow as the Overview page, with shared progress.',
     guideProgress: '{d} / {t} steps done',
-    guideStepsT: 'Six steps', guideStepsS: 'Each step ticks itself off when done — start from whichever is still open',
+    guideStepsT: 'Five steps', guideStepsS: 'Each step ticks itself off when done — start from whichever is still open',
     gDone: 'Done', gTodo: 'To do',
     wizStepOf: 'Step {i} of {n}',
     wizPrev: 'Back', wizNext: 'Next',
-    wizFinish: 'Go to overview', wizHelpT: 'FAQ · Official links',
-    gs1T: 'Open the app, meet the console',
-    gs1D: 'Double-click the MCPHelm icon on your desktop. The left sidebar holds Overview, Tunnels, Servers, Logs, Doctor and Settings. The X button only hides the window to the tray while tunnels keep running; to quit fully, right-click the tray icon and choose Exit.',
+    wizFinish: 'Go to overview', wizHelpT: 'FAQ · Official links', wizOpenHere: 'Continue this step here',
     gs2T: 'Download the runtime (the engine)',
     gs2D: 'Tunnels are driven by the official OpenAI tunnel-client. MCPHelm downloads it from the official repo and verifies its integrity — click the button and wait for the progress to finish. If the repo is unreachable, download the zip manually and import it via Settings → Runtime → Import local package.',
     gs3T: 'Add an MCP server (what you expose)',
@@ -707,43 +673,45 @@ function renderView() {
 }
 
 
-/* ---------------- 概览 ---------------- */
-function needsSetup(s) {
-  return !s.runtime.found || s.counts.servers === 0 || s.counts.tunnels === 0;
-}
-
+/* ---------------- 上手流程（概览与新手指南共用的一套五步） ---------------- */
 function setupSteps(s) {
+  const docs = s.docs || {};
+  const hasKey = (s.tunnels || []).some((x) => x.key && x.key.ready);
   return [
     {
-      key: 'runtime',
-      name: t('stepRuntime'),
-      desc: s.runtime.found
-        ? t('stepRuntimeDone') + (s.runtime.version ? t('stepRuntimeDoneV', { v: s.runtime.version }) : '')
-        : t('stepRuntimeTodo'),
-      done: !!s.runtime.found,
-      action: s.runtime.found
-        ? { label: t('redownload'), kind: 'ghost', fn: () => showRuntimeModal() }
-        : { label: t('oneClickDownload'), kind: 'primary', icon: 'download', fn: () => showRuntimeModal() },
+      name: t('gs2T'), desc: t('gs2D'), done: !!s.runtime.found,
+      actions: [{ label: s.runtime.found ? t('redownload') : t('oneClickDownload'), kind: s.runtime.found ? 'ghost' : 'primary', icon: 'download', fn: () => showRuntimeModal() }],
     },
     {
-      key: 'server',
-      name: t('stepServer'),
-      desc: s.counts.servers > 0
-        ? t('stepServerDone', { n: s.counts.servers })
-        : t('stepServerTodo'),
-      done: s.counts.servers > 0,
-      action: { label: s.counts.servers > 0 ? t('addAnother') : t('addServer'), kind: s.counts.servers > 0 ? 'ghost' : 'primary', icon: s.counts.servers > 0 ? undefined : 'plus', fn: () => showServerModal(null) },
+      name: t('gs3T'), desc: t('gs3D'), done: s.counts.servers > 0,
+      actions: [
+        { label: s.counts.servers > 0 ? t('addAnother') : t('addServer'), kind: 'primary', icon: 'plus', fn: () => showServerModal(null) },
+        { label: t('fromTemplate'), kind: 'ghost', icon: 'servers', fn: () => showTemplateModal() },
+      ],
     },
     {
-      key: 'tunnel',
-      name: t('stepTunnel'),
-      desc: s.counts.tunnels > 0
-        ? t('stepTunnelDone', { n: s.counts.tunnels })
-        : t('stepTunnelTodo'),
-      done: s.counts.tunnels > 0,
-      action: { label: s.counts.tunnels > 0 ? t('manageTunnels') : t('createTunnel'), kind: s.counts.tunnels > 0 ? 'soft' : 'primary', icon: s.counts.tunnels > 0 ? undefined : 'plus', fn: () => (s.counts.tunnels > 0 ? setView('tunnels') : showTunnelModal(null)) },
+      name: t('gs4T'), desc: t('gs4D'), done: hasKey,
+      actions: [
+        { label: t('gs4B1'), kind: 'ghost', icon: 'ext', href: docs.platformTunnels },
+        { label: t('gs4B2'), kind: 'ghost', icon: 'ext', href: docs.platformApiKeys },
+      ],
+    },
+    {
+      name: t('gs5T'), desc: t('gs5D'), done: s.counts.tunnels > 0,
+      actions: [{ label: s.counts.tunnels > 0 ? t('manageTunnels') : t('createTunnel'), kind: s.counts.tunnels > 0 ? 'soft' : 'primary', icon: s.counts.tunnels > 0 ? undefined : 'plus', fn: () => (s.counts.tunnels > 0 ? setView('tunnels') : showTunnelModal(null)) }],
+    },
+    {
+      name: t('gs6T'), desc: t('gs6D'), done: s.counts.running > 0,
+      actions: [{ label: t('gs6B'), kind: 'ghost', icon: 'ext', href: docs.chatgptConnectors }],
     },
   ];
+}
+
+/* 跳到新手指南并定位到第 i 步（概览每一步的入口） */
+function gotoGuideStep(i) {
+  app.guideIdx = i;
+  app.guideAutoAdvance = false; // 用户明确选了这一步，不要再自动弹走
+  setView('guide');
 }
 
 function renderDashboard(c, s) {
@@ -759,33 +727,34 @@ function renderDashboard(c, s) {
   html += statCard('warn', 'tint-amber', attention, t('statAttention'));
   html += '</div>';
 
-  if (needsSetup(s)) {
-    const steps = setupSteps(s);
-    const done = steps.filter((x) => x.done).length;
-    const pct = Math.round((done / steps.length) * 100);
+  const steps = setupSteps(s);
+  const doneCount = steps.filter((x) => x.done).length;
+  if (doneCount < steps.length) {
+    const pct = Math.round((doneCount / steps.length) * 100);
+    const currentIdx = steps.findIndex((x) => !x.done);
     html += '<div class="hero">' +
       '<h2>' + esc(t('heroTitle')) + '</h2>' +
       '<p>' + esc(t('heroP')) + '</p>' +
-      '<div class="hero-progress"><div class="hero-progress-bar"><div class="hero-progress-fill" style="width:' + pct + '%"></div></div><span class="hero-progress-text">' + esc(t('heroProgress', { d: done, t: steps.length })) + '</span></div>' +
+      '<div class="hero-progress"><div class="hero-progress-bar"><div class="hero-progress-fill" style="width:' + pct + '%"></div></div><span class="hero-progress-text">' + esc(t('heroProgress', { d: doneCount, t: steps.length })) + '</span></div>' +
+      (currentIdx >= 0 ? '<div class="hero-cta"><button class="btn light" data-continue="' + currentIdx + '"><span class="ico">' + icon('arrow') + '</span>' + esc(t('heroContinue', { n: currentIdx + 1 })) + '</button></div>' : '') +
       '</div>';
     html += '<div class="step-list">';
-    const currentIdx = steps.findIndex((x) => !x.done);
     steps.forEach((st, i) => {
       const cls = st.done ? 'done' : (i === currentIdx ? 'current' : '');
-      html += '<div class="step-item ' + cls + '">' +
+      html += '<div class="step-item ' + cls + '" data-gstep="' + i + '" role="button" tabindex="0" title="' + esc(t('wizOpenHere')) + '">' +
         '<div class="step-num">' + (st.done ? icon('check') : (i + 1)) + '</div>' +
-        '<div class="step-info"><div class="step-name">' + esc(st.name) + (st.done ? ' <span class="pill ok">' + esc(currentLang === 'en' ? 'Done' : '已完成') + '</span>' : '') + '</div>' +
+        '<div class="step-info"><div class="step-name">' + esc(st.name) + (st.done ? ' <span class="pill ok">' + esc(t('gDone')) + '</span>' : '') + '</div>' +
         '<div class="step-desc">' + esc(st.desc) + '</div></div>' +
-        '<div class="step-actions"><button class="btn ' + st.action.kind + '" data-step="' + st.key + '">' + (st.action.icon ? '<span class="ico">' + icon(st.action.icon) + '</span>' : '') + esc(st.action.label) + '</button></div>' +
+        '<div class="step-actions"><button class="btn ' + (st.done ? 'ghost' : 'primary') + '" data-gstep="' + i + '">' + esc(st.done ? t('wizOpenHere') : t('heroContinue', { n: i + 1 })) + '</button></div>' +
       '</div>';
     });
     html += '</div>';
-    html += whereGuideCard(s);
     c.innerHTML = html;
-    steps.forEach((st) => {
-      const btn = $('[data-step="' + st.key + '"]', c);
-      if (btn) btn.addEventListener('click', st.action.fn);
+    $$('[data-gstep]', c).forEach((el) => {
+      el.addEventListener('click', (e) => { e.stopPropagation(); gotoGuideStep(Number(el.dataset.gstep)); });
     });
+    const cta = $('[data-continue]', c);
+    if (cta) cta.addEventListener('click', () => gotoGuideStep(Number(cta.dataset.continue)));
     return;
   }
 
@@ -801,20 +770,6 @@ function renderDashboard(c, s) {
   c.innerHTML = html;
   bindTunnelCards(c, s);
   $$('[data-goto]', c).forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); setView(a.dataset.goto); }));
-}
-
-/* 新手引导卡：隧道 ID 和密钥到底去哪拿 */
-function whereGuideCard(s) {
-  const d = s.docs || {};
-  const link = (url, key) => '<a href="' + esc(url || '#') + '" target="_blank" rel="noopener">' + esc(t(key)) + '</a>';
-  return '<div class="guide-card">' +
-    '<div class="guide-head"><span class="ico">' + icon('info') + '</span><strong>' + esc(t('whereTitle')) + '</strong></div>' +
-    '<ol class="guide-steps">' +
-      '<li>' + t('whereP1', { a: link(d.platformTunnels, 'whereP1a') }) + '</li>' +
-      '<li>' + t('whereP2', { a: link(d.platformApiKeys, 'whereP2a') }) + '</li>' +
-      '<li>' + t('whereP3', { a: link(d.chatgptConnectors, 'whereP3a') }) + '</li>' +
-    '</ol>' +
-  '</div>';
 }
 
 function statCard(ic, tint, num, label) {
@@ -1254,46 +1209,8 @@ function setRow(k, v, mono) {
 }
 
 
-/* ---------------- 新手指南页 ---------------- */
-function guideSteps(s) {
-  const docs = s.docs || {};
-  const hasKey = (s.tunnels || []).some((x) => x.key && x.key.ready);
-  return [
-    {
-      name: t('gs1T'), desc: t('gs1D'), done: true,
-      actions: [],
-    },
-    {
-      name: t('gs2T'), desc: t('gs2D'), done: !!s.runtime.found,
-      actions: [{ label: s.runtime.found ? t('redownload') : t('oneClickDownload'), kind: s.runtime.found ? 'ghost' : 'primary', icon: 'download', fn: () => showRuntimeModal() }],
-    },
-    {
-      name: t('gs3T'), desc: t('gs3D'), done: s.counts.servers > 0,
-      actions: [
-        { label: s.counts.servers > 0 ? t('addAnother') : t('addServer'), kind: 'primary', icon: 'plus', fn: () => showServerModal(null) },
-        { label: t('fromTemplate'), kind: 'ghost', icon: 'servers', fn: () => showTemplateModal() },
-      ],
-    },
-    {
-      name: t('gs4T'), desc: t('gs4D'), done: hasKey,
-      actions: [
-        { label: t('gs4B1'), kind: 'ghost', icon: 'ext', href: docs.platformTunnels },
-        { label: t('gs4B2'), kind: 'ghost', icon: 'ext', href: docs.platformApiKeys },
-      ],
-    },
-    {
-      name: t('gs5T'), desc: t('gs5D'), done: s.counts.tunnels > 0,
-      actions: [{ label: s.counts.tunnels > 0 ? t('manageTunnels') : t('createTunnel'), kind: s.counts.tunnels > 0 ? 'soft' : 'primary', icon: s.counts.tunnels > 0 ? undefined : 'plus', fn: () => (s.counts.tunnels > 0 ? setView('tunnels') : showTunnelModal(null)) }],
-    },
-    {
-      name: t('gs6T'), desc: t('gs6D'), done: s.counts.running > 0,
-      actions: [{ label: t('gs6B'), kind: 'ghost', icon: 'ext', href: docs.chatgptConnectors }],
-    },
-  ];
-}
-
 function renderGuide(c, s) {
-  const steps = guideSteps(s);
+  const steps = setupSteps(s);
   const done = steps.filter((x) => x.done).length;
   const pct = Math.round((done / steps.length) * 100);
 

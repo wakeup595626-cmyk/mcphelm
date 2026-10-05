@@ -179,6 +179,9 @@ a:hover { text-decoration: underline; }
 .hero-progress-bar { flex: 1; max-width: 320px; height: 7px; border-radius: 4px; background: rgba(255,255,255,.25); overflow: hidden; }
 .hero-progress-fill { height: 100%; border-radius: 4px; background: #fff; transition: width .4s; }
 .hero-progress-text { font-size: 12.5px; font-weight: 600; }
+.hero-cta { margin-top: 14px; position: relative; }
+.hero-cta .btn.light { background: #fff; border-color: #fff; color: var(--primary-strong); font-weight: 700; }
+.hero-cta .btn.light:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -4px rgba(0,0,0,.25); }
 
 /* 新手指南：单步聚焦向导 */
 .wizard-dots { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -198,6 +201,7 @@ a:hover { text-decoration: underline; }
   background: var(--surface-2); border: 1.5px solid var(--border-strong); color: var(--text-3);
 }
 .step-item.done .step-num { background: var(--green); border-color: var(--green); color: #fff; }
+.step-item[role="button"] { cursor: pointer; }
 .step-item.current .step-num { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 0 0 4px rgba(79,110,247,.18); }
 .step-info { flex: 1; min-width: 0; }
 .step-name { font-weight: 700; font-size: 14.5px; display: flex; align-items: center; gap: 8px; }
