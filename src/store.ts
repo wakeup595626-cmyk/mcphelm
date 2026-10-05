@@ -1,5 +1,6 @@
 import { BRAND } from './brand.ts';
 import type { AppPaths } from './paths.ts';
+import { join } from 'node:path';
 import { atomicWriteJson, isProcessAlive, maskSecret, readJsonSafe } from './util.ts';
 
 export type ServerKind = 'stdio' | 'http';
@@ -165,8 +166,26 @@ export function loadConfig(paths: AppPaths): LoadResult {
   return { ok: !hasError, config, issues };
 }
 
+/**
+ * 保存配置。真正写入前，先把磁盘上现存的配置原样留一份到 config.backup.json——
+ * 这样配置自动备份才是真的：一旦某次保存出问题（面板误操作、磁盘写坏），
+ * 用户随时能把 backup 改回 config.json 恢复。备份失败不阻断主保存。
+ */
 export function saveConfig(paths: AppPaths, config: AppConfig): void {
+  try {
+    const existing = readJsonSafe<unknown>(paths.configFile);
+    if (existing !== null) {
+      atomicWriteJson(backupConfigFile(paths), existing);
+    }
+  } catch {
+    // 备份失败（例如磁盘满）不应影响本次保存
+  }
   atomicWriteJson(paths.configFile, config);
+}
+
+/** 自动备份文件的位置（与迁移、界面提示共用一个口径，固定为 config.backup.json） */
+export function backupConfigFile(paths: AppPaths): string {
+  return join(paths.configDir, 'config.backup.json');
 }
 
 export interface ResolvedKey {

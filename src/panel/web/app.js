@@ -1352,7 +1352,7 @@ async function showTunnelModal(editName) {
           } else if (keyMode === 'keyring') {
             const keyVal = $('#f_keykeyring', bodyEl).value.trim();
             if (keyVal) payload.apiKey = keyVal;
-            else if (!existing || !existing.apiKeySet) throw new Error(t('fillKey'));
+            else if (!existing || existing.apiKeyStore !== 'keyring') throw new Error(t('fillKey'));
             else payload.keyMode = 'keep';
           } else {
             const keyVal = $('#f_keyinline', bodyEl).value.trim();

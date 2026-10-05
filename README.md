@@ -276,6 +276,7 @@ npm uninstall -g mcphelm   # 或删除源码目录并 npm unlink
 
 ## 文档
 
+- [docs/desktop-guide.md](docs/desktop-guide.md) — 新手上手教程（桌面版，全程鼠标、面向零基础）
 - [docs/quickstart.md](docs/quickstart.md) — 从零到跑通的最短路径（含 Windows 与 macOS/Linux 写法）
 - [docs/configuration.md](docs/configuration.md) — 配置字段、目录布局、校验规则
 - [docs/architecture.md](docs/architecture.md) — 进程模型、启动参数、状态与日志、面板接口

@@ -31,6 +31,13 @@ export function rotateLogIfNeeded(logFile: string, maxBytes = DEFAULT_MAX_LOG_BY
   if (size < maxBytes) return { rotated: false, sizeBefore: size };
   const archive = logFile.replace(/\.log$/, '') + '.1.log';
   try {
+    // Windows 的 rename 不能覆盖已存在的文件：上一份存档还在（比如上次轮转后
+    // 程序崩溃没来得及清理）时直接改名会失败，日志继续无限长大，先删掉再轮
+    unlinkSync(archive);
+  } catch {
+    // 存档本来就不存在时忽略
+  }
+  try {
     renameSync(logFile, archive);
   } catch {
     // 日志正被占用改不了名时，本轮放弃，下次启动再试

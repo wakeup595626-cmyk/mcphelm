@@ -222,6 +222,12 @@ function parseTunnelPayload(
       return { ok: false, error: '当前平台不支持系统密钥保险箱' };
     }
     const value = bodyString(raw.apiKey);
+    // 更新场景允许留空（表示沿用保险箱里已有的密钥），但要求该隧道本来
+    // 就是 keyring 模式，否则等于什么都没配却标成了“已入箱”，启动时必失败
+    const existing = mode === 'update' ? findTunnel(config, bodyString(raw.name) ?? '') : undefined;
+    if (mode === 'update' && !value && (!existing || existing.apiKeyStore !== 'keyring')) {
+      return { ok: false, error: '密钥保险箱模式需要粘贴一次 runtime key（该隧道当前保险箱里没有可沿用的密钥）' };
+    }
     if (mode === 'create' && !value) {
       return { ok: false, error: '密钥保险箱模式需要粘贴一次 runtime key（只进 Windows 凭据管理器，不写进配置文件）' };
     }
