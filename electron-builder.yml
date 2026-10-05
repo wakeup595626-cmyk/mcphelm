@@ -1,0 +1,37 @@
+appId: dev.mcphelm.app
+productName: MCPHelm
+copyright: Copyright © 2026 MCPHelm contributors
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - desktop/**/*
+  - build/icon.ico
+  - package.json
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+  artifactName: ${productName}-Setup-${version}.exe
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: MCPHelm
+  uninstallDisplayName: MCPHelm ${version}
+  deleteAppDataOnUninstall: false
+
+publish:
+  provider: github
+  owner: wakeup595626-cmyk
+  repo: mcphelm

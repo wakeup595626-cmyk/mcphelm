@@ -1,0 +1,52 @@
+{
+  "name": "mcphelm",
+  "version": "0.1.0",
+  "description": "Open-source control center for the OpenAI Secure MCP Tunnel: register local MCP servers (stdio/HTTP), run and supervise the official tunnel-client, and connect ChatGPT / Codex through a desktop app, local web panel and CLI. No license key, zero runtime dependencies.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "wakeup <wakeup595626@gmail.com> (https://github.com/wakeup595626-cmyk)",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "bin": {
+    "mcphelm": "dist/cli.js"
+  },
+  "main": "desktop/main.cjs",
+  "files": [
+    "dist",
+    "README.md",
+    "README.en.md",
+    "docs",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "dev": "node src/cli.ts",
+    "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --experimental-strip-types \"test/*.test.ts\"",
+    "start": "node dist/cli.js",
+    "icon": "node build/gen-icon.cjs",
+    "desktop": "npm run build && electron .",
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "openai",
+    "chatgpt",
+    "codex",
+    "secure-mcp-tunnel",
+    "tunnel-client",
+    "mcp-server",
+    "cli",
+    "developer-tools"
+  ],
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "typescript": "^7.0.2"
+  }
+}

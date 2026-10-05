@@ -1,0 +1,44 @@
+# 说明：推送到 main 或提交 PR 时运行；Windows 是主要目标平台，单独跑一遍。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            node: '22'
+          - os: ubuntu-latest
+            node: '24'
+          # Windows 是主要目标平台，单独跑一遍确保解压、路径与进程逻辑没问题
+          - os: windows-latest
+            node: '24'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: 安装依赖
+        run: npm ci
+      - name: 类型检查（源码）
+        run: npm run typecheck
+      - name: 构建
+        run: npm run build
+      - name: 单元测试
+        run: npm test
