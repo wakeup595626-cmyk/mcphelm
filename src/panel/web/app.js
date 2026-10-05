@@ -6,13 +6,13 @@ const I18N = {
   zh: {
     brandSub: '本地隧道控制台',
     tagline: '把本地 AI 能力安全接进 ChatGPT',
-    navDashboard: '概览', navGuide: '新手指南', navTunnels: '隧道', navServers: '服务器', navLogs: '日志', navDoctor: '体检', navSettings: '设置',
-    metaDashboardT: '概览', metaDashboardS: '一眼看清整个接入进度',
+    navDashboard: '概览', navTunnels: '隧道', navServers: '服务器', navLogs: '日志', navDoctor: '体检', navSettings: '设置',
+    stuckT: '卡住了？常见问题与官方入口',
+    metaDashboardT: '概览', metaDashboardS: '没配完时是上手指引，配完后是运行状态总览',
     metaTunnelsT: '隧道', metaTunnelsS: '把本地 MCP 服务器安全地暴露给 ChatGPT',
     metaServersT: '服务器', metaServersS: '管理你本机的 MCP 服务器',
     metaLogsT: '日志', metaLogsS: '查看每条隧道的运行输出',
     metaDoctorT: '体检', metaDoctorS: '自动检查环境和配置有没有问题',
-    metaGuideT: '新手指南', metaGuideS: '零基础也能看懂：大约 10 分钟、五个真实操作把电脑接进 ChatGPT',
     metaSettingsT: '设置', metaSettingsS: '界面偏好、路径、密钥状态与帮助入口',
     refresh: '刷新', newTunnel: '新建隧道', downloadRuntime: '下载运行环境',
     close: '关闭', cancel: '取消', confirm: '确定', delete: '删除', save: '保存修改',
@@ -143,10 +143,6 @@ const I18N = {
     imServersN: '{n} 个服务器',
 
     /* 新手指南（软件内教程） */
-    guideHeroT: '从这里开始：10 分钟把电脑接进 ChatGPT',
-    guideHeroP: 'MCPHelm 用 OpenAI 官方安全隧道，把本机的 MCP 服务器安全地连给 ChatGPT。全程不用敲命令，跟着下面五步点鼠标就行——和概览页是同一套流程，进度互通。',
-    guideProgress: '{d} / {t} 步已完成',
-    guideStepsT: '五步上手', guideStepsS: '每一步完成会自动打勾；现在停在哪一步，就从那一步的按钮往下走',
     gDone: '已完成', gTodo: '待完成',
     wizStepOf: '第 {i} 步，共 {n} 步',
     wizPrev: '上一步', wizNext: '下一步',
@@ -179,18 +175,17 @@ const I18N = {
     faqQ5: '能把我现在的 Claude / Cursor 配置搬过来吗？',
     faqA5: '可以。在「服务器」页点「导入已有配置」，MCPHelm 会自动扫描常见位置并列出可导入的服务器。',
     guideLinksT: '官方页面直达',
-    openGuide: '打开新手指南（软件内教程）',
   },
   en: {
     brandSub: 'Local Tunnel Console',
     tagline: 'Securely connect local AI power to ChatGPT',
-    navDashboard: 'Overview', navGuide: 'Guide', navTunnels: 'Tunnels', navServers: 'Servers', navLogs: 'Logs', navDoctor: 'Doctor', navSettings: 'Settings',
-    metaDashboardT: 'Overview', metaDashboardS: 'Your whole setup at a glance',
+    navDashboard: 'Overview', navTunnels: 'Tunnels', navServers: 'Servers', navLogs: 'Logs', navDoctor: 'Doctor', navSettings: 'Settings',
+    stuckT: 'Stuck? FAQ & official links',
+    metaDashboardT: 'Overview', metaDashboardS: 'Setup guide until you are online, then a live status board',
     metaTunnelsT: 'Tunnels', metaTunnelsS: 'Safely expose local MCP servers to ChatGPT',
     metaServersT: 'Servers', metaServersS: 'Manage MCP servers on this machine',
     metaLogsT: 'Logs', metaLogsS: 'Live output of every tunnel',
     metaDoctorT: 'Doctor', metaDoctorS: 'Check environment and config automatically',
-    metaGuideT: 'Getting started', metaGuideS: 'Zero background needed — about 10 minutes to connect your machine to ChatGPT',
     metaSettingsT: 'Settings', metaSettingsS: 'Preferences, paths, key status and help',
     refresh: 'Refresh', newTunnel: 'New Tunnel', downloadRuntime: 'Download Runtime',
     close: 'Close', cancel: 'Cancel', confirm: 'OK', delete: 'Delete', save: 'Save',
@@ -321,10 +316,6 @@ const I18N = {
     imServersN: '{n} server(s)',
 
     /* In-app guide */
-    guideHeroT: 'Start here: connect your machine to ChatGPT in about 10 minutes',
-    guideHeroP: 'MCPHelm uses the official OpenAI secure tunnel to connect a local MCP server to ChatGPT. No commands to type — five steps below, the exact same flow as the Overview page, with shared progress.',
-    guideProgress: '{d} / {t} steps done',
-    guideStepsT: 'Five steps', guideStepsS: 'Each step ticks itself off when done — start from whichever is still open',
     gDone: 'Done', gTodo: 'To do',
     wizStepOf: 'Step {i} of {n}',
     wizPrev: 'Back', wizNext: 'Next',
@@ -357,7 +348,6 @@ const I18N = {
     faqQ5: 'Can I bring over my Claude / Cursor config?',
     faqA5: 'Yes. Open the Servers page and click Import existing config — MCPHelm scans the usual locations and lists what it finds.',
     guideLinksT: 'Official pages',
-    openGuide: 'Open the in-app guide',
   },
 };
 
@@ -478,7 +468,6 @@ const app = {
 function viewMeta(v) {
   const map = {
     dashboard: ['metaDashboardT', 'metaDashboardS'],
-    guide: ['metaGuideT', 'metaGuideS'],
     tunnels: ['metaTunnelsT', 'metaTunnelsS'],
     servers: ['metaServersT', 'metaServersS'],
     logs: ['metaLogsT', 'metaLogsS'],
@@ -565,19 +554,9 @@ async function refreshState(silent) {
     renderShell();
     renderView();
     schedulePoll();
-    maybeShowGuide();
   } catch (e) {
     if (!silent) toast(t('offline') + e.message, 'err');
   }
-}
-
-/* 第一次打开这个软件：自动落到“新手指南”，新用户一眼知道从哪开始 */
-function maybeShowGuide() {
-  try {
-    if (localStorage.getItem('mcphelm.guideSeen') === '1') return;
-    localStorage.setItem('mcphelm.guideSeen', '1');
-    setView('guide');
-  } catch (e) { /* localStorage 不可用时静默跳过 */ }
 }
 
 function syncPrefsFromState() {
@@ -599,7 +578,7 @@ function applyLanguage() {
   document.documentElement.lang = currentLang === 'en' ? 'en' : 'zh-CN';
   document.title = 'MCPHelm \u00b7 ' + t('tagline');
   const brandSub = $('#brandSub'); if (brandSub) brandSub.textContent = t('brandSub');
-  const navLabels = { dashboard: 'navDashboard', guide: 'navGuide', tunnels: 'navTunnels', servers: 'navServers', logs: 'navLogs', doctor: 'navDoctor', settings: 'navSettings' };
+  const navLabels = { dashboard: 'navDashboard', tunnels: 'navTunnels', servers: 'navServers', logs: 'navLogs', doctor: 'navDoctor', settings: 'navSettings' };
   $$('#nav .nav-item').forEach((b) => {
     const lbl = $('.nav-label', b);
     if (lbl && navLabels[b.dataset.view]) lbl.textContent = t(navLabels[b.dataset.view]);
@@ -664,7 +643,6 @@ function renderView() {
   if (!s) return;
   const c = $('#content');
   if (app.view === 'dashboard') renderDashboard(c, s);
-  else if (app.view === 'guide') renderGuide(c, s);
   else if (app.view === 'tunnels') renderTunnels(c, s);
   else if (app.view === 'servers') renderServers(c, s);
   else if (app.view === 'logs') renderLogs(c, s);
@@ -707,13 +685,6 @@ function setupSteps(s) {
   ];
 }
 
-/* 跳到新手指南并定位到第 i 步（概览每一步的入口） */
-function gotoGuideStep(i) {
-  app.guideIdx = i;
-  app.guideAutoAdvance = false; // 用户明确选了这一步，不要再自动弹走
-  setView('guide');
-}
-
 function renderDashboard(c, s) {
   const errCount = (s.configIssues || []).filter((i) => i.level === 'error').length;
   const warnCount = (s.configIssues || []).filter((i) => i.level === 'warn').length;
@@ -730,47 +701,113 @@ function renderDashboard(c, s) {
   const steps = setupSteps(s);
   const doneCount = steps.filter((x) => x.done).length;
   if (doneCount < steps.length) {
+    // 自动推进：当前步骤刚完成时，跳到下一个未完成步骤；手动导航（上一步/圆点）后锁定不再弹回
+    const curDone = !!(steps[app.guideIdx] && steps[app.guideIdx].done);
+    if (curDone && app.guideAutoAdvance !== false && app.guideIdx < steps.length - 1) {
+      const nxt = steps.findIndex((x, i2) => i2 > app.guideIdx && !x.done);
+      if (nxt !== -1) { app.guideIdx = nxt; app.guideAutoAdvance = false; }
+    }
+    if (app.guideIdx >= steps.length) app.guideIdx = steps.length - 1;
+    const i = app.guideIdx;
+    const st = steps[i];
     const pct = Math.round((doneCount / steps.length) * 100);
-    const currentIdx = steps.findIndex((x) => !x.done);
+
     html += '<div class="hero">' +
       '<h2>' + esc(t('heroTitle')) + '</h2>' +
       '<p>' + esc(t('heroP')) + '</p>' +
       '<div class="hero-progress"><div class="hero-progress-bar"><div class="hero-progress-fill" style="width:' + pct + '%"></div></div><span class="hero-progress-text">' + esc(t('heroProgress', { d: doneCount, t: steps.length })) + '</span></div>' +
-      (currentIdx >= 0 ? '<div class="hero-cta"><button class="btn light" data-continue="' + currentIdx + '"><span class="ico">' + icon('arrow') + '</span>' + esc(t('heroContinue', { n: currentIdx + 1 })) + '</button></div>' : '') +
       '</div>';
-    html += '<div class="step-list">';
-    steps.forEach((st, i) => {
-      const cls = st.done ? 'done' : (i === currentIdx ? 'current' : '');
-      html += '<div class="step-item ' + cls + '" data-gstep="' + i + '" role="button" tabindex="0" title="' + esc(t('wizOpenHere')) + '">' +
-        '<div class="step-num">' + (st.done ? icon('check') : (i + 1)) + '</div>' +
-        '<div class="step-info"><div class="step-name">' + esc(st.name) + (st.done ? ' <span class="pill ok">' + esc(t('gDone')) + '</span>' : '') + '</div>' +
-        '<div class="step-desc">' + esc(st.desc) + '</div></div>' +
-        '<div class="step-actions"><button class="btn ' + (st.done ? 'ghost' : 'primary') + '" data-gstep="' + i + '">' + esc(st.done ? t('wizOpenHere') : t('heroContinue', { n: i + 1 })) + '</button></div>' +
-      '</div>';
+
+    // 步骤圆点
+    html += '<div class="wizard-dots">';
+    steps.forEach((x, j) => {
+      const cls = (j === i) ? 'cur' : (x.done ? 'done' : '');
+      html += '<button class="wizard-dot ' + cls + '" data-gnav="' + j + '" title="' + esc(x.name) + '" aria-label="' + esc(t('wizStepOf', { i: j + 1, n: steps.length })) + '">' + (x.done ? icon('check') : (j + 1)) + '</button>';
     });
     html += '</div>';
+
+    // 当前步骤大卡片
+    html += '<div class="wizard-card">' +
+      '<div class="wizard-step-tag">' + esc(t('wizStepOf', { i: i + 1, n: steps.length })) +
+        (st.done ? ' <span class="pill ok">' + esc(t('gDone')) + '</span>' : '') +
+      '</div>' +
+      '<h3 class="wizard-name">' + esc(st.name) + '</h3>' +
+      '<p class="wizard-desc">' + esc(st.desc) + '</p>';
+    if (st.actions.length > 0) {
+      html += '<div class="wizard-actions">';
+      st.actions.forEach((a, j) => {
+        const inner = (a.icon ? '<span class="ico">' + icon(a.icon) + '</span>' : '') + esc(a.label);
+        if (a.href) html += '<a class="btn ' + a.kind + '" href="' + esc(a.href) + '" target="_blank" rel="noopener">' + inner + '</a>';
+        else html += '<button class="btn ' + a.kind + '" data-gact="' + i + '-' + j + '">' + inner + '</button>';
+      });
+      html += '</div>';
+    }
+    html += '<div class="wizard-nav">' +
+      '<button class="btn ghost" data-gnav="' + (i - 1) + '"' + (i === 0 ? ' disabled' : '') + '><span class="ico">' + icon('prev') + '</span>' + esc(t('wizPrev')) + '</button>';
+    if (i < steps.length - 1) {
+      html += '<button class="btn primary" data-gnav="' + (i + 1) + '">' + esc(t('wizNext')) + '<span class="ico">' + icon('arrow') + '</span></button>';
+    } else {
+      html += '<span class="wizard-nav-hint">' + esc(t('gTodo')) + '</span>';
+    }
+    html += '</div></div>';
+
+    html += dashHelpSection(s);
+
     c.innerHTML = html;
-    $$('[data-gstep]', c).forEach((el) => {
-      el.addEventListener('click', (e) => { e.stopPropagation(); gotoGuideStep(Number(el.dataset.gstep)); });
-    });
-    const cta = $('[data-continue]', c);
-    if (cta) cta.addEventListener('click', () => gotoGuideStep(Number(cta.dataset.continue)));
+    $$('[data-gact]', c).forEach((b) => b.addEventListener('click', () => {
+      const parts = b.dataset.gact.split('-');
+      const stp = steps[Number(parts[0])];
+      const a = stp && stp.actions[Number(parts[1])];
+      if (a && a.fn) a.fn();
+    }));
+    $$('[data-gnav]', c).forEach((b) => b.addEventListener('click', () => {
+      const j = Number(b.dataset.gnav);
+      if (j >= 0 && j < steps.length) { app.guideIdx = j; app.guideAutoAdvance = false; renderView(); }
+    }));
     return;
   }
 
-  // 已完成初始化：显示隧道卡片 + 问题提示
+  // 全部完成：状态监控 + 帮助入口
   if (attention > 0) {
     html += '<div class="notice warn"><span class="ico">' + icon('warn') + '</span><div>' + t('attentionLine', { n: attention }) + '</div></div>';
   }
   html += '<div class="section-title"><span class="ico">' + icon('tunnels') + '</span>' + esc(t('dashTunnels')) + '</div>';
   html += '<div class="section-sub">' + esc(t('dashTunnelsSub')) + '</div>';
   html += '<div class="entity-grid">';
-  s.tunnels.forEach((t) => { html += tunnelCard(t); });
+  s.tunnels.forEach((tn) => { html += tunnelCard(tn); });
   html += '</div>';
+  html += dashHelpSection(s);
   c.innerHTML = html;
   bindTunnelCards(c, s);
   $$('[data-goto]', c).forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); setView(a.dataset.goto); }));
 }
+
+/* 概览底部的帮助折叠区：常见问题 + 官方入口，想看再展开 */
+function dashHelpSection(s) {
+  let h = '<details class="wizard-help dash-help"><summary><span class="ico">' + icon('info') + '</span>' + esc(t('stuckT')) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="wizard-help-body">';
+  h += '<div class="guide-tips">';
+  [['zap', 'tip1T', 'tip1D'], ['refresh', 'tip2T', 'tip2D'], ['heartbeat', 'tip3T', 'tip3D']].forEach((row) => {
+    h += '<div class="guide-tip"><div class="t"><span class="ico">' + icon(row[0]) + '</span>' + esc(t(row[1])) + '</div><div class="d">' + esc(t(row[2])) + '</div></div>';
+  });
+  h += '</div>';
+  h += '<div class="section-title" style="margin-top:20px"><span class="ico">' + icon('info') + '</span>' + esc(t('guideFaqT')) + '</div>';
+  h += '<div class="faq-list">';
+  for (let k = 1; k <= 5; k++) {
+    h += '<details class="faq"><summary><span class="ico">' + icon('info') + '</span>' + esc(t('faqQ' + k)) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="faq-a">' + esc(t('faqA' + k)) + '</div></details>';
+  }
+  h += '</div>';
+  h += '<div class="section-title" style="margin-top:20px"><span class="ico">' + icon('link') + '</span>' + esc(t('guideLinksT')) + '</div>';
+  h += '<div class="card"><div class="card-body" style="padding-top:8px"><div class="link-row">';
+  const docs = s.docs || {};
+  [['platformTunnels', 'lnkTunnels'], ['platformApiKeys', 'lnkApiKeys'], ['chatgptConnectors', 'lnkConnectors'], ['secureTunnelGuide', 'lnkGuide'], ['tunnelClientRepo', 'lnkRepo']].forEach((row) => {
+    if (docs[row[0]]) h += '<a class="link-item" href="' + esc(docs[row[0]]) + '" target="_blank" rel="noopener"><span class="ico">' + icon('ext') + '</span>' + esc(t(row[1])) + '<span class="arrow">' + icon('arrow') + '</span></a>';
+  });
+  h += '</div></div></div>';
+  h += '</div></details>';
+  return h;
+}
+
+/* 保留空壳：老的 renderGuide 已由概览统一承担 */
 
 function statCard(ic, tint, num, label) {
   return '<div class="stat-card"><div class="stat-ico ' + tint + '">' + icon(ic) + '</div>' +
@@ -1140,7 +1177,6 @@ function renderSettings(c, s) {
     ['chatgptConnectors', t('lnkConnectors')],
     ['tunnelClientRepo', t('lnkRepo')],
   ];
-  html += '<button class="link-item guide-entry" id="openGuideBtn"><span class="ico">' + icon('book') + '</span>' + esc(t('openGuide')) + '<span class="arrow">' + icon('arrow') + '</span></button>';
   links.forEach(([k, label]) => {
     if (d[k]) html += '<a class="link-item" href="' + esc(d[k]) + '" target="_blank" rel="noopener"><span class="ico">' + icon('ext') + '</span>' + esc(label) + '<span class="arrow">' + icon('arrow') + '</span></a>';
   });
@@ -1160,7 +1196,6 @@ function renderSettings(c, s) {
     try { await api('/api/open', { body: { target: b.dataset.open } }); } catch (e) { toast(e.message, 'err'); }
   }));
   const rb = $('#runtimeBtn', c); if (rb) rb.addEventListener('click', () => showRuntimeModal());
-  const og = $('#openGuideBtn', c); if (og) og.addEventListener('click', () => setView('guide'));
   const rib = $('#runtimeImportBtn', c); if (rib) rib.addEventListener('click', () => showImportRuntimeModal());
   const bb = $('#backupBtn', c); if (bb) bb.addEventListener('click', () => {
     const token = getToken();
@@ -1209,105 +1244,6 @@ function setRow(k, v, mono) {
 }
 
 
-function renderGuide(c, s) {
-  const steps = setupSteps(s);
-  const done = steps.filter((x) => x.done).length;
-  const pct = Math.round((done / steps.length) * 100);
-
-  // 自动推进只在「当前步骤从未完成变为已完成」时触发一次；
-  // 手动导航（上一步/圆点）后不再弹回，让用户自由翻看
-  const curDone = !!(steps[app.guideIdx] && steps[app.guideIdx].done);
-  if (curDone && app.guideAutoAdvance !== false && app.guideIdx < steps.length - 1) {
-    const next = steps.findIndex((x, i) => i > app.guideIdx && !x.done);
-    if (next !== -1) {
-      app.guideIdx = next;
-      app.guideAutoAdvance = false; // 推进过一次后锁定，后续手动导航不再被弹回
-    }
-  }
-  if (app.guideIdx >= steps.length) app.guideIdx = steps.length - 1;
-
-  const i = app.guideIdx;
-  const st = steps[i];
-
-  let html = '<div class="hero">' +
-    '<h2>' + esc(t('guideHeroT')) + '</h2>' +
-    '<p>' + esc(t('guideHeroP')) + '</p>' +
-    '<div class="hero-progress"><div class="hero-progress-bar"><div class="hero-progress-fill" style="width:' + pct + '%"></div></div><span class="hero-progress-text">' + esc(t('guideProgress', { d: done, t: steps.length })) + '</span></div>' +
-    '</div>';
-
-  // 步骤圆点导航
-  html += '<div class="wizard-dots">';
-  steps.forEach((x, j) => {
-    const cls = (j === i) ? 'cur' : (x.done ? 'done' : '');
-    html += '<button class="wizard-dot ' + cls + '" data-gnav="' + j + '" title="' + esc(x.name) + '" aria-label="' + esc(t('wizStepOf', { i: j + 1, n: steps.length })) + '">' + (x.done ? icon('check') : (j + 1)) + '</button>';
-  });
-  html += '</div>';
-
-  // 当前步骤大卡片
-  html += '<div class="wizard-card">' +
-    '<div class="wizard-step-tag">' + esc(t('wizStepOf', { i: i + 1, n: steps.length })) +
-      (st.done ? ' <span class="pill ok">' + esc(t('gDone')) + '</span>' : '') +
-    '</div>' +
-    '<h3 class="wizard-name">' + esc(st.name) + '</h3>' +
-    '<p class="wizard-desc">' + esc(st.desc) + '</p>';
-  if (st.actions.length > 0) {
-    html += '<div class="wizard-actions">';
-    st.actions.forEach((a, j) => {
-      const inner = (a.icon ? '<span class="ico">' + icon(a.icon) + '</span>' : '') + esc(a.label);
-      if (a.href) html += '<a class="btn ' + a.kind + '" href="' + esc(a.href) + '" target="_blank" rel="noopener">' + inner + '</a>';
-      else html += '<button class="btn ' + a.kind + '" data-gact="' + i + '-' + j + '">' + inner + '</button>';
-    });
-    html += '</div>';
-  }
-  html += '<div class="wizard-nav">' +
-    '<button class="btn ghost" data-gnav="' + (i - 1) + '"' + (i === 0 ? ' disabled' : '') + '><span class="ico">' + icon('prev') + '</span>' + esc(t('wizPrev')) + '</button>';
-  if (i < steps.length - 1) {
-    html += '<button class="btn primary" data-gnav="' + (i + 1) + '">' + esc(t('wizNext')) + '<span class="ico">' + icon('arrow') + '</span></button>';
-  } else {
-    html += '<button class="btn primary" data-gnav-end="1"><span class="ico">' + icon('check') + '</span>' + esc(t('wizFinish')) + '</button>';
-  }
-  html += '</div></div>';
-
-  // 帮助收进一处，想看再展开
-  html += '<details class="wizard-help"><summary><span class="ico">' + icon('info') + '</span>' + esc(t('wizHelpT')) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="wizard-help-body">';
-  html += '<div class="guide-tips">';
-  [['zap', 'tip1T', 'tip1D'], ['refresh', 'tip2T', 'tip2D'], ['heartbeat', 'tip3T', 'tip3D']].forEach((row) => {
-    html += '<div class="guide-tip"><div class="t"><span class="ico">' + icon(row[0]) + '</span>' + esc(t(row[1])) + '</div><div class="d">' + esc(t(row[2])) + '</div></div>';
-  });
-  html += '</div>';
-  html += '<div class="section-title" style="margin-top:20px"><span class="ico">' + icon('info') + '</span>' + esc(t('guideFaqT')) + '</div>';
-  html += '<div class="faq-list">';
-  for (let k = 1; k <= 5; k++) {
-    html += '<details class="faq"><summary><span class="ico">' + icon('info') + '</span>' + esc(t('faqQ' + k)) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="faq-a">' + esc(t('faqA' + k)) + '</div></details>';
-  }
-  html += '</div>';
-  html += '<div class="section-title" style="margin-top:20px"><span class="ico">' + icon('link') + '</span>' + esc(t('guideLinksT')) + '</div>';
-  html += '<div class="card"><div class="card-body" style="padding-top:8px"><div class="link-row">';
-  const docs = s.docs || {};
-  [['platformTunnels', 'lnkTunnels'], ['platformApiKeys', 'lnkApiKeys'], ['chatgptConnectors', 'lnkConnectors'], ['secureTunnelGuide', 'lnkGuide'], ['tunnelClientRepo', 'lnkRepo']].forEach((row) => {
-    if (docs[row[0]]) html += '<a class="link-item" href="' + esc(docs[row[0]]) + '" target="_blank" rel="noopener"><span class="ico">' + icon('ext') + '</span>' + esc(t(row[1])) + '<span class="arrow">' + icon('arrow') + '</span></a>';
-  });
-  html += '</div></div></div>';
-  html += '</div></details>';
-
-  c.innerHTML = html;
-  $$('[data-gact]', c).forEach((b) => b.addEventListener('click', () => {
-    const parts = b.dataset.gact.split('-');
-    const st = steps[Number(parts[0])];
-    const a = st && st.actions[Number(parts[1])];
-    if (a && a.fn) a.fn();
-  }));
-  $$('[data-gnav]', c).forEach((b) => b.addEventListener('click', () => {
-    const j = Number(b.dataset.gnav);
-    if (j >= 0 && j < steps.length) {
-      app.guideIdx = j;
-      app.guideAutoAdvance = false; // 手动导航后锁定自动推进
-      renderView();
-    }
-  }));
-  const endBtn = $('[data-gnav-end]', c);
-  if (endBtn) endBtn.addEventListener('click', () => setView('dashboard'));
-}
 
 /* ---------------- 服务器表单 ---------------- */
 async function showServerModal(editName, prefill) {
