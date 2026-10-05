@@ -4,5 +4,6 @@ dist/
 .mcphelm/
 coverage/
 release/
+.eb-cache/
 .DS_Store
 Thumbs.db
