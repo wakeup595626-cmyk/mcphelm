@@ -26,11 +26,15 @@ export interface TunnelConfig {
   apiKeyEnv?: string;
   /** 直接写进配置的 runtime key（不推荐，仅本地临时使用） */
   apiKey?: string;
+  /** 标记密钥已存入 Windows 凭据管理器（mcphelm/tunnel/<name>），不落盘 */
+  apiKeyStore?: 'keyring';
   /** 本地健康端点端口，默认 8080 */
   healthPort?: number;
   /** 透传给 tunnel-client run 的高级参数 */
   extraArgs?: string[];
 }
+
+export type PanelLanguage = 'zh' | 'en';
 
 export interface AppConfig {
   version: 1;
@@ -38,6 +42,15 @@ export interface AppConfig {
   tunnels: TunnelConfig[];
   defaults?: {
     healthPort?: number;
+  };
+  ui?: {
+    language?: PanelLanguage;
+    /** 面板访问口令；缺省时启动面板自动生成随机口令 */
+    token?: string;
+    /** 桌面端专属：关掉主窗口时最小化到托盘而不是退出 */
+    minimizeToTray?: boolean;
+    /** 桌面端专属：登录系统后自动启动 MCPHelm */
+    autoLaunch?: boolean;
   };
 }
 
@@ -119,8 +132,8 @@ export function validateConfig(config: AppConfig): ConfigIssue[] {
     if (!findServer(config, tunnel.server)) {
       issues.push({ level: 'error', message: '隧道引用了不存在的服务器：' + tunnel.name + ' -> ' + tunnel.server });
     }
-    if (!tunnel.apiKeyEnv && !tunnel.apiKey) {
-      issues.push({ level: 'warn', message: '隧道未配置 runtime key（apiKeyEnv 或 apiKey）：' + tunnel.name });
+    if (!tunnel.apiKeyEnv && !tunnel.apiKey && tunnel.apiKeyStore !== 'keyring') {
+      issues.push({ level: 'warn', message: '隧道未配置 runtime key（apiKeyEnv / 密钥保险箱 / apiKey）：' + tunnel.name });
     }
     if (tunnel.healthPort !== undefined && (tunnel.healthPort < 1 || tunnel.healthPort > 65535)) {
       issues.push({ level: 'error', message: '健康端点端口超出范围：' + tunnel.name });
@@ -145,6 +158,7 @@ export function loadConfig(paths: AppPaths): LoadResult {
     servers: Array.isArray(candidate.servers) ? candidate.servers : [],
     tunnels: Array.isArray(candidate.tunnels) ? candidate.tunnels : [],
     defaults: candidate.defaults ?? { healthPort: 8080 },
+    ui: candidate.ui && typeof candidate.ui === 'object' ? candidate.ui : undefined,
   };
   const issues = validateConfig(config);
   const hasError = issues.some((i) => i.level === 'error');
@@ -160,6 +174,8 @@ export interface ResolvedKey {
   value?: string;
   source?: string;
   error?: string;
+  /** true 表示密钥在系统保险箱里，需要走 resolveApiKeyAsync 异步取 */
+  pendingKeyring?: boolean;
 }
 
 export function resolveApiKey(tunnel: TunnelConfig, env: NodeJS.ProcessEnv = process.env): ResolvedKey {
@@ -170,13 +186,42 @@ export function resolveApiKey(tunnel: TunnelConfig, env: NodeJS.ProcessEnv = pro
     }
     return { ok: true, value, source: 'env:' + tunnel.apiKeyEnv };
   }
+  if (tunnel.apiKeyStore === 'keyring') {
+    // 同步接口拿不到凭据内容；由异步解析器 resolveApiKeyAsync 处理
+    return { ok: false, error: '密钥存放在 Windows 凭据管理器，请使用异步解析', pendingKeyring: true };
+  }
   if (tunnel.apiKey) {
     return { ok: true, value: tunnel.apiKey, source: 'config(明文)' };
   }
   return { ok: false, error: '隧道 ' + tunnel.name + ' 未配置 runtime key，请设置 apiKeyEnv 或 apiKey' };
 }
 
+/**
+ * 异步版密钥解析：在 resolveApiKey 的基础上，额外支持从 Windows 凭据管理器取回
+ * apiKeyStore === 'keyring' 的密钥。启动隧道、面板显示状态都应使用这个版本。
+ */
+export async function resolveApiKeyAsync(
+  tunnel: TunnelConfig,
+  env: NodeJS.ProcessEnv = process.env
+): Promise<ResolvedKey> {
+  const sync = resolveApiKey(tunnel, env);
+  if (!sync.pendingKeyring) return sync;
+  const { keyringGet, keyringSupported } = await import('./keyring.ts');
+  if (!keyringSupported()) {
+    return { ok: false, error: '当前平台不支持系统密钥保险箱，无法取回隧道 ' + tunnel.name + ' 的密钥' };
+  }
+  const secret = await keyringGet(tunnel.name);
+  if (!secret) {
+    return {
+      ok: false,
+      error: 'Windows 凭据管理器里没有找到隧道 ' + tunnel.name + ' 的密钥（可能被清理了），请重新保存一次密钥',
+    };
+  }
+  return { ok: true, value: secret, source: 'Windows 凭据管理器' };
+}
+
 export function describeKey(tunnel: TunnelConfig, env: NodeJS.ProcessEnv = process.env): string {
+  if (tunnel.apiKeyStore === 'keyring') return '已存入 Windows 凭据管理器（不落盘）';
   const resolved = resolveApiKey(tunnel, env);
   if (!resolved.ok || !resolved.value) return '未配置';
   return maskSecret(resolved.value) + '  来源 ' + (resolved.source ?? '未知');

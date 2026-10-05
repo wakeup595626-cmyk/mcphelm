@@ -2,10 +2,14 @@ import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BRAND } from '../brand.ts';
 import { runDoctor } from '../doctor.ts';
+import { mergeServers, parseExternalFile, parsePastedConfig, scanExternalConfigs } from '../importer.ts';
+import { keyringDelete, keyringSet, keyringSupported } from '../keyring.ts';
+import { pruneLogs } from '../logrotate.ts';
 import { describeConfigScope, logFileFor } from '../paths.ts';
 import type { AppPaths } from '../paths.ts';
 import { listStatuses, probeHealth, readLogTail, readState, startTunnel, stopTunnel } from '../runtime.ts';
@@ -14,14 +18,17 @@ import {
   findTunnel,
   isValidName,
   isValidTunnelId,
-  resolveApiKey,
+  resolveApiKeyAsync,
   saveConfig,
   serverTarget,
   validateConfig,
 } from '../store.ts';
 import type { AppConfig, ConfigIssue, McpServerConfig, ServerKind, TunnelConfig } from '../store.ts';
+import { SERVER_TEMPLATES } from '../templates.ts';
+import { testHttpEndpoint, testStdioCommand } from '../tester.ts';
 import { findRuntime, installRuntime } from '../tunnelclient.ts';
-import { bold, cyan, dim, isProcessAlive, nowIso, yellow } from '../util.ts';
+import { bold, cyan, dim, isProcessAlive, nowIso, sleep, yellow } from '../util.ts';
+import { extractToken, generatePanelToken } from './paneltoken.ts';
 
 const WEB_DIR = fileURLToPath(new URL('./web/', import.meta.url));
 
@@ -47,6 +54,8 @@ export interface PanelOptions {
 export interface PanelHandle {
   url: string;
   port: number;
+  /** 本次面板的访问口令（已拼进 url 的 #token，仅本机可见） */
+  token: string;
   close: () => Promise<void>;
 }
 
@@ -156,6 +165,7 @@ function parseServerPayload(
 type TunnelKeyPayload =
   | { mode: 'env'; envName: string }
   | { mode: 'inline'; value?: string }
+  | { mode: 'keyring'; value?: string }
   | { mode: 'clear' }
   | { mode: 'keep' };
 
@@ -195,6 +205,15 @@ function parseTunnelPayload(
       return { ok: false, error: '环境变量名不合法，例如 CONTROL_PLANE_API_KEY' };
     }
     key = { mode: 'env', envName };
+  } else if (keyModeRaw === 'keyring') {
+    if (!keyringSupported()) {
+      return { ok: false, error: '当前平台不支持系统密钥保险箱' };
+    }
+    const value = bodyString(raw.apiKey);
+    if (mode === 'create' && !value) {
+      return { ok: false, error: '密钥保险箱模式需要粘贴一次 runtime key（只进 Windows 凭据管理器，不写进配置文件）' };
+    }
+    key = { mode: 'keyring', value: value || undefined };
   } else if (keyModeRaw === 'inline') {
     const value = bodyString(raw.apiKey) ?? '';
     if (mode === 'create' && !value) {
@@ -211,23 +230,38 @@ function parseTunnelPayload(
   return { ok: true, value: { tunnelId, server, healthPort, key } };
 }
 
-function applyTunnelKey(tunnel: TunnelConfig, key: TunnelKeyPayload): void {
+async function applyTunnelKey(tunnel: TunnelConfig, key: TunnelKeyPayload): Promise<{ warning: string | null }> {
   switch (key.mode) {
     case 'env':
       tunnel.apiKeyEnv = key.envName;
       delete tunnel.apiKey;
+      delete tunnel.apiKeyStore;
       break;
     case 'inline':
       if (key.value !== undefined) tunnel.apiKey = key.value;
       delete tunnel.apiKeyEnv;
+      delete tunnel.apiKeyStore;
       break;
+    case 'keyring': {
+      if (key.value !== undefined) {
+        const stored = await keyringSet(tunnel.name, key.value);
+        if (!stored.ok) return { warning: stored.error ?? '密钥写入凭据管理器失败' };
+      }
+      tunnel.apiKeyStore = 'keyring';
+      delete tunnel.apiKeyEnv;
+      delete tunnel.apiKey;
+      break;
+    }
     case 'clear':
       delete tunnel.apiKeyEnv;
       delete tunnel.apiKey;
+      delete tunnel.apiKeyStore;
+      await keyringDelete(tunnel.name);
       break;
     default:
       break;
   }
+  return { warning: null };
 }
 
 function openFolder(folderPath: string): void {
@@ -235,6 +269,30 @@ function openFolder(folderPath: string): void {
     process.platform === 'win32' ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open';
   const child = spawn(command, [folderPath], { detached: true, stdio: 'ignore', windowsHide: true });
   child.unref();
+}
+
+/* ------------------------------------------------------------------ 安全校验 */
+
+/** 只允许本机回环地址的 Host 头，挡住 DNS rebinding 之类借域名访问 127.0.0.1 的请求 */
+function hostAllowed(req: IncomingMessage, panelPort: number): boolean {
+  const host = req.headers.host ?? '';
+  const name = host.split(':')[0]?.toLowerCase() ?? '';
+  if (name !== '127.0.0.1' && name !== 'localhost' && name !== '::1' && name !== '[::1]') return false;
+  const port = host.includes(':') ? Number(host.slice(host.lastIndexOf(':') + 1)) : 80;
+  if (host.includes(':') && Number.isFinite(port) && panelPort > 0 && port !== panelPort) return false;
+  return true;
+}
+
+/** 带 Origin 的请求必须来自本面板自己（同源），否则拒绝写操作 */
+function originAllowed(req: IncomingMessage): boolean {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  try {
+    const url = new URL(origin);
+    return url.hostname === '127.0.0.1' || url.hostname === 'localhost' || url.hostname === '::1';
+  } catch {
+    return false;
+  }
 }
 
 /* ------------------------------------------------------------------ 面板主体 */
@@ -252,8 +310,11 @@ interface RuntimeJob {
 export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
   const host = opts.host ?? '127.0.0.1';
   const busy = new Set<string>();
+  const token = opts.config.ui?.token && opts.config.ui.token.length >= 8 ? opts.config.ui.token : generatePanelToken();
   let runtimeCache = { at: 0, path: null as string | null, version: null as string | null, source: 'none' };
   let runtimeJob: RuntimeJob | null = null;
+
+  pruneLogs(opts.paths.logsDir);
 
   function invalidateRuntimeCache(): void {
     runtimeCache.at = 0;
@@ -324,7 +385,7 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
       const health =
         status.state === 'running' && status.healthAddr ? await probeHealth(status.healthAddr, 1500) : null;
       const cfg = findTunnel(opts.config, status.name);
-      const key = cfg ? resolveApiKey(cfg) : { ok: false, error: '隧道配置缺失' };
+      const key = cfg ? await resolveApiKeyAsync(cfg) : { ok: false, error: '隧道配置缺失' };
       tunnels.push({
         name: status.name,
         tunnelIdMasked: status.tunnelIdMasked,
@@ -367,6 +428,7 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         ? { kind: runtimeJob.kind, running: runtimeJob.running, ok: runtimeJob.ok, error: runtimeJob.error }
         : null,
       configIssues: issues,
+      security: { keyringSupported: keyringSupported() },
       servers: opts.config.servers.map((server) => ({
         name: server.name,
         kind: server.kind,
@@ -378,6 +440,7 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
       counts: { servers: opts.config.servers.length, tunnels: statuses.length, running },
       docs: BRAND.docs,
       panelVersion: BRAND.version,
+      ui: { language: opts.config.ui?.language ?? 'zh', minimizeToTray: opts.config.ui?.minimizeToTray ?? false, autoLaunch: opts.config.ui?.autoLaunch ?? false },
     };
   }
 
@@ -385,14 +448,33 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
     const url = new URL(req.url ?? '/', 'http://localhost');
     const path = decodeURIComponent(url.pathname);
     const method = req.method ?? 'GET';
+    const address = server.address() as AddressInfo | null;
+    const panelPort = address && typeof address === 'object' ? address.port : opts.port;
 
     try {
+      if (!hostAllowed(req, panelPort) || !originAllowed(req)) {
+        sendText(res, 403, 'forbidden');
+        return;
+      }
+
+      if (path === '/api/auth-check') {
+        const ok = extractToken(url, req.headers as Record<string, unknown>) === token;
+        sendJson(res, ok ? 200 : 401, { ok });
+        return;
+      }
+
       if (!path.startsWith('/api/')) {
         if (method !== 'GET') {
           sendText(res, 405, 'method not allowed');
           return;
         }
         serveStatic(res, path);
+        return;
+      }
+
+      // 进入 /api/ 的所有请求都要带本次面板的口令（前端从地址栏 #token 取出后放在请求头里）
+      if (extractToken(url, req.headers as Record<string, unknown>) !== token) {
+        sendJson(res, 401, { ok: false, error: '面板访问口令无效，请从 MCPHelm 窗口或 CLI 输出的地址重新打开' });
         return;
       }
 
@@ -592,7 +674,11 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         const value = parsed.value;
         const tunnel: TunnelConfig = { name, tunnelId: value.tunnelId, server: value.server };
         if (value.healthPort !== undefined) tunnel.healthPort = value.healthPort;
-        applyTunnelKey(tunnel, value.key);
+        const keyResult = await applyTunnelKey(tunnel, value.key);
+        if (keyResult.warning) {
+          sendJson(res, 400, { ok: false, error: keyResult.warning });
+          return;
+        }
         if (existing) {
           opts.config.tunnels[opts.config.tunnels.indexOf(existing)] = tunnel;
         } else {
@@ -600,11 +686,11 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         }
         saveConfig(opts.paths, opts.config);
         opts.onLog?.('面板保存了隧道：' + name);
-        const keyCheck = resolveApiKey(tunnel);
+        const keyCheck = await resolveApiKeyAsync(tunnel);
         sendJson(res, 200, {
           ok: true,
           message: '已保存隧道：' + name,
-          warning: keyCheck.ok ? null : '还没有配置 runtime key，启动前请补上（环境变量或直接填写密钥）。',
+          warning: keyCheck.ok ? null : '还没有配置 runtime key，启动前请补上（环境变量、密钥保险箱或直接填写）。',
         });
         return;
       }
@@ -632,10 +718,14 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         tunnel.server = value.server;
         if (value.healthPort !== undefined) tunnel.healthPort = value.healthPort;
         else delete tunnel.healthPort;
-        applyTunnelKey(tunnel, value.key);
+        const keyResult = await applyTunnelKey(tunnel, value.key);
+        if (keyResult.warning) {
+          sendJson(res, 400, { ok: false, error: keyResult.warning });
+          return;
+        }
         saveConfig(opts.paths, opts.config);
         opts.onLog?.('面板更新了隧道：' + name);
-        const keyCheck = resolveApiKey(tunnel);
+        const keyCheck = await resolveApiKeyAsync(tunnel);
         sendJson(res, 200, {
           ok: true,
           message: '已更新隧道：' + name + '（若正在运行，重启后生效）',
@@ -658,6 +748,7 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
           return;
         }
         opts.config.tunnels.splice(opts.config.tunnels.indexOf(tunnel), 1);
+        await keyringDelete(name);
         saveConfig(opts.paths, opts.config);
         opts.onLog?.('面板删除了隧道：' + name);
         sendJson(res, 200, { ok: true, message: '已删除隧道：' + name });
@@ -708,21 +799,42 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
             return;
           }
           const state = result.state;
+          // 等待健康端点就绪，把"启动中…"变成"已就绪 / 起不来"两种明确结果
+          const waitMs = 12000;
+          const deadline = Date.now() + waitMs;
+          let ready = false;
+          let healthAddr = state?.healthAddr ?? '';
+          while (Date.now() < deadline) {
+            if (healthAddr) {
+              try {
+                const probe = await probeHealth(healthAddr, 1200);
+                if (probe.readyz) {
+                  ready = true;
+                  break;
+                }
+              } catch {
+                // 还没起来，继续等
+              }
+            }
+            await sleep(600);
+          }
           opts.onLog?.(
             (action === 'restart' ? '面板重启了隧道 ' : '面板启动了隧道 ') +
               name +
               '（PID ' +
               String(state?.pid ?? '?') +
+              '，' +
+              (ready ? '健康检查通过' : '等待就绪超时') +
               '）'
           );
           sendJson(res, 200, {
             ok: true,
+            ready,
             message:
               (action === 'restart' ? '隧道 ' + name + ' 已重启' : '隧道 ' + name + ' 已启动') +
               '（PID ' +
               String(state?.pid ?? '?') +
-              '，健康端点 ' +
-              String(state?.healthAddr ?? '') +
+              (ready ? '，健康检查已通过' : '，健康端点 ' + healthAddr + ' 尚未就绪，请稍后在状态里复检') +
               '）',
             state: 'running',
           });
@@ -794,6 +906,160 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         return;
       }
 
+      /* ---------------------------------------------------------- 新能力 */
+
+      // 服务器连通性测试（保存前先试一下）
+      if (method === 'POST' && path === '/api/servers/test') {
+        const body = bodyObject(await readBody(req));
+        if (!body) {
+          sendJson(res, 400, { ok: false, error: '请求体需要是 JSON 对象' });
+          return;
+        }
+        const kind = bodyString(body.kind) === 'http' ? 'http' : 'stdio';
+        if (kind === 'stdio') {
+          const command = bodyString(body.command) ?? '';
+          if (!command) {
+            sendJson(res, 400, { ok: false, error: '请填写要测试的启动命令' });
+            return;
+          }
+          const result = await testStdioCommand(command);
+          sendJson(res, 200, { ok: true, result });
+          return;
+        }
+        const urlRaw = bodyString(body.url) ?? '';
+        if (!urlRaw) {
+          sendJson(res, 400, { ok: false, error: '请填写要测试的服务地址' });
+          return;
+        }
+        let headers: Record<string, string> | undefined;
+        const headerObj = bodyObject(body.headers);
+        if (headerObj) {
+          headers = {};
+          for (const [k, v] of Object.entries(headerObj)) {
+            if (typeof v === 'string') headers[k] = v;
+          }
+        }
+        const result = await testHttpEndpoint(urlRaw, headers);
+        sendJson(res, 200, { ok: true, result });
+        return;
+      }
+
+      // 常用服务器模板
+      if (method === 'GET' && path === '/api/templates') {
+        sendJson(res, 200, { ok: true, templates: SERVER_TEMPLATES });
+        return;
+      }
+
+      // 扫描本机已有的 MCP 配置（Claude / Cursor / VS Code）
+      if (method === 'GET' && path === '/api/import/scan') {
+        const found = scanExternalConfigs();
+        sendJson(res, 200, {
+          ok: true,
+          found: found.map((f) => ({
+            source: f.source.label,
+            file: f.file,
+            error: f.error ?? null,
+            servers: f.servers.map((s) => ({
+              name: s.name,
+              kind: s.kind,
+              target: serverTarget(s),
+              description: s.description ?? '',
+            })),
+          })),
+        });
+        return;
+      }
+
+      // 应用导入：names 为空表示全部导入；overwrite 控制重名策略
+      if (method === 'POST' && path === '/api/import/apply') {
+        const body = bodyObject(await readBody(req));
+        if (!body) {
+          sendJson(res, 400, { ok: false, error: '请求体需要是 JSON 对象' });
+          return;
+        }
+        const sourceFile = bodyString(body.sourceFile);
+        const pasted = bodyString(body.pastedText);
+        let parsed: { servers: McpServerConfig[]; error?: string };
+        if (sourceFile) parsed = parseExternalFile(sourceFile);
+        else if (pasted) parsed = parsePastedConfig(pasted);
+        else {
+          sendJson(res, 400, { ok: false, error: '需要提供 sourceFile 或 pastedText' });
+          return;
+        }
+        if (parsed.error) {
+          sendJson(res, 400, { ok: false, error: parsed.error });
+          return;
+        }
+        const names = Array.isArray(body.names) ? body.names.filter((n): n is string => typeof n === 'string') : null;
+        const chosen = names ? parsed.servers.filter((s) => names.includes(s.name)) : parsed.servers;
+        if (chosen.length === 0) {
+          sendJson(res, 400, { ok: false, error: '没有选中任何服务器' });
+          return;
+        }
+        const outcome = mergeServers(opts.config, chosen, { overwrite: body.overwrite === true });
+        saveConfig(opts.paths, opts.config);
+        opts.onLog?.('面板导入了 MCP 服务器：新增 ' + outcome.added.length + '，覆盖 ' + outcome.replaced.length);
+        sendJson(res, 200, { ok: true, outcome });
+        return;
+      }
+
+      // 配置导出：下载一份脱敏的配置备份（不含任何密钥值），用于备份或迁移
+      if (method === 'GET' && path === '/api/config/export') {
+        const cfg = opts.config;
+        const clean = {
+          servers: (cfg.servers ?? []).map((s) => ({
+            name: s.name,
+            kind: s.kind,
+            command: s.command,
+            url: s.url,
+            headers: s.headers,
+            description: s.description,
+          })),
+          tunnels: (cfg.tunnels ?? []).map((tn) => ({
+            name: tn.name,
+            tunnelId: tn.tunnelId,
+            server: tn.server,
+            healthPort: tn.healthPort,
+            apiKeyEnv: tn.apiKeyEnv,
+            apiKeyStore: tn.apiKeyStore,
+          })),
+        };
+        const json = JSON.stringify(clean, null, 2);
+        res.writeHead(200, {
+          'content-type': 'application/json; charset=utf-8',
+          'content-disposition': 'attachment; filename="mcphelm-config-backup.json"',
+        });
+        res.end(json);
+        return;
+      }
+
+      // 界面偏好（语言、托盘、自启动等）
+      if (method === 'POST' && path === '/api/ui') {
+        const body = bodyObject(await readBody(req));
+        if (!body) {
+          sendJson(res, 400, { ok: false, error: '请求体需要是 JSON 对象' });
+          return;
+        }
+        opts.config.ui = opts.config.ui ?? {};
+        const language = bodyString(body.language);
+        if (language === 'zh' || language === 'en') opts.config.ui.language = language;
+        if (typeof body.minimizeToTray === 'boolean') opts.config.ui.minimizeToTray = body.minimizeToTray;
+        if (typeof body.autoLaunch === 'boolean') opts.config.ui.autoLaunch = body.autoLaunch;
+        const customToken = bodyString(body.token);
+        if (customToken !== undefined) {
+          if (customToken === '') delete opts.config.ui.token;
+          else if (customToken.length < 8) {
+            sendJson(res, 400, { ok: false, error: '自定义口令至少 8 位' });
+            return;
+          } else {
+            opts.config.ui.token = customToken;
+          }
+        }
+        saveConfig(opts.paths, opts.config);
+        sendJson(res, 200, { ok: true, ui: opts.config.ui, restartHint: customToken !== undefined ? '口令将在面板重启后生效' : null });
+        return;
+      }
+
       sendJson(res, 404, { ok: false, error: '未知接口：' + method + ' ' + path });
     } catch (err) {
       sendJson(res, 500, { ok: false, error: err instanceof Error ? err.message : String(err) });
@@ -816,11 +1082,12 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
   });
   const address = server.address();
   const actualPort = address && typeof address === 'object' ? address.port : opts.port;
-  const url = 'http://' + host + ':' + actualPort + '/';
+  const url = 'http://' + host + ':' + actualPort + '/#token=' + token;
 
   return {
     url,
     port: actualPort,
+    token,
     close: () =>
       new Promise<void>((done) => {
         server.close(() => done());

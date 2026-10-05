@@ -28,7 +28,7 @@
     "start": "node dist/cli.js",
     "icon": "node build/gen-icon.cjs",
     "desktop": "npm run build && electron .",
-    "dist:win": "npm run build && electron-builder --win nsis",
+    "dist:win": "npm run build && electron-builder --win --publish never",
     "prepack": "npm run build"
   },
   "keywords": [
@@ -48,5 +48,8 @@
     "electron": "^44.5.1",
     "electron-builder": "^26.15.3",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
   }
 }

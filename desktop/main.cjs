@@ -1,37 +1,44 @@
-// MCPHelm 桌面版主进程：把已有的本地面板装进一个原生窗口。
-// 复用 dist/ 里同一套逻辑（配置解析、面板服务），不重复实现任何业务功能。
+// MCPHelm desktop main process.
+// Wraps the same local panel in a native window and adds: tray, auto-launch,
+// offline notifications and in-app self update via electron-updater.
 
-const { app, BrowserWindow, Menu, dialog, shell } = require('electron');
-const { existsSync } = require('node:fs');
+const { app, BrowserWindow, Menu, Tray, dialog, shell, nativeImage, Notification } = require('electron');
+const { existsSync, readFileSync } = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
+let autoUpdater = null;
+try {
+  autoUpdater = require('electron-updater').autoUpdater;
+} catch {
+  autoUpdater = null;
+}
+
 const DIST = path.join(__dirname, '..', 'dist');
 const ICON = path.join(__dirname, '..', 'build', 'icon.ico');
+const ICON_32 = path.join(__dirname, '..', 'build', 'icon-32.png');
 const importDist = (rel) => import(pathToFileURL(path.join(DIST, rel)).href);
 
 let mainWindow = null;
+let tray = null;
 let panel = null;
 let context = null;
+let quitting = false;
+let updateWatcher = null;
 
-/** 启动本地服务：解析配置（必要时创建一份空的）→ 起面板 → 返回地址 */
 async function startBackend() {
   const { resolvePaths } = await importDist('paths.js');
   const { loadConfig, emptyConfig, saveConfig } = await importDist('store.js');
   const { startPanel } = await importDist('panel/server.js');
 
-  // 以用户主目录为基准解析配置，和「在家里敲命令」的行为一致
   let paths = resolvePaths({ cwd: os.homedir(), env: process.env });
-
   if (!existsSync(paths.configFile)) {
     saveConfig(paths, emptyConfig());
-    // 新建后重新解析一次，让面板正确显示「用户主目录配置」而不是「尚未创建」
     paths = resolvePaths({ cwd: os.homedir(), env: process.env });
   }
   const loaded = loadConfig(paths);
 
-  // port 0 = 让系统分配空闲端口，永远不会和别的程序抢端口
   panel = await startPanel({
     paths,
     config: loaded.config,
@@ -43,6 +50,136 @@ async function startBackend() {
   return panel;
 }
 
+function uiPrefs() {
+  const ui = (context && context.loaded.config.ui) || {};
+  return {
+    minimizeToTray: ui.minimizeToTray !== false,
+    autoLaunch: ui.autoLaunch === true,
+  };
+}
+
+function applyLoginItem() {
+  const enabled = uiPrefs().autoLaunch;
+  try {
+    app.setLoginItemSettings({ openAtLogin: enabled, args: [] });
+  } catch {
+    // best effort on platforms that do not support it
+  }
+}
+
+function notify(title, body) {
+  try {
+    if (Notification.isSupported()) new Notification({ title, body }).show();
+  } catch {
+    // notifications are best effort
+  }
+}
+
+function trayIcon() {
+  const file = existsSync(ICON_32) ? ICON_32 : ICON;
+  const image = nativeImage.createFromPath(file);
+  return image.isEmpty() ? undefined : image;
+}
+
+function ensureTray() {
+  if (tray) return;
+  const icon = trayIcon();
+  tray = new Tray(icon || nativeImage.createEmpty());
+  tray.setToolTip('MCPHelm');
+  tray.on('double-click', () => showWindow());
+  rebuildTrayMenu();
+}
+
+function rebuildTrayMenu(statusText) {
+  if (!tray) return;
+  const menu = Menu.buildFromTemplate([
+    { label: statusText || 'MCPHelm', enabled: false },
+    { type: 'separator' },
+    { label: '打开主窗口', click: () => showWindow() },
+    { label: '打开日志文件夹', click: () => context && shell.openPath(context.paths.logsDir) },
+    { type: 'separator' },
+    {
+      label: quitting ? '正在退出…' : '退出 MCPHelm',
+      click: () => {
+        quitting = true;
+        app.quit();
+      },
+    },
+  ]);
+  tray.setContextMenu(menu);
+}
+
+function showWindow() {
+  if (!mainWindow) {
+    if (panel) createWindow(panel.url);
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function watchTunnelHealth() {
+  // Desktop-only drop notification: poll panel state and fire a system
+  // notification when a tunnel transitions from running to crashed.
+  const wasRunning = new Map();
+  updateWatcher = setInterval(async () => {
+    if (!panel) return;
+    try {
+      const res = await fetch('http://127.0.0.1:' + panel.port + '/api/state', {
+        headers: { 'x-mcphelm-token': panel.token },
+      });
+      if (!res.ok) return;
+      const state = await res.json();
+      for (const tunnel of state.tunnels || []) {
+        const running = tunnel.status && tunnel.status.state === 'running';
+        const prev = wasRunning.get(tunnel.name);
+        if (prev === true && !running) {
+          notify('隧道掉线', '隧道 ' + tunnel.name + ' 已停止运行，守护进程正在自动拉起，可在面板查看详情。');
+        }
+        wasRunning.set(tunnel.name, running);
+      }
+      rebuildTrayMenu(
+        'MCPHelm · ' +
+          (state.counts ? state.counts.running + '/' + state.counts.tunnels + ' 隧道在线' : '')
+      );
+    } catch {
+      // panel temporarily unavailable, next tick retries
+    }
+  }, 10000);
+  updateWatcher.unref();
+}
+
+function setupAutoUpdate() {
+  if (!autoUpdater || !app.isPackaged) return;
+  autoUpdater.autoDownload = true;
+  autoUpdater.on('update-downloaded', (info) => {
+    notify('MCPHelm 有新版本', '版本 ' + (info && info.version ? info.version : '') + ' 已下载完成，重启应用后生效。');
+    if (mainWindow) {
+      dialog
+        .showMessageBox(mainWindow, {
+          type: 'info',
+          title: '发现新版本',
+          message: 'MCPHelm ' + (info && info.version ? info.version : '') + ' 已下载完成',
+          detail: '现在重启应用完成更新，或稍后手动重启。',
+          buttons: ['立即重启更新', '稍后'],
+          defaultId: 0,
+          cancelId: 1,
+        })
+        .then((choice) => {
+          if (choice.response === 0) {
+            quitting = true;
+            autoUpdater.quitAndInstall();
+          }
+        });
+    }
+  });
+  autoUpdater.on('error', () => {
+    // stay quiet on update check failure; the app keeps working offline
+  });
+  autoUpdater.checkForUpdates().catch(() => {});
+}
+
 function buildMenu() {
   const template = [
     {
@@ -52,6 +189,19 @@ function buildMenu() {
         { type: 'separator' },
         { label: '打开配置所在文件夹', click: () => context && shell.openPath(path.dirname(context.paths.configFile)) },
         { label: '打开日志文件夹', click: () => context && shell.openPath(context.paths.logsDir) },
+        { type: 'separator' },
+        {
+          label: '登录系统后自动启动',
+          type: 'checkbox',
+          checked: uiPrefs().autoLaunch,
+          click: async (item) => {
+            const { saveConfig } = await importDist('store.js');
+            context.loaded.config.ui = context.loaded.config.ui || {};
+            context.loaded.config.ui.autoLaunch = item.checked;
+            saveConfig(context.paths, context.loaded.config);
+            applyLoginItem();
+          },
+        },
         { type: 'separator' },
         { role: 'quit', label: '退出 MCPHelm' },
       ],
@@ -111,11 +261,18 @@ function createWindow(url) {
   });
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.on('close', (event) => {
+    if (!quitting && uiPrefs().minimizeToTray) {
+      event.preventDefault();
+      mainWindow.hide();
+      ensureTray();
+      notify('MCPHelm 仍在后台运行', '隧道保持在线；双击托盘图标可重新打开窗口。');
+    }
+  });
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 
-  // 站内链接留在窗口里，外部链接交给系统浏览器
   mainWindow.webContents.setWindowOpenHandler(({ url: target }) => {
     if (target.startsWith('http://127.0.0.1')) return { action: 'allow' };
     shell.openExternal(target);
@@ -129,7 +286,11 @@ async function boot() {
   try {
     const handle = await startBackend();
     buildMenu();
+    applyLoginItem();
+    ensureTray();
     createWindow(handle.url);
+    watchTunnelHealth();
+    setupAutoUpdate();
   } catch (err) {
     dialog.showErrorBox('MCPHelm 启动失败', String((err && err.message) || err));
     app.quit();
@@ -141,20 +302,17 @@ app.setName('MCPHelm');
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
+  app.on('second-instance', () => showWindow());
 
   app.whenReady().then(boot);
 
   app.on('window-all-closed', () => {
-    app.quit();
+    if (!uiPrefs().minimizeToTray) app.quit();
   });
 
   app.on('before-quit', () => {
+    quitting = true;
+    if (updateWatcher) clearInterval(updateWatcher);
     if (panel) void panel.close();
   });
 }

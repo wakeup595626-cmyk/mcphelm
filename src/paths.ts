@@ -80,6 +80,11 @@ export function logFileFor(paths: AppPaths, tunnelName: string): string {
   return join(paths.logsDir, sanitizeName(tunnelName) + '.log');
 }
 
+/** 守护进程的停止标记：文件一出现，supervisor 就带整棵进程树退出 */
+export function stopFileFor(paths: AppPaths, tunnelName: string): string {
+  return join(paths.runDir, sanitizeName(tunnelName) + '.stop');
+}
+
 export function describeConfigScope(scope: ConfigScope): string {
   switch (scope) {
     case 'explicit':

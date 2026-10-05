@@ -47,13 +47,20 @@ OpenAI 的安全隧道（Secure MCP Tunnel）让 ChatGPT / Codex 能连上你本
 - **多服务器 / 多隧道注册表**：一份 `mcphelm.config.json` 管到底，不再到处抄 tunnel id。
 - **两种 MCP 服务器都支持**：stdio（完整命令行）与 HTTP（端点 + 自定义请求头）。
 - **一条命令启停**：`mcphelm start code`、`mcphelm start --all`；`--dry-run` 先打印将要执行的命令再决定。
+- **崩溃自愈**：守护进程带指数退避自动重启，连续异常退出会记录退出码并在限次后放弃，不会悄悄死循环。
 - **状态与健康探测**：进程状态、PID、启动时长、`/healthz` 与 `/readyz` 探测结果一目了然。
-- **日志集中管理**：每次启动自动写入 `~/.mcphelm/logs/<名字>.log`，`--follow` 实时跟随。
-- **环境体检**：`mcphelm doctor` 一次检查 Node 版本、配置、运行时、隧道 ID、key、端口占用、MCP 端点可达性。
-- **本地网页面板**：`mcphelm panel`，纯原生前端、零 CDN、只监听 `127.0.0.1`，可在线启停隧道、看日志。
+- **日志集中管理 + 自动轮转**：每次启动写入 `~/.mcphelm/logs/<名字>.log`，超过 5MB 自动归档、最多保留 3 份，`--follow` 实时跟随。
+- **环境体检**：`mcphelm doctor` 一次检查 Node 版本、配置、运行时、隧道 ID、key、端口占用、MCP 端点可达性、日志占用。
+- **一键导入**：自动扫描 Claude Desktop / Cursor / VS Code 的 MCP 配置，或粘贴一段 `mcpServers` JSON，勾选即搬，重名可选覆盖。
+- **常用服务器模板**：filesystem / fetch / git / sqlite / everything 五个官方热门服务器一键填入，再按提示改路径。
+- **先测试再保存**：添加服务器时可以先点"测试连通性"（stdio 试启动握手、HTTP 试探活），避免保存了才发现跑不通。
+- **配置备份**：设置页一键导出脱敏的配置 JSON（不含任何密钥值），换机迁移、误删恢复都靠它。
+- **本地网页面板**：`mcphelm panel`，纯原生前端、零 CDN、只监听 `127.0.0.1`；每次启动生成随机访问口令，并校验 Host/Origin 头防跨站调用。
+- **中英双语界面**：面板与桌面版一键切换中文 / English，即时生效。
 - **可脚本化**：`status` / `doctor` / `logs` / `config show` 等支持 `--json`。
 - **运行时自动下载 + 强制校验**：从官方 releases 下载对应平台压缩包，必须通过官方 `SHA256SUMS.txt` 校验才安装。
-- **密钥不进命令行**：`runtime key` 只在启动子进程时通过环境变量传入，不落日志、不落状态文件，展示时统一打码。
+- **密钥三选一**：环境变量（不落盘）、Windows 凭据管理器（密钥保险箱，推荐）、或直接填写；`runtime key` 只以环境变量传给子进程，不落日志、不落状态文件，展示时统一打码。
+- **桌面版自动化**：托盘常驻、关闭窗口最小化到托盘、登录 Windows 自启动、隧道掉线系统通知、自动更新，全部可以在界面里开关。
 - **零运行时依赖**：装完即用，供应链面小；只有开发期依赖 TypeScript 与 `@types/node`。
 - **跨平台**：Windows / macOS / Linux，x64 与 arm64；Windows 另有带安装向导的桌面版。
 
@@ -61,7 +68,7 @@ OpenAI 的安全隧道（Secure MCP Tunnel）让 ChatGPT / Codex 能连上你本
 
 不想碰命令行的话，装桌面版就行：到 [Releases](https://github.com/wakeup595626-cmyk/mcphelm/releases) 下载 `MCPHelm-Setup-x.y.z.exe`，双击安装。
 
-- **自选安装位置**：安装向导里可以改盘符和目录，C 盘、D 盘或任意其他盘都行；
+- **自选安装位置**：安装向导里可以改盘符和目录，C 盘、D 盘或任意其他盘都行；不想装的话也有 `MCPHelm-Portable-x.y.z.exe` 便携版，双击即用、不写系统；
 - **像普通软件一样用**：装完桌面和开始菜单会出现 MCPHelm 图标，双击打开就是完整界面，不用开终端；
 - **不用另外装 Node**：运行环境打包在安装包里；
 - **和命令行共用一份配置**：桌面版读写同一份 `~/.mcphelm/config.json`，两个入口随时切换；

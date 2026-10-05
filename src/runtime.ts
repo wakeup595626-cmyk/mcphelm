@@ -1,10 +1,12 @@
 import { spawn } from 'node:child_process';
-import { closeSync, openSync, readSync, rmSync, statSync, writeSync } from 'node:fs';
+import { closeSync, openSync, readSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { BRAND } from './brand.ts';
-import { envKey, logFileFor, stateFileFor } from './paths.ts';
+import { rotateLogIfNeeded } from './logrotate.ts';
+import { envKey, logFileFor, stateFileFor, stopFileFor } from './paths.ts';
 import type { AppPaths } from './paths.ts';
 import type { AppConfig, McpServerConfig, TunnelConfig } from './store.ts';
-import { findServer, healthPortFor, isValidTunnelId, resolveApiKey, serverTarget } from './store.ts';
+import { findServer, healthPortFor, isValidTunnelId, resolveApiKeyAsync, serverTarget } from './store.ts';
 import type { RuntimeInfo } from './tunnelclient.ts';
 import { findRuntime, runtimeBinaryName } from './tunnelclient.ts';
 import {
@@ -20,8 +22,13 @@ import {
   sleep,
 } from './util.ts';
 
+/** supervisor.js 与本文件同目录（构建后 dist/ 下结构一致） */
+const SUPERVISOR_PATH = fileURLToPath(new URL('./supervisor.js', import.meta.url));
+
 export interface TunnelStateFile {
   name: string;
+  /** 守护进程自己的 PID（没有守护时与 pid 相同） */
+  supervisorPid?: number;
   pid: number;
   server: string;
   tunnelIdMasked: string;
@@ -30,6 +37,8 @@ export interface TunnelStateFile {
   runtimePath: string;
   args: string[];
   startedAt: string;
+  /** 本进程由谁拉起：supervisor = 自动重启守护；direct = 直接运行 tunnel-client */
+  mode?: 'supervisor' | 'direct';
 }
 
 export type TunnelState = 'running' | 'stopped' | 'stale' | 'error';
@@ -113,7 +122,7 @@ export async function startTunnel(opts: StartOptions): Promise<StartResult> {
   if (!isValidTunnelId(tunnel.tunnelId)) {
     return { ok: false, error: '隧道 ID 格式不对：' + tunnel.tunnelId };
   }
-  const key = resolveApiKey(tunnel);
+  const key = await resolveApiKeyAsync(tunnel);
   if (!key.ok && !opts.dryRun) return { ok: false, error: key.error ?? 'runtime key 不可用' };
 
   const runtime = opts.runtime && opts.runtime.path ? opts.runtime : findRuntime(opts.paths);
@@ -140,11 +149,14 @@ export async function startTunnel(opts: StartOptions): Promise<StartResult> {
 
   ensureDir(opts.paths.logsDir);
   ensureDir(opts.paths.runDir);
+  rotateLogIfNeeded(logFile);
+  // 每次启动前清掉上一次遗留的停止标记，避免守护进程一睁眼就退出
+  rmSync(stopFileFor(opts.paths, tunnel.name), { force: true });
   const header =
     [
       '',
       '===== ' + nowIso() + '  启动隧道 ' + tunnel.name + ' =====',
-      '命令：' + command.join(' '),
+      '命令：' + command.join(' ') + '（由守护进程托管，崩溃自动重启）',
       'MCP：' + serverTarget(server),
       '健康端点：http://' + healthAddr + '/healthz',
       '',
@@ -154,22 +166,27 @@ export async function startTunnel(opts: StartOptions): Promise<StartResult> {
   let pid: number | undefined;
   try {
     writeSync(fd, header);
-    const child = spawn(runtimePath, args, {
+    const child = spawn(process.execPath, [SUPERVISOR_PATH, runtimePath, '--', ...args], {
       cwd: opts.paths.cwd,
       detached: true,
       windowsHide: true,
       stdio: ['ignore', fd, fd],
-      env: childEnv(key.value),
+      env: {
+        ...childEnv(key.value),
+        MCPHELM_SUPERVISOR_NAME: tunnel.name,
+        MCPHELM_SUPERVISOR_STOP: stopFileFor(opts.paths, tunnel.name),
+      },
     });
     pid = child.pid;
     child.unref();
   } finally {
     closeSync(fd);
   }
-  if (!pid) return { ok: false, error: '无法启动进程：' + runtimePath };
+  if (!pid) return { ok: false, error: '无法启动守护进程（node ' + SUPERVISOR_PATH + '）' };
 
   const state: TunnelStateFile = {
     name: tunnel.name,
+    supervisorPid: pid,
     pid,
     server: server.name,
     tunnelIdMasked: maskTunnelId(tunnel.tunnelId),
@@ -178,6 +195,7 @@ export async function startTunnel(opts: StartOptions): Promise<StartResult> {
     runtimePath,
     args,
     startedAt: nowIso(),
+    mode: 'supervisor',
   };
   atomicWriteJson(stateFileFor(opts.paths, tunnel.name), state);
   return { ok: true, state, command };
@@ -195,7 +213,16 @@ export async function stopTunnel(paths: AppPaths, tunnelName: string): Promise<S
   if (!state) return { ok: false, message: '没有找到隧道 ' + tunnelName + ' 的运行记录' };
   if (!isProcessAlive(state.pid)) {
     rmSync(file, { force: true });
+    rmSync(stopFileFor(paths, tunnelName), { force: true });
     return { ok: true, message: '隧道 ' + tunnelName + ' 的进程已不存在，已清理残留状态' };
+  }
+  // 先落停止标记：守护进程看到后会主动带整棵树退出，避免 taskkill 打死 supervisor 后它又把隧道拉起来
+  if (state.mode === 'supervisor') {
+    try {
+      writeFileSync(stopFileFor(paths, tunnelName), nowIso() + '\n', 'utf8');
+    } catch {
+      // 标记写不进去就直接硬杀，下面流程兜底
+    }
   }
   await killTree(state.pid);
   await sleep(300);
@@ -211,6 +238,7 @@ export async function stopTunnel(paths: AppPaths, tunnelName: string): Promise<S
     }
   }
   rmSync(file, { force: true });
+  rmSync(stopFileFor(paths, tunnelName), { force: true });
   return { ok: true, message: '已停止隧道 ' + tunnelName + '（PID ' + state.pid + '）' };
 }
 

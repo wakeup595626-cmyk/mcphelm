@@ -1,12 +1,14 @@
 import { createServer } from 'node:net';
 import { BRAND } from './brand.ts';
+import { keyringHas, keyringSupported } from './keyring.ts';
+import { logsUsage } from './logrotate.ts';
 import type { AppPaths } from './paths.ts';
 import { describeConfigScope } from './paths.ts';
 import { readState } from './runtime.ts';
 import type { AppConfig, ConfigIssue, McpServerConfig, TunnelConfig } from './store.ts';
-import { findServer, healthPortFor, isValidTunnelId, resolveApiKey, serverTarget } from './store.ts';
+import { findServer, healthPortFor, isValidTunnelId, resolveApiKeyAsync, serverTarget } from './store.ts';
 import { fetchLatestVersion, findRuntime, whichBinary } from './tunnelclient.ts';
-import { isProcessAlive } from './util.ts';
+import { fmtBytes, isProcessAlive } from './util.ts';
 
 export type CheckLevel = 'pass' | 'info' | 'warn' | 'fail';
 
@@ -120,16 +122,41 @@ async function checkTunnel(
     hint: isValidTunnelId(tunnel.tunnelId) ? undefined : '应为 tunnel_ 加 32 位小写十六进制，例如 tunnel_0123456789abcdef0123456789abcdef',
   });
 
-  const key = resolveApiKey(tunnel);
-  checks.push({
-    id: id + '-key',
-    title: '隧道 ' + tunnel.name + ' 的 runtime key',
-    level: key.ok ? 'pass' : 'fail',
-    detail: key.ok ? '已就绪（来源 ' + (key.source ?? '未知') + '）' : (key.error ?? '未配置'),
-    hint: key.ok
-      ? '密钥只在启动子进程时通过环境变量 CONTROL_PLANE_API_KEY 传入，不写日志、不进命令行'
-      : '设置环境变量并在配置里写 apiKeyEnv，例如：setx ' + (tunnel.apiKeyEnv ?? 'CONTROL_PLANE_API_KEY') + ' "sk-..."',
-  });
+  const key = await resolveApiKeyAsync(tunnel);
+  if (tunnel.apiKeyStore === 'keyring' && !key.ok && key.pendingKeyring !== true) {
+    const present = await keyringHas(tunnel.name);
+    checks.push({
+      id: id + '-key',
+      title: '隧道 ' + tunnel.name + ' 的 runtime key',
+      level: present ? 'warn' : 'fail',
+      detail: present
+        ? '凭据管理器里有条目但读取失败'
+        : key.error ?? '凭据管理器中没有该隧道的密钥',
+      hint: '在面板里重新保存一次密钥，或改用环境变量方式',
+    });
+  } else {
+    checks.push({
+      id: id + '-key',
+      title: '隧道 ' + tunnel.name + ' 的 runtime key',
+      level: key.ok ? 'pass' : 'fail',
+      detail: key.ok ? '已就绪（来源 ' + (key.source ?? '未知') + '）' : (key.error ?? '未配置'),
+      hint: key.ok
+        ? '密钥只在启动子进程时通过环境变量 CONTROL_PLANE_API_KEY 传入，不写日志、不进命令行'
+        : '设置环境变量并在配置里写 apiKeyEnv，例如：setx ' + (tunnel.apiKeyEnv ?? 'CONTROL_PLANE_API_KEY') + ' "sk-..."',
+    });
+  }
+
+  if (tunnel.apiKey) {
+    checks.push({
+      id: id + '-key-plain',
+      title: '隧道 ' + tunnel.name + ' 的密钥存放方式',
+      level: 'warn',
+      detail: '密钥正以明文写在配置文件里',
+      hint: keyringSupported()
+        ? '建议在面板里把密钥来源改为"密钥保险箱"，密钥将存入 Windows 凭据管理器'
+        : '建议改用环境变量方式（apiKeyEnv），避免密钥落盘',
+    });
+  }
 
   const port = healthPortFor(opts.config, tunnel);
   if (port && port > 0) {
@@ -258,6 +285,20 @@ export async function runDoctor(opts: DoctorOptions): Promise<DoctorCheck[]> {
     const tunnelChecks = await checkTunnel(opts, tunnel);
     checks.push(...tunnelChecks);
   }
+
+  const usage = logsUsage(opts.paths.logsDir);
+  checks.push({
+    id: 'logs',
+    title: '日志占用',
+    level: usage.totalBytes > 200 * 1024 * 1024 ? 'warn' : 'pass',
+    detail:
+      usage.totalBytes === 0
+        ? '还没有产生日志'
+        : '共 ' + fmtBytes(usage.totalBytes) +
+          (usage.largestFile ? '，最大单文件 ' + usage.largestFile + '（' + fmtBytes(usage.largestBytes) + '）' : '') +
+          '；单文件超过 5MB 会自动轮转',
+    hint: usage.totalBytes > 200 * 1024 * 1024 ? '可打开日志目录手动清理旧存档（.1.log 等）' : undefined,
+  });
 
   return checks;
 }

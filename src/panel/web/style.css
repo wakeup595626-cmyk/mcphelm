@@ -387,6 +387,7 @@ a:hover { text-decoration: underline; }
 .kv { display: flex; flex-direction: column; gap: 2px; padding: 11px 0; border-bottom: 1px solid var(--border); }
 .kv:last-child { border-bottom: none; }
 .kv-k { font-size: 12px; color: var(--text-3); }
+.kv .pill { align-self: flex-start; margin-top: 2px; }
 .kv-v { font-size: 13px; font-weight: 500; word-break: break-all; }
 .kv-v.mono { font-size: 12px; }
 
@@ -415,6 +416,18 @@ a:hover { text-decoration: underline; }
 .notice.info { background: var(--primary-soft); color: #2c3f9e; }
 .notice.info .ico { color: var(--primary); }
 .notice strong { font-weight: 700; }
+.notice.ok { background: var(--green-soft); color: #14603a; }
+.notice.ok .ico { color: var(--green); }
+
+/* 向导引导卡 */
+.guide-card { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 18px 20px; margin-top: 16px; box-shadow: var(--shadow); }
+.guide-head { display: flex; align-items: center; gap: 9px; font-size: 14.5px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+.guide-head .ico { width: 19px; height: 19px; color: var(--primary); }
+.guide-steps { margin: 0; padding-left: 22px; font-size: 13px; color: var(--text-2); line-height: 2.0; }
+.guide-steps a { color: var(--primary); font-weight: 600; text-decoration: none; }
+.guide-steps a:hover { text-decoration: underline; }
+
+textarea.mono { font-family: var(--mono); font-size: 12px; }
 
 /* 滚动条 */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
