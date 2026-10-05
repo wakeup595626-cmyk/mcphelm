@@ -6,12 +6,13 @@ const I18N = {
   zh: {
     brandSub: '本地隧道控制台',
     tagline: '把本地 AI 能力安全接进 ChatGPT',
-    navDashboard: '概览', navTunnels: '隧道', navServers: '服务器', navLogs: '日志', navDoctor: '体检', navSettings: '设置',
+    navDashboard: '概览', navGuide: '新手指南', navTunnels: '隧道', navServers: '服务器', navLogs: '日志', navDoctor: '体检', navSettings: '设置',
     metaDashboardT: '概览', metaDashboardS: '一眼看清整个接入进度',
     metaTunnelsT: '隧道', metaTunnelsS: '把本地 MCP 服务器安全地暴露给 ChatGPT',
     metaServersT: '服务器', metaServersS: '管理你本机的 MCP 服务器',
     metaLogsT: '日志', metaLogsS: '查看每条隧道的运行输出',
     metaDoctorT: '体检', metaDoctorS: '自动检查环境和配置有没有问题',
+    metaGuideT: '新手指南', metaGuideS: '零基础也能看懂：大约 10 分钟把电脑接进 ChatGPT',
     metaSettingsT: '设置', metaSettingsS: '界面偏好、路径、密钥状态与帮助入口',
     refresh: '刷新', newTunnel: '新建隧道', downloadRuntime: '下载运行环境',
     close: '关闭', cancel: '取消', confirm: '确定', delete: '删除', save: '保存修改',
@@ -155,16 +156,55 @@ const I18N = {
     imDone: '导入完成：新增 {a} 个，覆盖 {r} 个，跳过 {s} 个',
     imNothing: '请先勾选要导入的服务器',
     imServersN: '{n} 个服务器',
+
+    /* 新手指南（软件内教程） */
+    guideHeroT: '从这里开始：10 分钟把电脑接进 ChatGPT',
+    guideHeroP: 'MCPHelm 用 OpenAI 官方安全隧道，把本机的 MCP 服务器安全地连给 ChatGPT。全程不用敲命令，跟着下面六步点鼠标就行。',
+    guideProgress: '{d} / {t} 步已完成',
+    guideStepsT: '六步上手', guideStepsS: '每一步完成会自动打勾；现在停在哪一步，就从那一步的按钮往下走',
+    gDone: '已完成', gTodo: '待完成',
+    gs1T: '打开软件，认识界面',
+    gs1D: '双击桌面的 MCPHelm 图标就能打开。左侧是导航：概览、隧道、服务器、日志、体检、设置。右上角 X 只是把窗口收进托盘（隧道不会断）；想彻底退出：右下角托盘图标右键，选退出。',
+    gs2T: '下载运行环境（发动机）',
+    gs2D: '隧道要跑起来，需要 OpenAI 官方的 tunnel-client。MCPHelm 会从官方仓库自动下载并做完整性校验，点按钮等进度走完即可。如果网络到不了官方仓库，可以手动下载 zip，再到「设置 → 运行环境 → 导入本地安装包」导入。',
+    gs3T: '添加 MCP 服务器（你要接入的能力）',
+    gs3D: '告诉 MCPHelm 你电脑里哪个服务要接给 ChatGPT。命令型：填一行启动命令（从模板新建可以一键填好）；HTTP 型：填本机地址，例如 http://127.0.0.1:3001/mcp。已经在用 Claude / Cursor / VS Code 的，点「导入已有配置」一键搬过来。',
+    gs4T: '去 OpenAI 平台拿两把钥匙',
+    gs4D: '① 打开隧道管理，创建一条隧道，拿到 tunnel_ 开头的隧道 ID；② 打开 API 密钥页，生成一把 sk- 开头的 runtime key。这两样相当于桥的门票和门锁，只保存在你自己的电脑上。',
+    gs4B1: '打开隧道管理', gs4B2: '打开 API 密钥',
+    gs5T: '创建并启动隧道',
+    gs5D: '回到「隧道」页，点右上角「新建隧道」：选服务器、粘贴隧道 ID、密钥来源选「密钥保险箱（推荐）」。创建后点卡片上的「启动」，状态变成「运行中」就成功了；中途掉线会自动重连。',
+    gs6T: '在 ChatGPT 里用起来',
+    gs6D: '打开 ChatGPT → 设置 → 连接器，把刚建好的隧道加进去。之后在对话里就能直接调用你电脑里的能力了。',
+    gs6B: '打开 ChatGPT 连接器',
+    guideTipsT: '日常使用，记住三件事',
+    tip1T: '关窗不等于断线', tip1D: '点右上角 X 只是收进托盘，隧道继续在线；要彻底关闭，用右下角托盘图标右键，选退出。',
+    tip2T: '掉线会自动拉起', tip2D: '守护进程盯着每条隧道，意外断开会自动重连，并在右下角弹通知告诉你原因。',
+    tip3T: '出问题先点「体检」', tip3D: '体检自动检查环境、配置、连通性，每条问题都附修复建议，照着做就行。',
+    guideFaqT: '常见疑问',
+    faqQ1: '装到 C 盘会不会占空间？',
+    faqA1: '不会。配置、日志、缓存、临时文件全部保存在「数据目录」里，跟着安装位置走——装在 D 盘就全在 D 盘，C 盘零占用。想换位置：设置 → 数据位置 → 迁移到其他盘。',
+    faqQ2: '密钥安全吗？',
+    faqA2: '选「密钥保险箱」时，密钥只进 Windows 凭据管理器（和系统保存 Wi-Fi 密码同一个地方），配置文件里一个字符都不留，MCPHelm 也不会把它上传到任何地方。',
+    faqQ3: '卸载会删掉我的数据吗？',
+    faqA3: '不会。卸载只删除程序本身，配置和日志保留在数据目录中，重装后自动恢复。',
+    faqQ4: '下载不了运行环境怎么办？',
+    faqA4: '去 tunnel-client 官方仓库手动下载 zip，然后在「设置 → 运行环境 → 导入本地安装包」选择刚下载的文件即可。',
+    faqQ5: '能把我现在的 Claude / Cursor 配置搬过来吗？',
+    faqA5: '可以。在「服务器」页点「导入已有配置」，MCPHelm 会自动扫描常见位置并列出可导入的服务器。',
+    guideLinksT: '官方页面直达',
+    openGuide: '打开新手指南（软件内教程）',
   },
   en: {
     brandSub: 'Local Tunnel Console',
     tagline: 'Securely connect local AI power to ChatGPT',
-    navDashboard: 'Overview', navTunnels: 'Tunnels', navServers: 'Servers', navLogs: 'Logs', navDoctor: 'Doctor', navSettings: 'Settings',
+    navDashboard: 'Overview', navGuide: 'Guide', navTunnels: 'Tunnels', navServers: 'Servers', navLogs: 'Logs', navDoctor: 'Doctor', navSettings: 'Settings',
     metaDashboardT: 'Overview', metaDashboardS: 'Your whole setup at a glance',
     metaTunnelsT: 'Tunnels', metaTunnelsS: 'Safely expose local MCP servers to ChatGPT',
     metaServersT: 'Servers', metaServersS: 'Manage MCP servers on this machine',
     metaLogsT: 'Logs', metaLogsS: 'Live output of every tunnel',
     metaDoctorT: 'Doctor', metaDoctorS: 'Check environment and config automatically',
+    metaGuideT: 'Getting started', metaGuideS: 'Zero background needed — about 10 minutes to connect your machine to ChatGPT',
     metaSettingsT: 'Settings', metaSettingsS: 'Preferences, paths, key status and help',
     refresh: 'Refresh', newTunnel: 'New Tunnel', downloadRuntime: 'Download Runtime',
     close: 'Close', cancel: 'Cancel', confirm: 'OK', delete: 'Delete', save: 'Save',
@@ -308,6 +348,44 @@ const I18N = {
     imDone: 'Import finished: {a} added, {r} replaced, {s} skipped',
     imNothing: 'Select at least one server first',
     imServersN: '{n} server(s)',
+
+    /* In-app guide */
+    guideHeroT: 'Start here: connect your machine to ChatGPT in about 10 minutes',
+    guideHeroP: 'MCPHelm uses the official OpenAI secure tunnel to connect a local MCP server to ChatGPT. No commands to type — follow the six steps below with your mouse.',
+    guideProgress: '{d} / {t} steps done',
+    guideStepsT: 'Six steps', guideStepsS: 'Each step ticks itself off when done — start from whichever is still open',
+    gDone: 'Done', gTodo: 'To do',
+    gs1T: 'Open the app, meet the console',
+    gs1D: 'Double-click the MCPHelm icon on your desktop. The left sidebar holds Overview, Tunnels, Servers, Logs, Doctor and Settings. The X button only hides the window to the tray while tunnels keep running; to quit fully, right-click the tray icon and choose Exit.',
+    gs2T: 'Download the runtime (the engine)',
+    gs2D: 'Tunnels are driven by the official OpenAI tunnel-client. MCPHelm downloads it from the official repo and verifies its integrity — click the button and wait for the progress to finish. If the repo is unreachable, download the zip manually and import it via Settings → Runtime → Import local package.',
+    gs3T: 'Add an MCP server (what you expose)',
+    gs3D: 'Tell MCPHelm which local service should reach ChatGPT. Command type: enter one launch command (or start from a template). HTTP type: enter the local URL, for example http://127.0.0.1:3001/mcp. Already using Claude / Cursor / VS Code? Click Import existing config.',
+    gs4T: 'Get the two keys from the OpenAI platform',
+    gs4D: '1) Open Tunnels, create a tunnel and copy its tunnel_ ID. 2) Open API keys and create a runtime key. These two are the ticket and the lock of the bridge — they stay on your own machine.',
+    gs4B1: 'Open Tunnels', gs4B2: 'Open API keys',
+    gs5T: 'Create and start the tunnel',
+    gs5D: 'Go to the Tunnels page and click New tunnel: pick the server, paste the tunnel ID, and keep the key source as Key vault (recommended). After creating it, press Start on the card — when the state reads Running you are online, and dropped connections are re-raised automatically.',
+    gs6T: 'Use it inside ChatGPT',
+    gs6D: 'Open ChatGPT → Settings → Connectors and add the tunnel. From then on your chats can call the local capability directly.',
+    gs6B: 'Open ChatGPT Connectors',
+    guideTipsT: 'Three things to remember day to day',
+    tip1T: 'Closing the window is not disconnecting', tip1D: 'The X button only hides it to the tray; the tunnel stays online. To quit fully, right-click the tray icon and choose Exit.',
+    tip2T: 'Drops are re-raised for you', tip2D: 'A supervisor watches every tunnel, re-raises it after an unexpected drop and tells you in a toast.',
+    tip3T: 'Run Doctor when something feels off', tip3D: 'Doctor checks environment, config and connectivity, and every finding comes with a suggested fix.',
+    guideFaqT: 'FAQ',
+    faqQ1: 'Will installing on C: eat up space?',
+    faqA1: 'No. Config, logs, caches and temp files all live in the data folder next to the install — install on D: and nothing lands on C:. To move later: Settings → Data location → Migrate to another drive.',
+    faqQ2: 'Is my key safe?',
+    faqA2: 'With the key vault, the key goes only into Windows Credential Manager (the same place that stores Wi-Fi passwords). Nothing is written into config files and nothing is uploaded.',
+    faqQ3: 'Will uninstalling delete my data?',
+    faqA3: 'No. Uninstall removes the program only; config and logs stay in the data folder and come back after a reinstall.',
+    faqQ4: 'The runtime download fails — what now?',
+    faqA4: 'Download the zip manually from the tunnel-client repo, then use Settings → Runtime → Import local package.',
+    faqQ5: 'Can I bring over my Claude / Cursor config?',
+    faqA5: 'Yes. Open the Servers page and click Import existing config — MCPHelm scans the usual locations and lists what it finds.',
+    guideLinksT: 'Official pages',
+    openGuide: 'Open the in-app guide',
   },
 };
 
@@ -379,6 +457,7 @@ const ICONS = {
   tunnels: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17V9a8 8 0 0 1 16 0v8"/><path d="M2 17h20"/><path d="M12 9v8"/></svg>',
   servers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><circle cx="7.5" cy="7.5" r="1" fill="currentColor"/><circle cx="7.5" cy="16.5" r="1" fill="currentColor"/></svg>',
   logs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/></svg>',
+  book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h5"/></svg>',
   doctor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.6-9.5-9A5.5 5.5 0 0 1 12 6.5 5.5 5.5 0 0 1 21.5 12C19 16.4 12 21 12 21z"/><path d="M7 12h3l1.5-3 2 5L15 12h2"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>',
@@ -424,6 +503,7 @@ const app = {
 function viewMeta(v) {
   const map = {
     dashboard: ['metaDashboardT', 'metaDashboardS'],
+    guide: ['metaGuideT', 'metaGuideS'],
     tunnels: ['metaTunnelsT', 'metaTunnelsS'],
     servers: ['metaServersT', 'metaServersS'],
     logs: ['metaLogsT', 'metaLogsS'],
@@ -510,9 +590,19 @@ async function refreshState(silent) {
     renderShell();
     renderView();
     schedulePoll();
+    maybeShowGuide();
   } catch (e) {
     if (!silent) toast(t('offline') + e.message, 'err');
   }
+}
+
+/* 第一次打开这个软件：自动落到“新手指南”，新用户一眼知道从哪开始 */
+function maybeShowGuide() {
+  try {
+    if (localStorage.getItem('mcphelm.guideSeen') === '1') return;
+    localStorage.setItem('mcphelm.guideSeen', '1');
+    setView('guide');
+  } catch (e) { /* localStorage 不可用时静默跳过 */ }
 }
 
 function syncPrefsFromState() {
@@ -534,7 +624,7 @@ function applyLanguage() {
   document.documentElement.lang = currentLang === 'en' ? 'en' : 'zh-CN';
   document.title = 'MCPHelm \u00b7 ' + t('tagline');
   const brandSub = $('#brandSub'); if (brandSub) brandSub.textContent = t('brandSub');
-  const navLabels = { dashboard: 'navDashboard', tunnels: 'navTunnels', servers: 'navServers', logs: 'navLogs', doctor: 'navDoctor', settings: 'navSettings' };
+  const navLabels = { dashboard: 'navDashboard', guide: 'navGuide', tunnels: 'navTunnels', servers: 'navServers', logs: 'navLogs', doctor: 'navDoctor', settings: 'navSettings' };
   $$('#nav .nav-item').forEach((b) => {
     const lbl = $('.nav-label', b);
     if (lbl && navLabels[b.dataset.view]) lbl.textContent = t(navLabels[b.dataset.view]);
@@ -599,6 +689,7 @@ function renderView() {
   if (!s) return;
   const c = $('#content');
   if (app.view === 'dashboard') renderDashboard(c, s);
+  else if (app.view === 'guide') renderGuide(c, s);
   else if (app.view === 'tunnels') renderTunnels(c, s);
   else if (app.view === 'servers') renderServers(c, s);
   else if (app.view === 'logs') renderLogs(c, s);
@@ -1011,11 +1102,27 @@ function renderSettings(c, s) {
   html += '<div style="margin-top:14px"><button class="btn primary small" id="prefSave"><span class="ico">' + icon('check') + '</span>' + esc(t('savePrefs')) + '</button></div>';
   html += '</div></div>';
 
+  // 运行环境
+  html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('download') + '</span>' + esc(t('secRuntime')) + '</div><div class="card-sub">' + esc(t('secRuntimeSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
+  if (s.runtime.found) {
+    html += kv(t('rtStatus'), t('rtReady'), false, 'ok');
+    html += kv(t('rtVersion'), s.runtime.version || t('rtUnknown'));
+    html += kv(t('rtSource'), s.runtime.source || '—');
+    html += kv(t('rtPath'), s.runtime.path || '—', true);
+  } else {
+    html += '<div class="notice warn" style="margin-bottom:12px"><span class="ico">' + icon('warn') + '</span><div>' + t('rtMissing') + '</div></div>';
+  }
+  html += '<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">' +
+    '<button class="btn primary small" id="runtimeBtn"><span class="ico">' + icon('download') + '</span>' + esc(s.runtime.found ? t('redownload') : t('downloadNow')) + '</button>' +
+    '<button class="btn ghost small" id="runtimeImportBtn"><span class="ico">' + icon('folder') + '</span>' + esc(t('importLocal')) + '</button>' +
+  '</div>';
+  html += '</div></div>';
+
   // 数据位置（C 盘零占用说明 + 图形化迁移）
   {
     const dl = s.dataLocation || null;
     const sizes = (dl && dl.sizes) || {};
-    html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('folder') + '</span>' + esc(t('secData')) + '</div><div class="card-sub">' + esc(t('secDataSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
+    html += '<div class="card span-2"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('folder') + '</span>' + esc(t('secData')) + '</div><div class="card-sub">' + esc(t('secDataSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
     if (dl) {
       html += kv(t('dlRoot'), dl.dataRoot, true);
       html += kv(t('dlRuntime'), fmtBytes(sizes.bin || 0));
@@ -1054,22 +1161,6 @@ function renderSettings(c, s) {
   '</div>';
   html += '</div></div>';
 
-  // 运行环境
-  html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('download') + '</span>' + esc(t('secRuntime')) + '</div><div class="card-sub">' + esc(t('secRuntimeSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
-  if (s.runtime.found) {
-    html += kv(t('rtStatus'), t('rtReady'), false, 'ok');
-    html += kv(t('rtVersion'), s.runtime.version || t('rtUnknown'));
-    html += kv(t('rtSource'), s.runtime.source || '—');
-    html += kv(t('rtPath'), s.runtime.path || '—', true);
-  } else {
-    html += '<div class="notice warn" style="margin-bottom:12px"><span class="ico">' + icon('warn') + '</span><div>' + t('rtMissing') + '</div></div>';
-  }
-  html += '<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">' +
-    '<button class="btn primary small" id="runtimeBtn"><span class="ico">' + icon('download') + '</span>' + esc(s.runtime.found ? t('redownload') : t('downloadNow')) + '</button>' +
-    '<button class="btn ghost small" id="runtimeImportBtn"><span class="ico">' + icon('folder') + '</span>' + esc(t('importLocal')) + '</button>' +
-  '</div>';
-  html += '</div></div>';
-
   // 帮助与入口
   html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('link') + '</span>' + esc(t('secHelp')) + '</div><div class="card-sub">' + esc(t('secHelpSub')) + '</div></div></div><div class="card-body" style="padding-top:8px"><div class="link-row">';
   const links = [
@@ -1079,13 +1170,14 @@ function renderSettings(c, s) {
     ['chatgptConnectors', t('lnkConnectors')],
     ['tunnelClientRepo', t('lnkRepo')],
   ];
+  html += '<button class="link-item guide-entry" id="openGuideBtn"><span class="ico">' + icon('book') + '</span>' + esc(t('openGuide')) + '<span class="arrow">' + icon('arrow') + '</span></button>';
   links.forEach(([k, label]) => {
     if (d[k]) html += '<a class="link-item" href="' + esc(d[k]) + '" target="_blank" rel="noopener"><span class="ico">' + icon('ext') + '</span>' + esc(label) + '<span class="arrow">' + icon('arrow') + '</span></a>';
   });
   html += '</div></div></div>';
 
   // 关于
-  html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('info') + '</span>' + esc(t('secAbout')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
+  html += '<div class="card span-2"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('info') + '</span>' + esc(t('secAbout')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
   html += '<p style="font-size:13px;color:var(--text-2);line-height:1.8">' + esc(t('aboutP')) + '</p>';
   html += kv(t('aboutRepo'), s.brand.repoUrl || '', true);
   html += '<div class="notice info" style="margin-top:12px"><span class="ico">' + icon('info') + '</span><div>' + esc(t('aboutSafe')) + '</div></div>';
@@ -1098,6 +1190,7 @@ function renderSettings(c, s) {
     try { await api('/api/open', { body: { target: b.dataset.open } }); } catch (e) { toast(e.message, 'err'); }
   }));
   const rb = $('#runtimeBtn', c); if (rb) rb.addEventListener('click', () => showRuntimeModal());
+  const og = $('#openGuideBtn', c); if (og) og.addEventListener('click', () => setView('guide'));
   const rib = $('#runtimeImportBtn', c); if (rib) rib.addEventListener('click', () => showImportRuntimeModal());
   const bb = $('#backupBtn', c); if (bb) bb.addEventListener('click', () => {
     const token = getToken();
@@ -1139,6 +1232,109 @@ function kv(k, v, mono, pillKind) {
   return '<div class="kv"><div class="kv-k">' + esc(k) + '</div>' + val + '</div>';
 }
 
+
+/* ---------------- 新手指南页 ---------------- */
+function guideSteps(s) {
+  const docs = s.docs || {};
+  const hasKey = (s.tunnels || []).some((x) => x.key && x.key.ready);
+  return [
+    {
+      name: t('gs1T'), desc: t('gs1D'), done: true,
+      actions: [],
+    },
+    {
+      name: t('gs2T'), desc: t('gs2D'), done: !!s.runtime.found,
+      actions: [{ label: s.runtime.found ? t('redownload') : t('oneClickDownload'), kind: s.runtime.found ? 'ghost' : 'primary', icon: 'download', fn: () => showRuntimeModal() }],
+    },
+    {
+      name: t('gs3T'), desc: t('gs3D'), done: s.counts.servers > 0,
+      actions: [
+        { label: s.counts.servers > 0 ? t('addAnother') : t('addServer'), kind: 'primary', icon: 'plus', fn: () => showServerModal(null) },
+        { label: t('fromTemplate'), kind: 'ghost', icon: 'servers', fn: () => showTemplateModal() },
+      ],
+    },
+    {
+      name: t('gs4T'), desc: t('gs4D'), done: hasKey,
+      actions: [
+        { label: t('gs4B1'), kind: 'ghost', icon: 'ext', href: docs.platformTunnels },
+        { label: t('gs4B2'), kind: 'ghost', icon: 'ext', href: docs.platformApiKeys },
+      ],
+    },
+    {
+      name: t('gs5T'), desc: t('gs5D'), done: s.counts.tunnels > 0,
+      actions: [{ label: s.counts.tunnels > 0 ? t('manageTunnels') : t('createTunnel'), kind: s.counts.tunnels > 0 ? 'soft' : 'primary', icon: s.counts.tunnels > 0 ? undefined : 'plus', fn: () => (s.counts.tunnels > 0 ? setView('tunnels') : showTunnelModal(null)) }],
+    },
+    {
+      name: t('gs6T'), desc: t('gs6D'), done: s.counts.running > 0,
+      actions: [{ label: t('gs6B'), kind: 'ghost', icon: 'ext', href: docs.chatgptConnectors }],
+    },
+  ];
+}
+
+function renderGuide(c, s) {
+  const steps = guideSteps(s);
+  const done = steps.filter((x) => x.done).length;
+  const pct = Math.round((done / steps.length) * 100);
+
+  let html = '<div class="hero">' +
+    '<h2>' + esc(t('guideHeroT')) + '</h2>' +
+    '<p>' + esc(t('guideHeroP')) + '</p>' +
+    '<div class="hero-progress"><div class="hero-progress-bar"><div class="hero-progress-fill" style="width:' + pct + '%"></div></div><span class="hero-progress-text">' + esc(t('guideProgress', { d: done, t: steps.length })) + '</span></div>' +
+    '</div>';
+
+  html += '<div class="section-title"><span class="ico">' + icon('book') + '</span>' + esc(t('guideStepsT')) + '</div>';
+  html += '<div class="section-sub">' + esc(t('guideStepsS')) + '</div>';
+  const currentIdx = steps.findIndex((x) => !x.done);
+  html += '<div class="step-list">';
+  steps.forEach((st, i) => {
+    const cls = st.done ? 'done' : (i === currentIdx ? 'current' : '');
+    html += '<div class="step-item ' + cls + '">' +
+      '<div class="step-num">' + (st.done ? icon('check') : (i + 1)) + '</div>' +
+      '<div class="step-info"><div class="step-name">' + esc(st.name) + ' <span class="pill ' + (st.done ? 'ok' : 'muted') + '">' + esc(st.done ? t('gDone') : t('gTodo')) + '</span></div>' +
+      '<div class="step-desc">' + esc(st.desc) + '</div></div>';
+    if (st.actions.length > 0) {
+      html += '<div class="step-actions">';
+      st.actions.forEach((a, j) => {
+        const inner = (a.icon ? '<span class="ico">' + icon(a.icon) + '</span>' : '') + esc(a.label);
+        if (a.href) html += '<a class="btn ' + a.kind + ' small" href="' + esc(a.href) + '" target="_blank" rel="noopener">' + inner + '</a>';
+        else html += '<button class="btn ' + a.kind + ' small" data-gact="' + i + '-' + j + '">' + inner + '</button>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+
+  html += '<div class="section-title"><span class="ico">' + icon('heartbeat') + '</span>' + esc(t('guideTipsT')) + '</div>';
+  html += '<div class="guide-tips">';
+  [['zap', 'tip1T', 'tip1D'], ['refresh', 'tip2T', 'tip2D'], ['heartbeat', 'tip3T', 'tip3D']].forEach((row) => {
+    html += '<div class="guide-tip"><div class="t"><span class="ico">' + icon(row[0]) + '</span>' + esc(t(row[1])) + '</div><div class="d">' + esc(t(row[2])) + '</div></div>';
+  });
+  html += '</div>';
+
+  html += '<div class="section-title"><span class="ico">' + icon('info') + '</span>' + esc(t('guideFaqT')) + '</div>';
+  html += '<div class="faq-list">';
+  for (let i = 1; i <= 5; i++) {
+    html += '<details class="faq"><summary><span class="ico">' + icon('info') + '</span>' + esc(t('faqQ' + i)) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="faq-a">' + esc(t('faqA' + i)) + '</div></details>';
+  }
+  html += '</div>';
+
+  html += '<div class="section-title"><span class="ico">' + icon('link') + '</span>' + esc(t('guideLinksT')) + '</div>';
+  html += '<div class="card"><div class="card-body" style="padding-top:8px"><div class="link-row">';
+  const docs = s.docs || {};
+  [['platformTunnels', 'lnkTunnels'], ['platformApiKeys', 'lnkApiKeys'], ['chatgptConnectors', 'lnkConnectors'], ['secureTunnelGuide', 'lnkGuide'], ['tunnelClientRepo', 'lnkRepo']].forEach((row) => {
+    if (docs[row[0]]) html += '<a class="link-item" href="' + esc(docs[row[0]]) + '" target="_blank" rel="noopener"><span class="ico">' + icon('ext') + '</span>' + esc(t(row[1])) + '<span class="arrow">' + icon('arrow') + '</span></a>';
+  });
+  html += '</div></div></div>';
+
+  c.innerHTML = html;
+  $$('[data-gact]', c).forEach((b) => b.addEventListener('click', () => {
+    const parts = b.dataset.gact.split('-');
+    const st = steps[Number(parts[0])];
+    const a = st && st.actions[Number(parts[1])];
+    if (a && a.fn) a.fn();
+  }));
+}
 
 /* ---------------- 服务器表单 ---------------- */
 async function showServerModal(editName, prefill) {
