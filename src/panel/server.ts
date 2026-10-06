@@ -7,6 +7,7 @@ import type { AddressInfo } from 'node:net';
 import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BRAND } from '../brand.ts';
+import { COMPONENTS, componentCommand, findComponent, runnerName } from '../components.ts';
 import { runDoctor } from '../doctor.ts';
 import { mergeServers, parseExternalFile, parsePastedConfig, scanExternalConfigs } from '../importer.ts';
 import { keyringDelete, keyringSet, keyringSupported } from '../keyring.ts';
@@ -1050,6 +1051,78 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
       // 常用服务器模板
       if (method === 'GET' && path === '/api/templates') {
         sendJson(res, 200, { ok: true, templates: SERVER_TEMPLATES });
+        return;
+      }
+
+      /* ---------------------------------------------------------- 组件市场 */
+
+      // 组件清单 + 安装状态（已装 = servers[] 里已有同名服务器）
+      if (method === 'GET' && path === '/api/components') {
+        const items = COMPONENTS.map((c) => ({
+          id: c.id,
+          title: c.title,
+          description: c.description,
+          source: c.source,
+          kind: c.kind,
+          runner: c.runner,
+          runnerName: runnerName(c.runner),
+          hint: c.hint ?? '',
+          command: componentCommand(c, opts.paths),
+          installed: !!findServer(opts.config, c.id),
+        }));
+        sendJson(res, 200, { ok: true, components: items });
+        return;
+      }
+
+      // 安装组件：本质是生成正确的启动命令并写进 config.servers
+      const compInstallMatch = /^\/api\/components\/([^/]+)\/install$/.exec(path);
+      if (method === 'POST' && compInstallMatch) {
+        const id = compInstallMatch[1] ?? '';
+        const spec = findComponent(id);
+        if (!spec) {
+          sendJson(res, 404, { ok: false, error: '未找到组件：' + id });
+          return;
+        }
+        if (findServer(opts.config, id)) {
+          sendJson(res, 409, { ok: false, error: '组件已安装（服务器列表里已有 ' + id + '），如需重装请先卸载' });
+          return;
+        }
+        const server: McpServerConfig = {
+          name: spec.id,
+          kind: spec.kind,
+          description: spec.serverDescription ?? spec.description,
+        };
+        if (spec.kind === 'stdio') server.command = componentCommand(spec, opts.paths);
+        opts.config.servers.push(server);
+        saveConfig(opts.paths, opts.config);
+        opts.onLog?.('组件市场安装了组件：' + spec.title + '（' + id + '）');
+        sendJson(res, 200, { ok: true, message: '已安装 ' + spec.title + '，去“服务器”里挂上隧道就能用', server });
+        return;
+      }
+
+      // 卸载组件：把同名服务器从 config.servers 里移除（被隧道占用时拒绝）
+      const compRemoveMatch = /^\/api\/components\/([^/]+)\/remove$/.exec(path);
+      if (method === 'POST' && compRemoveMatch) {
+        const id = compRemoveMatch[1] ?? '';
+        const spec = findComponent(id);
+        if (!spec) {
+          sendJson(res, 404, { ok: false, error: '未找到组件：' + id });
+          return;
+        }
+        const server = findServer(opts.config, id);
+        if (!server) {
+          sendJson(res, 404, { ok: false, error: '组件未安装：' + spec.title });
+          return;
+        }
+        const used = opts.config.tunnels.filter((t) => t.server === id).map((t) => t.name);
+        if (used.length > 0) {
+          sendJson(res, 409, { ok: false, error: '该组件正被这些隧道使用：' + used.join('、') + '。请先删除或改绑隧道，再卸载。' });
+          return;
+        }
+        opts.config.servers.splice(opts.config.servers.indexOf(server), 1);
+        saveConfig(opts.paths, opts.config);
+        opts.onLog?.('组件市场卸载了组件：' + spec.title + '（' + id + '）');
+        sendJson(res, 200, { ok: true, message: '已卸载 ' + spec.title });
         return;
       }
 

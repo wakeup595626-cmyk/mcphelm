@@ -6,11 +6,20 @@ const I18N = {
   zh: {
     brandSub: '本地隧道控制台',
     tagline: '把本地 AI 能力安全接进 ChatGPT',
-    navDashboard: '概览', navTunnels: '隧道', navServers: '服务器', navLogs: '日志', navDoctor: '体检', navSettings: '设置',
+    navDashboard: '概览', navTunnels: '隧道', navServers: '服务器', navMarket: '组件市场', navLogs: '日志', navDoctor: '体检', navSettings: '设置',
     stuckT: '卡住了？常见问题与官方入口',
     metaDashboardT: '概览', metaDashboardS: '没配完时是上手指引，配完后是运行状态总览',
     metaTunnelsT: '隧道', metaTunnelsS: '把本地 MCP 服务器安全地暴露给 ChatGPT',
     metaServersT: '服务器', metaServersS: '管理你本机的 MCP 服务器',
+    metaMarketT: '组件市场', metaMarketS: '一键安装 GitHub 上主流的 MCP 服务器，免去手写命令',
+    mkTitle: '精选组件', mkSub: '挑一个点“安装”，MCPHelm 自动配好命令写进服务器列表，再挂上隧道就能用',
+    mkNote: '组件全部来自 GitHub 主流开源项目（MIT / Apache-2.0），按需下载不预打包，安装包保持小巧。装好后再去「隧道」页给它建一条隧道即可。',
+    mkInstall: '安装', mkInstalled: '已安装', mkUninstall: '卸载', mkReinstallTip: '已安装，去服务器页挂隧道',
+    mkCmd: '启动命令', mkRunner: '运行方式', mkLicense: '许可证', mkSource: '来源',
+    mkInstallOk: '已安装，去「服务器」挂上隧道就能用', mkUninstallOk: '已卸载',
+    mkUninstallTitle: '卸载组件', mkUninstallMsg: '确定卸载 {t} 吗？这会把它从服务器列表里移除（不会删你的隧道配置）。',
+    mkNeedTunnel: '已装好，还差一步：去「隧道」页新建一条隧道，服务器选它',
+    mkCustom: '想要别的？去「服务器」页手动添加任意 MCP 命令',
     metaLogsT: '日志', metaLogsS: '查看每条隧道的运行输出',
     metaDoctorT: '体检', metaDoctorS: '自动检查环境和配置有没有问题',
     metaSettingsT: '设置', metaSettingsS: '界面偏好、路径、密钥状态与帮助入口',
@@ -179,11 +188,20 @@ const I18N = {
   en: {
     brandSub: 'Local Tunnel Console',
     tagline: 'Securely connect local AI power to ChatGPT',
-    navDashboard: 'Overview', navTunnels: 'Tunnels', navServers: 'Servers', navLogs: 'Logs', navDoctor: 'Doctor', navSettings: 'Settings',
+    navDashboard: 'Overview', navTunnels: 'Tunnels', navServers: 'Servers', navMarket: 'Marketplace', navLogs: 'Logs', navDoctor: 'Doctor', navSettings: 'Settings',
     stuckT: 'Stuck? FAQ & official links',
     metaDashboardT: 'Overview', metaDashboardS: 'Setup guide until you are online, then a live status board',
     metaTunnelsT: 'Tunnels', metaTunnelsS: 'Safely expose local MCP servers to ChatGPT',
     metaServersT: 'Servers', metaServersS: 'Manage MCP servers on this machine',
+    metaMarketT: 'Marketplace', metaMarketS: 'Install popular open-source MCP servers in one click',
+    mkTitle: 'Featured components', mkSub: 'Pick one and hit Install — MCPHelm writes the launch command into your server list, then attach a tunnel to use it',
+    mkNote: 'All components come from popular open-source GitHub projects (MIT / Apache-2.0), downloaded on demand rather than pre-bundled, so the installer stays small. After installing, create a tunnel for it on the Tunnels page.',
+    mkInstall: 'Install', mkInstalled: 'Installed', mkUninstall: 'Uninstall', mkReinstallTip: 'Installed — attach a tunnel on the Servers page',
+    mkCmd: 'Launch command', mkRunner: 'Runner', mkLicense: 'License', mkSource: 'Source',
+    mkInstallOk: 'Installed. Attach a tunnel on the Servers page to use it', mkUninstallOk: 'Uninstalled',
+    mkUninstallTitle: 'Uninstall component', mkUninstallMsg: 'Uninstall {t}? This removes it from the server list (your tunnels are kept).',
+    mkNeedTunnel: 'Installed. One more step: create a tunnel on the Tunnels page and pick this server',
+    mkCustom: 'Want something else? Add any MCP command manually on the Servers page',
     metaLogsT: 'Logs', metaLogsS: 'Live output of every tunnel',
     metaDoctorT: 'Doctor', metaDoctorS: 'Check environment and config automatically',
     metaSettingsT: 'Settings', metaSettingsS: 'Preferences, paths, key status and help',
@@ -446,6 +464,7 @@ const ICONS = {
   globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
   terminal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6M12 19h8"/></svg>',
   heartbeat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg>',
+  market: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l2-3h12l2 3"/><path d="M4 7h16v3a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0z"/><path d="M5 12.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7.5"/><path d="M9.5 21v-5h5v5"/></svg>',
 };
 function icon(name) { return ICONS[name] || ICONS.info; }
 
@@ -473,6 +492,7 @@ function viewMeta(v) {
     dashboard: ['metaDashboardT', 'metaDashboardS'],
     tunnels: ['metaTunnelsT', 'metaTunnelsS'],
     servers: ['metaServersT', 'metaServersS'],
+    market: ['metaMarketT', 'metaMarketS'],
     logs: ['metaLogsT', 'metaLogsS'],
     doctor: ['metaDoctorT', 'metaDoctorS'],
     settings: ['metaSettingsT', 'metaSettingsS'],
@@ -599,7 +619,7 @@ function applyLanguage() {
   document.documentElement.lang = currentLang === 'en' ? 'en' : 'zh-CN';
   document.title = 'MCPHelm \u00b7 ' + t('tagline');
   const brandSub = $('#brandSub'); if (brandSub) brandSub.textContent = t('brandSub');
-  const navLabels = { dashboard: 'navDashboard', tunnels: 'navTunnels', servers: 'navServers', logs: 'navLogs', doctor: 'navDoctor', settings: 'navSettings' };
+  const navLabels = { dashboard: 'navDashboard', tunnels: 'navTunnels', servers: 'navServers', market: 'navMarket', logs: 'navLogs', doctor: 'navDoctor', settings: 'navSettings' };
   $$('#nav .nav-item').forEach((b) => {
     const lbl = $('.nav-label', b);
     if (lbl && navLabels[b.dataset.view]) lbl.textContent = t(navLabels[b.dataset.view]);
@@ -668,6 +688,7 @@ function renderView() {
   if (app.view === 'dashboard') renderDashboard(c, s);
   else if (app.view === 'tunnels') renderTunnels(c, s);
   else if (app.view === 'servers') renderServers(c, s);
+  else if (app.view === 'market') renderMarket(c, s);
   else if (app.view === 'logs') renderLogs(c, s);
   else if (app.view === 'doctor') renderDoctor(c, s);
   else if (app.view === 'settings') renderSettings(c, s);
@@ -1006,6 +1027,76 @@ function renderServers(c, s) {
   });
 }
 
+
+/* ---------------- 组件市场页 ---------------- */
+async function renderMarket(c, s) {
+  c.innerHTML = '<div class="empty"><div class="empty-ico">' + icon('market') + '</div><p>' + esc(t('logLoading')) + '</p></div>';
+  let items = [];
+  try {
+    const data = await api('/api/components');
+    items = data.components || [];
+  } catch (e) {
+    c.innerHTML = '<div class="empty"><div class="empty-ico">' + icon('warn') + '</div><h3>' + esc(e.message) + '</h3></div>';
+    return;
+  }
+  let html = '<div class="mk-note"><span class="ico">' + icon('info') + '</span><span>' + esc(t('mkNote')) + '</span></div>';
+  html += '<div class="entity-grid">';
+  items.forEach((it) => {
+    const installed = it.installed === true;
+    html += '<div class="entity-card" data-comp="' + esc(it.id) + '">' +
+      '<div class="entity-top">' +
+        '<div class="entity-ico kind-stdio">' + icon(it.runner === 'npx' ? 'terminal' : 'zap') + '</div>' +
+        '<div class="entity-names"><div class="entity-name">' + esc(it.title) + '</div>' +
+        '<div class="entity-target" title="' + esc(it.command) + '">' + esc(it.command) + '</div></div>' +
+        '<span class="pill ' + (installed ? 'ok' : 'muted') + '">' + (installed ? esc(t('mkInstalled')) : esc(it.runnerName)) + '</span>' +
+      '</div>' +
+      '<div class="entity-meta">' +
+        '<span class="m">' + esc(it.description) + '</span>' +
+      '</div>' +
+      '<div class="entity-meta">' +
+        '<span class="m"><span class="ico">' + icon('ext') + '</span><a href="' + esc(it.source.url) + '" target="_blank" rel="noreferrer" style="color:inherit">' + esc(it.source.repo) + '</a></span>' +
+        '<span class="m"><span class="ico">' + icon('book') + '</span>' + esc(it.source.license) + '</span>' +
+        (it.hint ? '<span class="m" style="color:var(--amber)"><span class="ico">' + icon('warn') + '</span>' + esc(it.hint) + '</span>' : '') +
+      '</div>' +
+      '<div class="entity-foot"><span class="spacer"></span>' +
+        (installed
+          ? '<button class="btn small ghost" data-act="goto"><span class="ico">' + icon('servers') + '</span>' + esc(t('mkReinstallTip')) + '</button>' +
+            '<button class="btn small danger-soft" data-act="remove"><span class="ico">' + icon('trash') + '</span>' + esc(t('mkUninstall')) + '</button>'
+          : '<button class="btn small primary" data-act="install"><span class="ico">' + icon('download') + '</span>' + esc(t('mkInstall')) + '</button>') +
+      '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  html += '<div class="mk-note" style="margin-top:14px"><span class="ico">' + icon('zap') + '</span><span>' + esc(t('mkCustom')) + '</span></div>';
+  c.innerHTML = html;
+
+  $$('[data-comp]', c).forEach((card) => {
+    const id = card.dataset.comp;
+    const it = items.find((x) => x.id === id);
+    if (!it) return;
+    const installBtn = $('[data-act="install"]', card);
+    if (installBtn) installBtn.addEventListener('click', async () => {
+      installBtn.disabled = true;
+      try {
+        await api('/api/components/' + encodeURIComponent(id) + '/install');
+        toast(t('mkInstallOk'), 'ok');
+        await refreshState(true, true);
+      } catch (e) { toast(e.message, 'err'); installBtn.disabled = false; }
+    });
+    const gotoBtn = $('[data-act="goto"]', card);
+    if (gotoBtn) gotoBtn.addEventListener('click', () => setView('servers'));
+    const removeBtn = $('[data-act="remove"]', card);
+    if (removeBtn) removeBtn.addEventListener('click', async () => {
+      const okGo = await confirmModal(t('mkUninstallTitle'), t('mkUninstallMsg', { t: esc(it.title) }), t('mkUninstall'), true);
+      if (!okGo) return;
+      try {
+        await api('/api/components/' + encodeURIComponent(id) + '/remove');
+        toast(t('mkUninstallOk'), 'ok');
+        await refreshState(true, true);
+      } catch (e) { toast(e.message, 'err'); }
+    });
+  });
+}
 
 /* ---------------- 日志页 ---------------- */
 async function renderLogs(c, s) {

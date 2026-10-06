@@ -18,6 +18,8 @@ export interface AppPaths {
   tmpDir: string;
   /** 第三方包管理器缓存目录（npx/pip/uv 拉取 MCP 服务器时的下载缓存） */
   cacheDir: string;
+  /** 组件市场下载/安装组件的目录（默认在数据根下，不在 C 盘）；测试构造 paths 时可省略 */
+  componentsDir?: string;
   /** 桌面版窗口/会话数据、日志、崩溃转储目录（由 desktop 主进程重定向到这里） */
   desktopDir: string;
 }
@@ -66,6 +68,7 @@ export function resolvePaths(opts: PathOptions = {}): AppPaths {
     binDir: join(home, 'bin'),
     tmpDir: join(home, 'tmp'),
     cacheDir: join(home, 'cache'),
+    componentsDir: join(home, 'components'),
     desktopDir: join(home, 'desktop'),
   };
 }

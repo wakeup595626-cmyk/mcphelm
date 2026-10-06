@@ -134,3 +134,18 @@ mcphelm stop --all     # 全部停止
 
 下一站：[配置参考](configuration.md) ｜ [架构与原理](architecture.md) ｜ [安全说明](security.md) ｜ [常见问题](faq.md)
 
+## 组件市场：一键安装主流 MCP 服务器
+
+不想手写命令？左侧「组件市场」里挑一个点「安装」，MCPHelm 会自动生成启动命令写进服务器列表，你再去「隧道」页给它建一条隧道就能用。
+
+| 组件 | 干什么 | 来源（许可证） | 运行方式 |
+| --- | --- | --- | --- |
+| Serena 代码助手 | 读懂整个代码库，精准查找/改写代码 | oraios/serena（MIT） | uvx |
+| Windows-MCP 桌面控制 | 看屏幕、操作 Windows 窗口 | CursorTouch/Windows-MCP（MIT） | uvx |
+| Playwright 浏览器 | 自动开浏览器、点网页、截图 | microsoft/playwright-mcp（Apache-2.0） | npx |
+| Filesystem 文件读写 | 读写指定文件夹 | 官方示例（MIT） | npx |
+| Fetch 网页抓取 | 抓网页正文给模型读 | 官方示例（MIT） | uvx |
+| Memory 持久记忆 | 跨会话记住偏好与背景 | 官方示例（MIT） | npx |
+
+> 提示：npx 随 Node.js 自带；uvx 需要先装 uv。组件按需下载，不预打包，所以安装包保持小巧。
+
