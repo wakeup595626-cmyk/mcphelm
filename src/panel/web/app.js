@@ -23,7 +23,7 @@ const I18N = {
     metaLogsT: '日志', metaLogsS: '查看每条隧道的运行输出',
     metaDoctorT: '体检', metaDoctorS: '自动检查环境和配置有没有问题',
     metaSettingsT: '设置', metaSettingsS: '界面偏好、路径、密钥状态与帮助入口',
-    refresh: '刷新', newTunnel: '新建隧道', downloadRuntime: '下载运行环境',
+    refresh: '刷新', refreshing: '刷新中…', refreshed: '已刷新', refreshHint: '重新同步最新数据', newTunnel: '新建隧道', downloadRuntime: '下载运行环境',
     close: '关闭', cancel: '取消', confirm: '确定', delete: '删除', save: '保存修改',
     opFailed: '操作失败', deleteTunnel: '删除隧道',
     deleteTunnelMsg: '确定要删除隧道 <strong>{n}</strong> 吗？<br>这只会移除 MCPHelm 里的登记，不会影响 OpenAI 平台上的隧道。',
@@ -205,7 +205,7 @@ const I18N = {
     metaLogsT: 'Logs', metaLogsS: 'Live output of every tunnel',
     metaDoctorT: 'Doctor', metaDoctorS: 'Check environment and config automatically',
     metaSettingsT: 'Settings', metaSettingsS: 'Preferences, paths, key status and help',
-    refresh: 'Refresh', newTunnel: 'New Tunnel', downloadRuntime: 'Download Runtime',
+    refresh: 'Refresh', refreshing: 'Refreshing…', refreshed: 'Refreshed', refreshHint: 'Re-sync latest data', newTunnel: 'New Tunnel', downloadRuntime: 'Download Runtime',
     close: 'Close', cancel: 'Cancel', confirm: 'OK', delete: 'Delete', save: 'Save',
     opFailed: 'Operation failed', deleteTunnel: 'Delete tunnel',
     deleteTunnelMsg: 'Delete tunnel <strong>{n}</strong>?<br>This only removes the entry in MCPHelm; the tunnel on the OpenAI platform is untouched.',
@@ -595,8 +595,34 @@ async function refreshState(silent, force) {
       renderView();
     }
     schedulePoll();
+    const rb = $('#btnRefresh');
+    if (rb) rb.title = t('refreshHint') + ' · ' + new Date().toLocaleTimeString();
+    return true;
   } catch (e) {
     if (!silent) toast(t('offline') + e.message, 'err');
+    return false;
+  }
+}
+
+/* 手动刷新：按钮给出明确的「进行中 → 已完成」反馈 */
+async function refreshNow() {
+  const btn = $('#btnRefresh');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.classList.add('loading');
+  btn.innerHTML = '<span class="ico spin">' + icon('refresh') + '</span>' + esc(t('refreshing'));
+  const ok = await refreshState(false, true);
+  btn.disabled = false;
+  btn.classList.remove('loading');
+  if (ok) {
+    btn.classList.add('done');
+    btn.innerHTML = '<span class="ico">' + icon('check') + '</span>' + esc(t('refreshed'));
+    setTimeout(() => {
+      btn.classList.remove('done');
+      btn.innerHTML = '<span class="ico">' + icon('refresh') + '</span>' + esc(t('refresh'));
+    }, 1400);
+  } else {
+    btn.innerHTML = '<span class="ico">' + icon('refresh') + '</span>' + esc(t('refresh'));
   }
 }
 
@@ -625,10 +651,14 @@ function applyLanguage() {
     if (lbl && navLabels[b.dataset.view]) lbl.textContent = t(navLabels[b.dataset.view]);
   });
   const rb = $('#btnRefresh');
-  if (rb) rb.innerHTML = '<span class="ico">' + icon('refresh') + '</span>' + esc(t('refresh'));
+  if (rb) {
+    rb.innerHTML = '<span class="ico">' + icon('refresh') + '</span>' + esc(t('refresh'));
+    rb.title = t('refreshHint');
+  }
   const meta = viewMeta(app.view);
   $('#pageTitle').textContent = meta.title;
   $('#pageSub').textContent = meta.sub;
+  updateTopbarActions();
 }
 
 function schedulePoll() {
@@ -658,8 +688,18 @@ function renderShell() {
   const warnCount = (s.configIssues || []).length;
   nbD.textContent = warnCount;
   nbD.classList.toggle('hidden', warnCount === 0);
-  // 顶栏主按钮
+  // 顶栏操作按钮随当前页面更新
+  updateTopbarActions();
+}
+
+/* 顶栏右侧按钮按页面显示：「新建隧道」只属于隧道页 */
+function updateTopbarActions() {
   const quick = $('#btnQuickAction');
+  if (!quick) return;
+  const onTunnels = app.view === 'tunnels';
+  quick.classList.toggle('hidden', !onTunnels);
+  const s = app.state;
+  if (!onTunnels || !s) return;
   if (!s.runtime.found) {
     quick.innerHTML = '<span class="ico">' + icon('download') + '</span>' + esc(t('downloadRuntime'));
     quick.onclick = () => showRuntimeModal();
@@ -675,6 +715,7 @@ function setView(v) {
   const meta = viewMeta(v);
   $('#pageTitle').textContent = meta.title;
   $('#pageSub').textContent = meta.sub;
+  updateTopbarActions();
   clearInterval(app.logTimer);
   renderView();
   $('#content').scrollTop = 0;
@@ -893,7 +934,7 @@ function tunnelCard(tn) {
   html += keyM;
   html += '</div>';
   if (tn.lastError) {
-    html += '<div style="padding:8px 18px;font-size:12px;color:var(--red);background:var(--red-soft);border-top:1px solid var(--border)">' + esc(tn.lastError) + '</div>';
+    html += '<div style="padding:8px 18px;font-size:12.5px;color:var(--red);background:var(--red-soft);border-top:1px solid var(--border)">' + esc(tn.lastError) + '</div>';
   }
   html += '<div class="entity-foot">';
   if (tn.status.state === 'running') {
@@ -1119,7 +1160,7 @@ async function renderLogs(c, s) {
       '<button class="btn ghost small" id="logOpenDir"><span class="ico">' + icon('folder') + '</span>' + esc(t('openDir')) + '</button>' +
     '</div></div>' +
     '<div class="card-body"><div class="log-viewer" id="logViewer"><span class="log-empty">' + esc(t('logLoading')) + '</span></div>' +
-    '<div style="display:flex;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--text-3)"><span id="logFilePath"></span><span id="logTrunc"></span></div></div></div>';
+    '<div style="display:flex;justify-content:space-between;margin-top:10px;font-size:12.5px;color:var(--text-3)"><span id="logFilePath"></span><span id="logTrunc"></span></div></div></div>';
   c.innerHTML = html;
   $('#logTunnelSel', c).addEventListener('change', (e) => { app.logTunnel = e.target.value; loadLog(true); });
   $('#logAutoChk', c).addEventListener('change', (e) => { app.logAuto = e.target.checked; scheduleLogPoll(); });
@@ -1165,7 +1206,7 @@ function renderDoctor(c, s) {
       '<button class="btn ghost small" id="doctorRun"><span class="ico">' + icon('refresh') + '</span>' + esc(t('doctorRun')) + '</button>' +
       '<button class="btn soft small" id="doctorRunOnline"><span class="ico">' + icon('globe') + '</span>' + esc(t('doctorRunOnline')) + '</button>' +
     '</div></div>' +
-    '<div class="card-body" id="doctorBody"><div style="color:var(--text-3);font-size:13px">' + esc(t('doctorIdle')) + '</div></div></div>';
+    '<div class="card-body" id="doctorBody"><div style="color:var(--text-3);font-size:13.5px">' + esc(t('doctorIdle')) + '</div></div></div>';
   if (issues.length > 0) {
     html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('warn') + '</span>' + esc(t('cfgProblems')) + ' (' + issues.length + ')</div><div class="card-sub">' + esc(t('cfgProblemsSub')) + '</div></div></div><div class="card-body"><div class="check-list">';
     issues.forEach((i) => {
@@ -1182,7 +1223,7 @@ function renderDoctor(c, s) {
 async function runDoctorChecks(online) {
   const body = $('#doctorBody');
   if (!body) return;
-  body.innerHTML = '<div style="color:var(--text-3);font-size:13px;display:flex;align-items:center;gap:8px"><span class="ico" style="animation:indet 1.2s infinite">' + icon('refresh') + '</span>' + esc(t('doctorChecking')) + (online ? esc(t('doctorOnlineNote')) : '') + '…</div>';
+  body.innerHTML = '<div style="color:var(--text-3);font-size:13.5px;display:flex;align-items:center;gap:8px"><span class="ico" style="animation:indet 1.2s infinite">' + icon('refresh') + '</span>' + esc(t('doctorChecking')) + (online ? esc(t('doctorOnlineNote')) : '') + '…</div>';
   try {
     const data = await api('/api/doctor' + (online ? '?online=1' : ''));
     const checks = data.checks || [];
@@ -1303,7 +1344,7 @@ function renderSettings(c, s) {
 
   // 关于
   html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('info') + '</span>' + esc(t('secAbout')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
-  html += '<p style="font-size:13px;color:var(--text-2);line-height:1.8;margin:0">' + esc(t('aboutP')) + '</p>';
+  html += '<p style="font-size:13.5px;color:var(--text-2);line-height:1.8;margin:0">' + esc(t('aboutP')) + '</p>';
   html += '<div class="set-rows">' + setRow(t('aboutRepo'), s.brand.repoUrl || '', true) + '</div>';
   html += '<div class="notice info"><span class="ico">' + icon('info') + '</span><div>' + esc(t('aboutSafe')) + '</div></div>';
   html += '</div></div>';
@@ -1632,7 +1673,7 @@ function showRuntimeModal() {
     body:
       '<div class="notice info"><span class="ico">' + icon('info') + '</span><div>' + t('rmInfo', { a: '<a href="' + esc(d.tunnelClientRepo || '#') + '" target="_blank" rel="noopener">' + esc(t('rmInfoA')) + '</a>' }) + '</div></div>' +
       '<div id="dlProgress" class="hidden" style="margin-bottom:14px"><div class="progress"><div class="progress-fill indeterminate"></div></div>' +
-      '<div id="dlLog" class="mono" style="margin-top:10px;font-size:12px;color:var(--text-2);max-height:140px;overflow-y:auto;background:var(--surface-2);border-radius:8px;padding:10px 12px"></div></div>',
+      '<div id="dlLog" class="mono" style="margin-top:10px;font-size:12.5px;color:var(--text-2);max-height:140px;overflow-y:auto;background:var(--surface-2);border-radius:8px;padding:10px 12px"></div></div>',
     dismissable: true,
     actions: [
       { label: t('close'), kind: 'ghost' },
@@ -1776,7 +1817,7 @@ function showImportModal() {
 
   const renderScan = () => {
     const body = $('#imBody', m.body);
-    body.innerHTML = '<div style="color:var(--text-3);font-size:13px;display:flex;align-items:center;gap:8px;padding:12px 0"><span class="ico" style="animation:indet 1.2s infinite">' + icon('refresh') + '</span>' + esc(t('imScanning')) + '</div>';
+    body.innerHTML = '<div style="color:var(--text-3);font-size:13.5px;display:flex;align-items:center;gap:8px;padding:12px 0"><span class="ico" style="animation:indet 1.2s infinite">' + icon('refresh') + '</span>' + esc(t('imScanning')) + '</div>';
     api('/api/import/scan').then((data) => {
       state.found = (data.found || []).filter((f) => !f.error && f.servers && f.servers.length > 0);
       const errs = (data.found || []).filter((f) => f.error);
@@ -1792,11 +1833,11 @@ function showImportModal() {
       let h = '';
       state.found.forEach((f) => {
         h += '<div class="card" style="margin-bottom:12px"><div class="card-head" style="padding-bottom:8px"><div>' +
-          '<div class="card-title" style="font-size:13.5px"><span class="ico">' + icon('download') + '</span>' + esc(f.source) + ' <span class="pill blue">' + esc(t('imServersN', { n: f.servers.length })) + '</span></div>' +
-          '<div class="card-sub mono" style="font-size:11px">' + esc(f.file) + '</div>' +
+          '<div class="card-title"><span class="ico">' + icon('download') + '</span>' + esc(f.source) + ' <span class="pill blue">' + esc(t('imServersN', { n: f.servers.length })) + '</span></div>' +
+          '<div class="card-sub mono">' + esc(f.file) + '</div>' +
         '</div></div><div class="card-body" style="padding-top:4px">';
         f.servers.forEach((sv) => {
-          h += '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line)">' +
+          h += '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:13.5px;cursor:pointer;border-bottom:1px solid var(--border)">' +
             '<input type="checkbox" data-name="' + esc(sv.name) + '" checked style="margin-top:2px">' +
             '<span><strong>' + esc(sv.name) + '</strong> <span style="color:var(--text-3)">(' + esc(sv.kind) + ')</span><br>' +
             '<span class="mono" style="font-size:11.5px;color:var(--text-2)">' + esc(sv.target || '') + '</span></span></label>';
@@ -1838,7 +1879,7 @@ function showImportModal() {
         } else {
           let h = '<div style="margin-top:4px">';
           servers.forEach((n) => {
-            h += '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line)">' +
+            h += '<label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13.5px;cursor:pointer;border-bottom:1px solid var(--border)">' +
               '<input type="checkbox" data-name="' + esc(n) + '" checked> <strong>' + esc(n) + '</strong></label>';
           });
           h += '</div><label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;color:var(--text-2);cursor:pointer"><input type="checkbox" id="imOverwrite"> ' + esc(t('imOverwrite')) + '</label>';
@@ -1872,7 +1913,7 @@ function initIcons() {
 document.addEventListener('DOMContentLoaded', () => {
   initIcons();
   $$('#nav .nav-item').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
-  $('#btnRefresh').addEventListener('click', () => refreshState(false, true));
+  $('#btnRefresh').addEventListener('click', refreshNow);
   // 折叠区（常见问题等）的展开状态记下来，后台刷新时按原样还原，不打断阅读
   $('#content').addEventListener('toggle', (e) => {
     const d = e.target;
