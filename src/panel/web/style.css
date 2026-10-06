@@ -176,8 +176,10 @@ a:hover { text-decoration: underline; }
 .hero h2 { font-size: 21px; font-weight: 700; position: relative; }
 .hero p { margin-top: 6px; font-size: 13.5px; opacity: .88; max-width: 640px; position: relative; }
 .hero-progress { display: flex; align-items: center; gap: 10px; margin-top: 16px; position: relative; }
-.hero-progress-bar { flex: 1; max-width: 320px; height: 7px; border-radius: 4px; background: rgba(255,255,255,.25); overflow: hidden; }
-.hero-progress-fill { height: 100%; border-radius: 4px; background: #fff; transition: width .4s; }
+.hero-segs { display: flex; gap: 6px; flex: 1; max-width: 320px; }
+.hero-seg { flex: 1; height: 8px; border-radius: 4px; background: rgba(255,255,255,.28); transition: background .3s ease, box-shadow .3s ease; }
+.hero-seg.done { background: #fff; }
+.hero-seg.cur { background: rgba(255,255,255,.72); box-shadow: 0 0 0 1px rgba(255,255,255,.35), 0 0 10px rgba(255,255,255,.35); }
 .hero-progress-text { font-size: 12.5px; font-weight: 600; }
 .hero-cta { margin-top: 14px; position: relative; }
 .hero-cta .btn.light { background: #fff; border-color: #fff; color: var(--primary-strong); font-weight: 700; }

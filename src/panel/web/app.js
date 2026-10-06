@@ -710,12 +710,15 @@ function renderDashboard(c, s) {
     if (app.guideIdx >= steps.length) app.guideIdx = steps.length - 1;
     const i = app.guideIdx;
     const st = steps[i];
-    const pct = Math.round((doneCount / steps.length) * 100);
+    const segs = steps.map((x, j) => {
+      const cls = x.done ? 'done' : (j === i ? 'cur' : '');
+      return '<span class="hero-seg' + (cls ? ' ' + cls : '') + '" title="' + esc(x.name) + '"></span>';
+    }).join('');
 
     html += '<div class="hero">' +
       '<h2>' + esc(t('heroTitle')) + '</h2>' +
       '<p>' + esc(t('heroP')) + '</p>' +
-      '<div class="hero-progress"><div class="hero-progress-bar"><div class="hero-progress-fill" style="width:' + pct + '%"></div></div><span class="hero-progress-text">' + esc(t('heroProgress', { d: doneCount, t: steps.length })) + '</span></div>' +
+      '<div class="hero-progress"><div class="hero-segs">' + segs + '</div><span class="hero-progress-text">' + esc(t('heroProgress', { d: doneCount, t: steps.length })) + '</span></div>' +
       '</div>';
 
     // 步骤圆点
