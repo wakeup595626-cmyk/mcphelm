@@ -18,6 +18,9 @@ import { ensureDir, expandHome, fileExists } from './util.ts';
 
 export const GITHUB_REPO = 'openai/tunnel-client';
 const RELEASES_API = 'https://api.github.com/repos/' + GITHUB_REPO + '/releases';
+/* 网页版 releases/latest 会 302 到 /releases/tag/<版本>，走的是 github.com 而不是 API，
+   不占未认证 API 的 60 次/小时额度——共享出口 IP 经常被限流，所以留作兜底。 */
+const RELEASES_PAGE = 'https://github.com/' + GITHUB_REPO + '/releases/latest';
 const DOWNLOAD_BASE = 'https://github.com/' + GITHUB_REPO + '/releases/download';
 const SUMS_FILE = 'SHA256SUMS.txt';
 const USER_AGENT = 'mcphelm/' + BRAND.version;
@@ -45,7 +48,15 @@ export interface InstallOptions {
   zipPath?: string;
   skipVerify?: boolean;
   log?: (line: string) => void;
+  /**
+   * 真实进度回调：0–100 的百分比 + 当前阶段。
+   * 面板拿它画进度条——之前只有 10% 一格的日志，界面看起来就是「卡在 10% 然后突然装完」。
+   */
+  onProgress?: (percent: number, stage: InstallStage) => void;
 }
+
+/** 安装过程对外暴露的阶段，前端按语言翻译成文案 */
+export type InstallStage = 'prepare' | 'download' | 'verify' | 'unpack' | 'install' | 'done';
 
 export function runtimeBinaryName(): string {
   return process.platform === 'win32' ? 'tunnel-client-runtime.exe' : 'tunnel-client-runtime';
@@ -129,13 +140,46 @@ export function findRuntime(paths: AppPaths, configuredPath?: string): RuntimeIn
 }
 
 export async function fetchLatestVersion(): Promise<string> {
+  try {
+    return await fetchLatestVersionViaApi();
+  } catch (apiErr) {
+    const first = apiErr instanceof Error ? apiErr.message : String(apiErr);
+    try {
+      return await fetchLatestVersionViaWeb();
+    } catch (webErr) {
+      const second = webErr instanceof Error ? webErr.message : String(webErr);
+      throw new Error('查询最新版本失败：API ' + first + '；网页 ' + second);
+    }
+  }
+}
+
+/** 主链路：GitHub API（能拿到最准确的 tag_name） */
+async function fetchLatestVersionViaApi(): Promise<string> {
   const res = await fetch(RELEASES_API + '/latest', {
     headers: { 'user-agent': USER_AGENT, accept: 'application/vnd.github+json' },
   });
-  if (!res.ok) throw new Error('查询最新版本失败：HTTP ' + res.status);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
   const data = (await res.json()) as { tag_name?: string };
   if (!data.tag_name) throw new Error('无法解析最新版本号');
   return data.tag_name;
+}
+
+/** 兜底链路：读 releases/latest 的跳转地址或页面内容，不消耗 API 额度 */
+async function fetchLatestVersionViaWeb(): Promise<string> {
+  const res = await fetch(RELEASES_PAGE, { headers: { 'user-agent': USER_AGENT }, redirect: 'follow' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const fromUrl = parseReleaseTag(res.url ?? '');
+  if (fromUrl) return fromUrl;
+  const fromBody = parseReleaseTag(await res.text());
+  if (fromBody) return fromBody;
+  throw new Error('页面里没找到版本号');
+}
+
+/** 从 release 链接或页面文本里抠出版本号：…/releases/tag/v0.0.15 → v0.0.15 */
+export function parseReleaseTag(text: string): string | null {
+  const m = /\/releases\/tag\/(v?[0-9][A-Za-z0-9._-]*)/.exec(text);
+  const tag = m?.[1];
+  return tag ? tag : null;
 }
 
 export async function downloadFile(
@@ -260,7 +304,9 @@ export function versionFromZipName(zipPath: string): string | null {
 
 export async function installRuntime(opts: InstallOptions): Promise<InstallResult> {
   const log = opts.log ?? (() => undefined);
+  const report = opts.onProgress ?? (() => undefined);
   ensureDir(opts.paths.binDir);
+  report(1, 'prepare');
 
   let version = opts.version ?? null;
   let asset: string;
@@ -286,18 +332,23 @@ export async function installRuntime(opts: InstallOptions): Promise<InstallResul
     stageDir = mkdtempSync(join(opts.paths.tmpDir, 'download-'));
     zipPath = join(stageDir, asset);
     log('下载 ' + asset + ' ...');
+    report(5, 'download');
     let lastBucket = -1;
     await downloadFile(releaseAssetUrl(version, asset), zipPath, (received, total) => {
       if (total <= 0) return;
+      /* 真实百分比先喂给面板（5%–70% 这一段是下载），日志仍按 10% 一格，避免刷屏 */
+      report(5 + Math.round((received / total) * 65), 'download');
       const bucket = Math.floor((received / total) * 10);
       if (bucket !== lastBucket) {
         lastBucket = bucket;
         log('  进度 ' + bucket * 10 + '%');
       }
     });
+    report(70, 'download');
   }
 
   try {
+    report(72, 'verify');
     const sha256 = await sha256File(zipPath);
     let verified = false;
     if (version) {
@@ -327,15 +378,18 @@ export async function installRuntime(opts: InstallOptions): Promise<InstallResul
 
     const unpacked = join(stageDir, 'unpacked');
     log('解压 ...');
+    report(86, 'unpack');
     extractZip(zipPath, unpacked);
     const found = findExtractedBinary(unpacked);
     if (!found) throw new Error('压缩包中未找到 ' + runtimeBinaryName());
     const dest = join(opts.paths.binDir, runtimeBinaryName());
     copyFileSync(found, dest);
     if (process.platform !== 'win32') chmodSync(dest, 0o755);
+    report(96, 'install');
     const info = inspectRuntime(dest, 'home');
     if (!info.exists) throw new Error('安装后的二进制无法执行：' + dest);
     log('已安装：' + dest + (info.version ? '（版本 ' + info.version + '）' : ''));
+    report(100, 'done');
     return { path: dest, version: info.version ?? version ?? 'unknown', sha256, asset, verified };
   } finally {
     rmSync(stageDir, { recursive: true, force: true });

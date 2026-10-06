@@ -4,6 +4,7 @@ import {
   archTag,
   platformTag,
   parseSha256Sums,
+  parseReleaseTag,
   parseVersion,
   runtimeAssetName,
   runtimeBinaryName,
@@ -43,4 +44,13 @@ test('版本号解析', () => {
   assert.equal(parseVersion('no version here'), null);
   assert.equal(versionFromZipName('tunnel-client-runtime-v0.0.15-windows-amd64.zip'), 'v0.0.15');
   assert.equal(versionFromZipName('random.zip'), null);
+});
+
+test('兜底链路能从不带 API 的地址里认出最新版本', () => {
+  assert.equal(parseReleaseTag('https://github.com/openai/tunnel-client/releases/tag/v0.0.15'), 'v0.0.15');
+  assert.equal(
+    parseReleaseTag('<a href="/openai/tunnel-client/releases/tag/v0.0.14">x</a>'),
+    'v0.0.14'
+  );
+  assert.equal(parseReleaseTag('https://github.com/openai/tunnel-client/releases'), null);
 });

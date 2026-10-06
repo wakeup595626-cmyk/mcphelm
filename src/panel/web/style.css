@@ -394,7 +394,15 @@ a:hover { text-decoration: underline; }
 .wizard-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
 /* 向导里的行动按钮整体放大一号：目标更大、更好点 */
 .wizard-actions .btn { padding: 10px 18px; font-size: var(--fs-h4); border-radius: 10px; }
-.wizard-nav { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 18px; }
+/* 上一步 / 下一步固定在卡片底部：不管第三步、第五步有多长，按钮永远贴在可视区底部，
+   用户不必先滑到卡片最下面才能翻页（滚动容器是 .content，卡片自身不滚动） */
+.wizard-nav {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  position: sticky; bottom: 0; z-index: 5;
+  background: var(--surface); border-top: 1px solid var(--border);
+  padding: 14px 0 6px; margin-top: 4px;
+  box-shadow: 0 -16px 18px -16px rgba(18,26,54,.35);
+}
 .wizard-help { margin-top: 4px; }
 .wizard-help summary { display: flex; align-items: center; gap: 8px; padding: 11px 14px; cursor: pointer; font-size: var(--fs-body); font-weight: 600; color: var(--text-3); list-style: none; border-radius: var(--r-md); transition: background .12s; }
 .wizard-help summary::-webkit-details-marker { display: none; }
@@ -437,6 +445,16 @@ a:hover { text-decoration: underline; }
   background: var(--surface-2); border-radius: 0 0 var(--r-lg) var(--r-lg);
 }
 .entity-foot .spacer { flex: 1; }
+
+/* ============ 组件市场卡片：能力清单 + 星标徽标 ============ */
+/* 能力清单：一行一条、绿色勾号，"这个组件能干什么"一眼看完 */
+.mk-abil { display: flex; flex-direction: column; gap: 6px; padding: 2px 18px 13px; }
+.mk-abil-t { font-size: var(--fs-micro); font-weight: var(--fw-semibold); letter-spacing: .06em; color: var(--text-3); }
+.mk-abil-i { display: flex; align-items: flex-start; gap: 7px; font-size: var(--fs-aux); line-height: 1.65; color: var(--text-2); }
+.mk-abil-i .ico { width: 14px; height: 14px; flex-shrink: 0; margin-top: 3px; color: var(--green); }
+/* 星标徽标：金底金框，和仓库地址、许可证那几行明显区分开 */
+.entity-meta .mk-star { background: #fff6dd; border: 1px solid #f0dcb6; border-radius: 999px; padding: 2px 9px; color: #8a6a00; font-weight: var(--fw-semibold); gap: 4px; }
+.entity-meta .mk-star .ico { width: 13px; height: 13px; color: #e0a100; }
 
 .pill {
   display: inline-flex; align-items: center; gap: 6px;
@@ -570,6 +588,9 @@ a:hover { text-decoration: underline; }
   width: 35% !important; animation: indet 1.2s infinite ease-in-out;
 }
 @keyframes indet { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+/* 下载弹窗：进度条上方的「当前阶段 + 百分比」，让用户知道卡在哪一步而不是干等 */
+.dl-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; font-size: var(--fs-aux); color: var(--text-2); }
+.dl-pct { font-weight: var(--fw-bold); color: var(--primary-strong); font-variant-numeric: tabular-nums; }
 
 /* ============ 日志页 ============ */
 .log-viewer {
@@ -647,6 +668,15 @@ button.link-item { width: 100%; text-align: left; }
 .notice strong { font-weight: 700; }
 .notice.ok { background: var(--green-soft); color: #14603a; }
 .notice.ok .ico { color: var(--green); }
+/* 第五步醒目标注：开发者模式必须先打开，否则「创建自定义 MCP 服务器」入口根本不会出现 */
+.notice.devmode {
+  background: linear-gradient(180deg, #fff8e6 0%, #ffefd0 100%);
+  border: 1.5px solid #e8b83d; color: #6b4a06;
+  box-shadow: 0 2px 10px -6px rgba(190,140,20,.55);
+  font-size: var(--fs-h4); line-height: 1.75;
+}
+.notice.devmode strong { color: #8a5a00; }
+.notice.devmode .ico { color: #d99500; width: 20px; height: 20px; }
 
 /* 向导引导卡 */
 .guide-card { background: #fff; border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px 20px; margin-top: 16px; box-shadow: var(--shadow-sm); }

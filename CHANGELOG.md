@@ -7,11 +7,26 @@
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-10-06
+
+### Added
+
+- 组件市场（可一键安装的 MCP 服务器）从 6 个扩充到 18 个：新增 chrome-devtools、markitdown、context7、desktop-commander、time、git、sqlite、sequential-thinking、duckduckgo-search、arxiv、obsidian、everything，覆盖浏览器读取、文档转换、实时文档检索、数据库、学术搜索与本地知识库。
+- 组件市场每条都补齐中英双语的「作用」说明与 GitHub 星标：卡片上直接能看到这个服务器是干什么的、社区热度多少，不用先装上去再猜。
+- 星标走 GitHub API 并带 6 小时本地缓存：打开面板先用缓存立刻渲染（同时标注快照日期），后台再静默刷新；断网或接口限流时显示最后一次快照，不会变成空白。
+
 ### Changed
 
+- 第五步（在 ChatGPT 里把隧道加成插件）把「先打开 ChatGPT 的开发者模式」提到最前面，并用整块高亮的警示卡片着重强调：开发者模式没打开之前，自定义连接器 / 隧道这一项在 ChatGPT 里根本不会出现，后面所有步骤都会卡住。
+- 概览向导的「上一步 / 下一步」按钮改成吸底固定：第三步和第五步的图文教程都很长，以前必须滚到最底部才能翻页；现在按钮始终停在面板底部的同一个位置，第一步到第五步完全统一，内容再长位置也不变。
 - README 重写为中英双版，版式对照 DeepSeek Harness 官方仓库：英文版为 `README.md`、中文版为 `README.zh.md`，两份文件首行互相链接（English | 中文），两边小节一一对应。
 - README 不再包含任何打款内容：「支持作者 / Supporting the project」整节与收款码图片一并删掉，`docs/assets/alipay-qr.png` 随之移除；软件内的 Star / 支持入口不受影响，仍然常驻。
 - `docs/` 各篇的「返回 README」链接改指中文版 `README.zh.md`。
+
+### Fixed
+
+- 修复第一步「安装环境」的进度条一直卡在 10%、然后突然跳满的问题：现在按「准备 → 下载（真实字节进度）→ SHA-256 校验 → 解压 → 安装 → 完成」六个阶段推进，百分比平滑增长，阶段名称同步显示。
+- 修复点击「下载运行环境」直接报「查询最新版本失败：HTTP 403」的问题：GitHub 对未认证请求的接口限流（共享出口 IP 很容易撞上）会让下载按钮整个失败，现在接口被限流时自动改读官方的 releases 跳转地址拿版本号，下载与 SHA-256 校验链路完全不变。
 
 ## [0.1.6] - 2026-10-06
 
@@ -131,6 +146,7 @@
 - 桌面版打包命令：`npm run dist:win`（产出在 `release/`）；本地调试用 `npm run desktop`。
 - 本项目是独立第三方工具，只按需下载 openai/tunnel-client 的官方发布二进制，不修改也不重新分发其源码；本项目非 OpenAI 官方产品。
 
+[0.1.7]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.7
 [0.1.2]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.2
 [0.1.1]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.1
 [0.1.0]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.0

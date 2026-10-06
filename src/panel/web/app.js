@@ -20,6 +20,11 @@ const I18N = {
     mkUninstallTitle: '卸载组件', mkUninstallMsg: '确定卸载 {t} 吗？这会把它从服务器列表里移除（不会删你的隧道配置）。',
     mkNeedTunnel: '已装好，还差一步：去「隧道」页新建一条隧道，服务器选它',
     mkCustom: '想要别的？去「服务器」页手动添加任意 MCP 命令',
+    /* 组件市场卡片：能力清单 + 星标（星标数字由面板联网刷新，刷不到就用打包时的快照） */
+    mkAbilities: '能做什么',
+    mkStars: '★ {n}',
+    mkStarsLive: '星标数：刚刚联网更新',
+    mkStarsSnapshot: '星标数来自 {d} 的快照（联网刷新失败时显示的就是它）',
     metaLogsT: '日志', metaLogsS: '查看每条隧道的运行输出',
     metaDoctorT: '体检', metaDoctorS: '自动检查环境和配置有没有问题',
     metaSettingsT: '设置', metaSettingsS: '界面偏好、路径、密钥状态与帮助入口',
@@ -34,6 +39,14 @@ const I18N = {
     overwriteSave: '用这份配置覆盖', overwriteHint: '已经有一条叫 {n} 的隧道。确认要用现在这份配置覆盖它，就再点一次这个按钮。',
     runtimeReadyToast: '运行环境已就绪',
     downloadFailed: '下载失败：', importedRuntime: '已导入运行环境',
+    /* 运行环境下装进度：后端每完成一段就回报百分比与阶段，进度条不再是假动画 */
+    dlStage_prepare: '准备中：正在检查网络与下载地址…',
+    dlStage_download: '正在下载运行环境…',
+    dlStage_verify: '下载完成，正在校验文件…',
+    dlStage_unpack: '正在解压安装包…',
+    dlStage_install: '正在写入安装文件…',
+    dlStage_done: '安装完成',
+    dlStage_failed: '安装失败',
     noZipPath: '请填 zip 文件路径', fillName: '请填写名称', fillCommand: '请填写启动命令',
     fillUrl: '请填写服务地址', fillEnvName: '请填写环境变量名', fillKey: '请粘贴 runtime key',
     fillTunnelId: '请填写隧道 ID', badPort: '端口必须是 1-65535 的整数',
@@ -222,7 +235,7 @@ const I18N = {
     wizTutTip: '两把钥匙都复制好之后，回到这张卡片点「我已经拿到这两把钥匙」，再点「下一步」把它们粘进隧道表单。',
     /* 第五步图文教程：ChatGPT 网页端把隧道加成插件 */
     wizTut5T: '图文教程：把隧道接进 ChatGPT 网页端',
-    wizTut5D: '下面 2 张图是 ChatGPT 网页端的真实操作：先从左栏进「插件」，再从右上角「添加」里选「创建自定义 MCP 服务器」，然后在弹窗里把「连接」切成「隧道」、粘上隧道 ID、身份验证选「无需身份验证」。图里标的红色数字就是点击顺序。',
+    wizTut5D: '动手之前先做一件事：打开 ChatGPT 的开发者模式（设置 → 连接器 → 高级 → 开发者模式）。不打开的话，「创建自定义 MCP 服务器」这个入口根本不会出现，菜单里也找不到。打开之后，下面 2 张图就是 ChatGPT 网页端的真实操作：先从左栏进「插件」，再从右上角「添加」里选「创建自定义 MCP 服务器」，然后在弹窗里把「连接」切成「隧道」、粘上隧道 ID、身份验证选「无需身份验证」。图里标的红色数字就是点击顺序。',
     wizTut5F1T: '从左侧栏进「插件」，再点右上角的「添加」',
     wizTut5F1D: '① 在 ChatGPT 左侧栏点「插件」（就在「资料库」下面），进入插件页；② 点右上角黑色的「添加」，下拉菜单里选「创建自定义 MCP 服务器」——这一步就是让 ChatGPT 认领你在 MCPHelm 里建好的那条隧道。',
     wizTut5F2T: '弹窗里这两个红框照着填',
@@ -236,11 +249,13 @@ const I18N = {
     gs5S3: '密钥来源选「密钥保险箱（推荐）」，粘贴 runtime key。',
     gs5S4: '创建后点卡片上的「启动」；状态变成「运行中」就成功了，掉线会自动重连。',
     gs6T: '在 ChatGPT 里用起来',
-    gs6D: '最后一步：把隧道加到 ChatGPT 里，让它真正被用上。',
-    gs6S1: '点下面的按钮打开 ChatGPT，然后点左侧栏的「插件」。',
-    gs6S2: '点右上角「添加」→「创建自定义 MCP 服务器」，连接方式选「隧道」、粘贴隧道 ID。',
-    gs6S3: '添加完成后，在对话里就能直接调用你电脑里的能力了。',
-    gs6S4: '想确认它真的在跑：点隧道卡片上的「日志」，那里是这条隧道的实时输出；连不上时先看这里。',
+    gs6D: '最后一步：先打开 ChatGPT 的「开发者模式」，再把隧道加成插件，让它真正被用上。',
+    gs6DevT: '重点：先在 ChatGPT 里打开开发者模式',
+    gs6DevD: '不打开开发者模式，下面要用的「创建自定义 MCP 服务器」入口根本不会出现在菜单里。路径：ChatGPT 网页端 → 设置 → 连接器 → 高级 → 打开「开发者模式」开关。不同版本的菜单叫法可能略有差异，找「高级 / Advanced」里的开发者模式开关即可。',
+    gs6S1: '【必须第一步】打开 ChatGPT 的开发者模式：设置 → 连接器 → 高级 → 开发者模式开关打开。',
+    gs6S2: '点下面的按钮打开 ChatGPT，然后点左侧栏的「插件」。',
+    gs6S3: '点右上角「添加」→「创建自定义 MCP 服务器」，连接方式选「隧道」、粘贴隧道 ID，身份验证选「无需身份验证」。',
+    gs6S4: '添加完成后，在对话里就能直接调用你电脑里的能力了；想确认它在跑，点隧道卡片上的「日志」。',
     gs6B: '打开 ChatGPT',
     guideTipsT: '日常使用，记住三件事',
     tip1T: '关窗不等于断线', tip1D: '点右上角 X 只是收进托盘，隧道继续在线；要彻底关闭，用右下角托盘图标右键，选退出。',
@@ -276,6 +291,11 @@ const I18N = {
     mkUninstallTitle: 'Uninstall component', mkUninstallMsg: 'Uninstall {t}? This removes it from the server list (your tunnels are kept).',
     mkNeedTunnel: 'Installed. One more step: create a tunnel on the Tunnels page and pick this server',
     mkCustom: 'Want something else? Add any MCP command manually on the Servers page',
+    /* Marketplace card: ability list + stars (counts refresh online, snapshot is the fallback) */
+    mkAbilities: 'What it can do',
+    mkStars: '★ {n}',
+    mkStarsLive: 'Star count refreshed online just now',
+    mkStarsSnapshot: 'Star count from the {d} snapshot (shown when the online refresh fails)',
     metaLogsT: 'Logs', metaLogsS: 'Live output of every tunnel',
     metaDoctorT: 'Doctor', metaDoctorS: 'Check environment and config automatically',
     metaSettingsT: 'Settings', metaSettingsS: 'Preferences, paths, key status and help',
@@ -290,6 +310,13 @@ const I18N = {
     overwriteSave: 'Overwrite with this config', overwriteHint: 'A tunnel named {n} already exists. Click this button again to overwrite it with what you just entered.',
     runtimeReadyToast: 'Runtime is ready',
     downloadFailed: 'Download failed: ', importedRuntime: 'Runtime imported',
+    dlStage_prepare: 'Preparing: checking network and download URL...',
+    dlStage_download: 'Downloading the runtime...',
+    dlStage_verify: 'Download finished, verifying the file...',
+    dlStage_unpack: 'Unpacking the archive...',
+    dlStage_install: 'Writing files...',
+    dlStage_done: 'Installed',
+    dlStage_failed: 'Install failed',
     noZipPath: 'Please enter the zip path', fillName: 'Please enter a name', fillCommand: 'Please enter the launch command',
     fillUrl: 'Please enter the service URL', fillEnvName: 'Please enter the env var name', fillKey: 'Please paste the runtime key',
     fillTunnelId: 'Please enter the tunnel ID', badPort: 'Port must be an integer between 1 and 65535',
@@ -478,7 +505,7 @@ const I18N = {
     wizTutTip: 'Once both are copied, come back to this card, click "I already have both keys", then click Next and paste them into the tunnel form.',
     /* Step 5 illustrated tutorial: adding the tunnel to the ChatGPT web app */
     wizTut5T: 'Illustrated guide: wire the tunnel into the ChatGPT web app',
-    wizTut5D: 'These two screenshots are the real ChatGPT web flow: open Plugins from the left rail, pick Create custom MCP server from the Add menu at the top right, then in the dialog switch Connection to Tunnel, paste the tunnel ID and pick No authentication. The red numbers on the screenshots are the order of clicks.',
+    wizTut5D: 'Do one thing before anything else: turn on Developer mode in ChatGPT (Settings → Connectors → Advanced → Developer mode). Without it the Create custom MCP server entry never appears in the menu. After that, these two screenshots are the real ChatGPT web flow: open Plugins from the left rail, pick Create custom MCP server from the Add menu at the top right, then in the dialog switch Connection to Tunnel, paste the tunnel ID and pick No authentication. The red numbers on the screenshots are the order of clicks.',
     wizTut5F1T: 'Open Plugins from the left rail, then Add at the top right',
     wizTut5F1D: '(1) In the ChatGPT left rail click Plugins (right under Library) to open the plugins page; (2) click the black Add button at the top right and choose Create custom MCP server - this is where ChatGPT claims the tunnel you already built in MCPHelm.',
     wizTut5F2T: 'Fill in these two boxed spots in the dialog',
@@ -492,11 +519,13 @@ const I18N = {
     gs5S3: 'Keep the key source as Key vault (recommended) and paste the runtime key.',
     gs5S4: 'After creating it, press Start on the card — state Running means you are online (drops re-raise automatically).',
     gs6T: 'Use it inside ChatGPT',
-    gs6D: 'Last step: add the tunnel to ChatGPT so it can actually be used.',
-    gs6S1: 'Click the button below to open ChatGPT, then pick Plugins in the left rail.',
-    gs6S2: 'Click Add at the top right → Create custom MCP server, choose Tunnel and paste the tunnel ID.',
-    gs6S3: 'Done — your chats can now call the local capability directly.',
-    gs6S4: 'To confirm it is really running, click Logs on the tunnel card — that is the tunnel live output, and the first place to look if a connection fails.',
+    gs6D: 'Last step: turn on Developer mode in ChatGPT first, then add the tunnel as a plugin so it can actually be used.',
+    gs6DevT: 'Important: turn on Developer mode in ChatGPT first',
+    gs6DevD: 'Without Developer mode the Create custom MCP server entry never appears in the menu. Path: ChatGPT web → Settings → Connectors → Advanced → turn on Developer mode. Menu wording differs slightly between versions — look for the developer-mode switch under Advanced.',
+    gs6S1: '[Must do first] Turn on Developer mode in ChatGPT: Settings → Connectors → Advanced → Developer mode.',
+    gs6S2: 'Click the button below to open ChatGPT, then pick Plugins in the left rail.',
+    gs6S3: 'Click Add at the top right → Create custom MCP server, choose Tunnel, paste the tunnel ID and pick No authentication.',
+    gs6S4: 'Done — your chats can now call the local capability. To confirm it is running, click Logs on the tunnel card.',
     gs6B: 'Open ChatGPT',
     guideTipsT: 'Three things to remember day to day',
     tip1T: 'Closing the window is not disconnecting', tip1D: 'The X button only hides it to the tray; the tunnel stays online. To quit fully, right-click the tray icon and choose Exit.',
@@ -1107,6 +1136,10 @@ function renderDashboard(c, s) {
     '</div>' +
     '<h3 class="wizard-name">' + esc(st.name) + '</h3>' +
     '<p class="wizard-desc">' + esc(st.desc) + '</p>';
+  /* 第五步：开发者模式必须先打开，单独用醒目警示块顶在正文最前面，确保不会被划过去 */
+  if (i === 4) {
+    html += '<div class="notice warn devmode"><span class="ico">' + icon('warn') + '</span><div><strong>' + esc(t('gs6DevT')) + '</strong><br>' + esc(t('gs6DevD')) + '</div></div>';
+  }
   if (st.details && st.details.length > 0) {
     html += '<div class="wizard-fine"><ol class="wizard-fine-list">';
     st.details.forEach((d) => { html += '<li>' + esc(d) + '</li>'; });
@@ -1427,6 +1460,14 @@ function renderServers(c, s) {
 
 
 /* ---------------- 组件市场页 ---------------- */
+/* 12345 → 12.3k；和 src/marketstars.ts 的 formatStars 保持同一套规则 */
+function starsText(n) {
+  if (typeof n !== 'number' || !isFinite(n) || n < 0) return '';
+  if (n < 1000) return String(n);
+  if (n < 10000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  return Math.round(n / 1000) + 'k';
+}
+
 async function renderMarket(c, s) {
   c.innerHTML = '<div class="empty"><div class="empty-ico">' + icon('market') + '</div><p>' + esc(t('logLoading')) + '</p></div>';
   let items = [];
@@ -1441,20 +1482,35 @@ async function renderMarket(c, s) {
   html += '<div class="entity-grid">';
   items.forEach((it) => {
     const installed = it.installed === true;
+    /* 中英双语字段：切到 English 时优先用 xxEn，缺了就退回中文，界面不会出现空标题 */
+    const en = currentLang === 'en';
+    const title = (en && it.titleEn) ? it.titleEn : it.title;
+    const desc = (en && it.descriptionEn) ? it.descriptionEn : it.description;
+    const hint = (en && it.hintEn) ? it.hintEn : it.hint;
+    const abilities = ((en && it.abilitiesEn && it.abilitiesEn.length) ? it.abilitiesEn : (it.abilities || []));
+    const starTxt = starsText(it.stars);
+    const starTip = it.starsLive ? t('mkStarsLive') : t('mkStarsSnapshot', { d: it.starsSnapshotAt || '' });
     html += '<div class="entity-card" data-comp="' + esc(it.id) + '">' +
       '<div class="entity-top">' +
         '<div class="entity-ico kind-stdio">' + icon(it.runner === 'npx' ? 'terminal' : 'zap') + '</div>' +
-        '<div class="entity-names"><div class="entity-name">' + esc(it.title) + '</div>' +
+        '<div class="entity-names"><div class="entity-name">' + esc(title) + '</div>' +
         '<div class="entity-target" title="' + esc(it.command) + '">' + esc(it.command) + '</div></div>' +
         '<span class="pill ' + (installed ? 'ok' : 'muted') + '">' + (installed ? esc(t('mkInstalled')) : esc(it.runnerName)) + '</span>' +
       '</div>' +
       '<div class="entity-meta">' +
-        '<span class="m">' + esc(it.description) + '</span>' +
+        '<span class="m">' + esc(desc) + '</span>' +
       '</div>' +
+      /* 能力清单：这个组件到底能干什么，一行一条，新用户不用猜 */
+      (abilities.length
+        ? '<div class="mk-abil"><div class="mk-abil-t">' + esc(t('mkAbilities')) + '</div>' +
+          abilities.map((a) => '<span class="mk-abil-i"><span class="ico">' + icon('check') + '</span><span>' + esc(a) + '</span></span>').join('') +
+          '</div>'
+        : '') +
       '<div class="entity-meta">' +
+        (starTxt ? '<span class="m mk-star" title="' + esc(starTip) + '"><span class="ico">' + icon('star') + '</span>' + esc(t('mkStars', { n: starTxt })) + '</span>' : '') +
         '<span class="m"><span class="ico">' + icon('ext') + '</span><a href="' + esc(it.source.url) + '" target="_blank" rel="noreferrer" style="color:inherit">' + esc(it.source.repo) + '</a></span>' +
         '<span class="m"><span class="ico">' + icon('book') + '</span>' + esc(it.source.license) + '</span>' +
-        (it.hint ? '<span class="m" style="color:var(--amber)"><span class="ico">' + icon('warn') + '</span>' + esc(it.hint) + '</span>' : '') +
+        (hint ? '<span class="m" style="color:var(--amber)"><span class="ico">' + icon('warn') + '</span>' + esc(hint) + '</span>' : '') +
       '</div>' +
       '<div class="entity-foot"><span class="spacer"></span>' +
         (installed
@@ -1485,7 +1541,7 @@ async function renderMarket(c, s) {
     if (gotoBtn) gotoBtn.addEventListener('click', () => setView('servers'));
     const removeBtn = $('[data-act="remove"]', card);
     if (removeBtn) removeBtn.addEventListener('click', async () => {
-      const okGo = await confirmModal(t('mkUninstallTitle'), t('mkUninstallMsg', { t: esc(it.title) }), t('mkUninstall'), true);
+      const okGo = await confirmModal(t('mkUninstallTitle'), t('mkUninstallMsg', { t: esc(title) }), t('mkUninstall'), true);
       if (!okGo) return;
       try {
         await api('/api/components/' + encodeURIComponent(id) + '/remove', { method: 'POST' });
@@ -2063,7 +2119,9 @@ function showRuntimeModal() {
     sub: t('rmSub'),
     body:
       '<div class="notice info"><span class="ico">' + icon('info') + '</span><div>' + t('rmInfo', { a: '<a href="' + esc(d.tunnelClientRepo || '#') + '" target="_blank" rel="noopener">' + esc(t('rmInfoA')) + '</a>' }) + '</div></div>' +
-      '<div id="dlProgress" class="hidden" style="margin-bottom:14px"><div class="progress"><div class="progress-fill indeterminate"></div></div>' +
+      '<div id="dlProgress" class="hidden" style="margin-bottom:14px">' +
+      '<div class="dl-head"><span id="dlStage">' + esc(t('dlStage_prepare')) + '</span><span id="dlPct" class="dl-pct">0%</span></div>' +
+      '<div class="progress"><div class="progress-fill indeterminate"></div></div>' +
       '<div id="dlLog" class="mono" style="margin-top:10px;font-size:12.5px;color:var(--text-2);max-height:140px;overflow-y:auto;background:var(--surface-2);border-radius:8px;padding:10px 12px"></div></div>',
     dismissable: true,
     actions: [
@@ -2073,6 +2131,7 @@ function showRuntimeModal() {
         onClick: async (bodyEl, btn) => {
           $('#dlProgress', bodyEl).classList.remove('hidden');
           btn.classList.add('hidden');
+          app.dlProgress = 0;
           await api('/api/runtime/fetch', { method: 'POST', body: {} });
           pollRuntimeJob(bodyEl);
           return true; // 保持弹窗开着看进度
@@ -2090,16 +2149,23 @@ async function pollRuntimeJob(bodyEl) {
     const job = data.job;
     const logEl = $('#dlLog', bodyEl);
     if (job && logEl) logEl.textContent = (job.lines || []).slice(-40).join('\n');
+    /* 进度条跟着后端真实阶段走（下载百分比 → 校验 → 解压 → 写入），不再只停在假动画里等它忽然跳满 */
+    if (job && job.running && typeof job.progress === 'number') {
+      app.dlProgress = Math.max(app.dlProgress || 0, Math.round(job.progress));
+      paintRuntimeProgress(bodyEl, app.dlProgress, job.stage);
+    }
     if (job && !job.running) {
       app.jobPolling = false;
-      const fill = $('.progress-fill', bodyEl);
-      if (fill) fill.classList.remove('indeterminate');
       if (job.ok) {
-        if (fill) { fill.style.width = '100%'; }
+        paintRuntimeProgress(bodyEl, 100, 'done');
         toast(t('runtimeReadyToast'), 'ok');
         setTimeout(() => { closeModal(); refreshState(true); }, 900);
       } else {
+        const fill = $('.progress-fill', bodyEl);
         if (fill) { fill.style.width = '100%'; fill.style.background = 'var(--red)'; }
+        if (fill) fill.classList.remove('indeterminate');
+        const lab = $('#dlStage', bodyEl);
+        if (lab) lab.textContent = t('dlStage_failed');
         toast(t('downloadFailed') + (job.error || t('unknownError')), 'err');
         refreshState(true);
       }
@@ -2107,6 +2173,24 @@ async function pollRuntimeJob(bodyEl) {
     }
   } catch (e) { /* 继续轮询 */ }
   setTimeout(() => pollRuntimeJob(bodyEl), 800);
+}
+
+/* 把后端上报的百分比与阶段画到进度条上；不到 2% 保持流动条，免得看起来"卡在 0%" */
+function paintRuntimeProgress(bodyEl, percent, stage) {
+  const p = Math.max(0, Math.min(100, Math.round(percent || 0)));
+  const fill = $('.progress-fill', bodyEl);
+  if (fill) {
+    if (p < 2) {
+      fill.classList.add('indeterminate');
+    } else {
+      fill.classList.remove('indeterminate');
+      fill.style.width = p + '%';
+    }
+  }
+  const pct = $('#dlPct', bodyEl);
+  if (pct) pct.textContent = p + '%';
+  const lab = $('#dlStage', bodyEl);
+  if (lab) lab.textContent = p >= 100 ? t('dlStage_done') : t('dlStage_' + (stage || 'download'));
 }
 
 function showImportRuntimeModal() {

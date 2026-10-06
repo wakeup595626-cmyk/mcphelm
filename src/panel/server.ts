@@ -7,11 +7,12 @@ import type { AddressInfo } from 'node:net';
 import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BRAND } from '../brand.ts';
-import { COMPONENTS, componentCommand, findComponent, runnerName } from '../components.ts';
+import { COMPONENTS, STARS_SNAPSHOT_AT, componentCommand, findComponent, runnerName } from '../components.ts';
 import { runDoctor } from '../doctor.ts';
 import { mergeServers, parseExternalFile, parsePastedConfig, scanExternalConfigs } from '../importer.ts';
 import { keyringDelete, keyringSet, keyringSupported } from '../keyring.ts';
 import { pruneLogs } from '../logrotate.ts';
+import { readStarsCache, refreshStars, starsCacheFresh } from '../marketstars.ts';
 import { describeConfigScope, logFileFor } from '../paths.ts';
 import type { AppPaths } from '../paths.ts';
 import { listStatuses, probeHealth, readLogTail, readState, startTunnel, stopTunnel } from '../runtime.ts';
@@ -355,6 +356,10 @@ interface RuntimeJob {
   finishedAt: string | null;
   ok: boolean | null;
   error: string | null;
+  /** 0–100 的真实进度（面板进度条直接用它，不再是空转动画） */
+  progress: number | null;
+  /** 当前阶段：prepare / download / verify / unpack / install / done / failed */
+  stage: string | null;
   lines: string[];
 }
 
@@ -392,6 +397,8 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
       finishedAt: null,
       ok: null,
       error: null,
+      progress: 0,
+      stage: 'prepare',
       lines: [kind === 'fetch' ? '开始下载官方 tunnel-client 运行时 …' : '开始导入本地运行时压缩包 …'],
     };
     const push = (line: string): void => {
@@ -405,16 +412,24 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
       skipVerify: jobOpts.skipVerify,
       zipPath: jobOpts.zipPath,
       log: push,
+      onProgress: (percent, stage) => {
+        if (!runtimeJob) return;
+        runtimeJob.progress = Math.max(0, Math.min(100, Math.round(percent)));
+        runtimeJob.stage = stage;
+      },
     })
       .then((result) => {
         if (!runtimeJob) return;
         runtimeJob.ok = true;
+        runtimeJob.progress = 100;
+        runtimeJob.stage = 'done';
         push('完成：' + result.path + (result.verified ? '（官方 SHA-256 校验通过）' : '（未校验）'));
         opts.onLog?.('面板下载了官方运行时：' + result.path);
       })
       .catch((err: unknown) => {
         if (!runtimeJob) return;
         runtimeJob.ok = false;
+        runtimeJob.stage = 'failed';
         runtimeJob.error = err instanceof Error ? err.message : String(err);
         push('失败：' + runtimeJob.error);
       })
@@ -1078,15 +1093,34 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
 
       // 组件清单 + 安装状态（已装 = servers[] 里已有同名服务器）
       if (method === 'GET' && path === '/api/components') {
+        /* 星标：内置快照打底，联网刷新的结果写进数据根缓存（6 小时内复用）。
+           刷新是后台任务、不阻塞这次响应，界面上永远有数字可看。 */
+        const starsFile = join(opts.paths.cacheDir, 'stars.json');
+        const cache = readStarsCache(starsFile);
+        const fresh = starsCacheFresh(cache);
+        if (!fresh) {
+          const repos = [...new Set(COMPONENTS.map((c) => c.source.repo))];
+          void refreshStars(repos, starsFile, cache).catch(() => undefined);
+        }
+        const live = fresh ? cache : null;
         const items = COMPONENTS.map((c) => ({
           id: c.id,
           title: c.title,
+          titleEn: c.titleEn,
           description: c.description,
+          descriptionEn: c.descriptionEn,
+          abilities: c.abilities,
+          abilitiesEn: c.abilitiesEn,
           source: c.source,
           kind: c.kind,
           runner: c.runner,
           runnerName: runnerName(c.runner),
           hint: c.hint ?? '',
+          hintEn: c.hintEn ?? '',
+          stars: live?.repos[c.source.repo] ?? c.stars,
+          starsLive: !!live,
+          starsSnapshotAt: STARS_SNAPSHOT_AT,
+          starsRefreshedAt: live?.at ?? '',
           command: componentCommand(c, opts.paths),
           installed: !!findServer(opts.config, c.id),
         }));
