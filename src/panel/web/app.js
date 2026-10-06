@@ -463,6 +463,9 @@ const app = {
   keyringSupported: false,
   guideIdx: 0,
   guideAutoAdvance: true, // 首次进入指南时允许自动推进到第一个未完成步骤
+  openDetails: {},        // 记住展开的折叠区（常见问题等），后台刷新时不收起
+  prefsDraft: null,       // 设置页未保存的偏好草稿，刷新时不覆盖用户的选择
+  lastFP: null,           // 上一次渲染对应的数据指纹，数据没变就不重建界面
 };
 
 function viewMeta(v) {
@@ -547,12 +550,30 @@ function confirmModal(title, message, confirmLabel, danger) {
 }
 
 /* ---------------- 数据 ---------------- */
-async function refreshState(silent) {
+/* 数据指纹：心跳类字段每次都变，排除掉才能判断“界面内容是否真的变化” */
+function stateFP(s) {
+  try {
+    return JSON.stringify(s, (k, v) => (k === 'uptimeMs' || k === 'startedAt' ? undefined : v));
+  } catch (e) {
+    return null;
+  }
+}
+
+/* 折叠区（常见问题等）展开状态：渲染时按 data-dk 还原 */
+function detailsOpenAttr(k) {
+  return app.openDetails[k] ? ' open' : '';
+}
+
+async function refreshState(silent, force) {
   try {
     app.state = await api('/api/state');
     syncPrefsFromState();
     renderShell();
-    renderView();
+    const fp = stateFP(app.state);
+    if (force || fp !== app.lastFP) {
+      app.lastFP = fp;
+      renderView();
+    }
     schedulePoll();
   } catch (e) {
     if (!silent) toast(t('offline') + e.message, 'err');
@@ -636,18 +657,21 @@ function setView(v) {
   $('#pageSub').textContent = meta.sub;
   clearInterval(app.logTimer);
   renderView();
+  $('#content').scrollTop = 0;
 }
 
 function renderView() {
   const s = app.state;
   if (!s) return;
   const c = $('#content');
+  const keepScroll = c.scrollTop; // 刷新时保持用户当前的滚动位置
   if (app.view === 'dashboard') renderDashboard(c, s);
   else if (app.view === 'tunnels') renderTunnels(c, s);
   else if (app.view === 'servers') renderServers(c, s);
   else if (app.view === 'logs') renderLogs(c, s);
   else if (app.view === 'doctor') renderDoctor(c, s);
   else if (app.view === 'settings') renderSettings(c, s);
+  if (c.scrollTop !== keepScroll) c.scrollTop = keepScroll;
 }
 
 
@@ -787,7 +811,7 @@ function renderDashboard(c, s) {
 
 /* 概览底部的帮助折叠区：常见问题 + 官方入口，想看再展开 */
 function dashHelpSection(s) {
-  let h = '<details class="wizard-help dash-help"><summary><span class="ico">' + icon('info') + '</span>' + esc(t('stuckT')) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="wizard-help-body">';
+  let h = '<details class="wizard-help dash-help" data-dk="stuck"' + detailsOpenAttr('stuck') + '><summary><span class="ico">' + icon('info') + '</span>' + esc(t('stuckT')) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="wizard-help-body">';
   h += '<div class="guide-tips">';
   [['zap', 'tip1T', 'tip1D'], ['refresh', 'tip2T', 'tip2D'], ['heartbeat', 'tip3T', 'tip3D']].forEach((row) => {
     h += '<div class="guide-tip"><div class="t"><span class="ico">' + icon(row[0]) + '</span>' + esc(t(row[1])) + '</div><div class="d">' + esc(t(row[2])) + '</div></div>';
@@ -796,7 +820,7 @@ function dashHelpSection(s) {
   h += '<div class="section-title" style="margin-top:20px"><span class="ico">' + icon('info') + '</span>' + esc(t('guideFaqT')) + '</div>';
   h += '<div class="faq-list">';
   for (let k = 1; k <= 5; k++) {
-    h += '<details class="faq"><summary><span class="ico">' + icon('info') + '</span>' + esc(t('faqQ' + k)) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="faq-a">' + esc(t('faqA' + k)) + '</div></details>';
+    h += '<details class="faq" data-dk="faq' + k + '"' + detailsOpenAttr('faq' + k) + '><summary><span class="ico">' + icon('info') + '</span>' + esc(t('faqQ' + k)) + '<span class="chev">' + icon('arrow') + '</span></summary><div class="faq-a">' + esc(t('faqA' + k)) + '</div></details>';
   }
   h += '</div>';
   h += '<div class="section-title" style="margin-top:20px"><span class="ico">' + icon('link') + '</span>' + esc(t('guideLinksT')) + '</div>';
@@ -1095,14 +1119,15 @@ function renderSettings(c, s) {
   let html = '<div class="settings-grid">';
 
   // 界面与偏好
+  const pf = app.prefsDraft || app.ui; // 有未保存的改动时，先按草稿显示，不被后台刷新覆盖
   html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('settings') + '</span>' + esc(t('secPrefs')) + '</div><div class="card-sub">' + esc(t('secPrefsSub')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
   html += '<div class="set-row"><div class="set-row-k">' + esc(t('languageLabel')) + '</div>' +
     '<select class="select" id="prefLang">' +
-    '<option value="zh"' + (app.ui.language !== 'en' ? ' selected' : '') + '>中文</option>' +
-    '<option value="en"' + (app.ui.language === 'en' ? ' selected' : '') + '>English</option>' +
+    '<option value="zh"' + (pf.language !== 'en' ? ' selected' : '') + '>中文</option>' +
+    '<option value="en"' + (pf.language === 'en' ? ' selected' : '') + '>English</option>' +
     '</select></div>';
-  html += '<div class="set-rows"><label class="check-row"><input type="checkbox" id="prefTray"' + (app.ui.minimizeToTray ? ' checked' : '') + '> <span>' + esc(t('prefTray')) + '</span></label>' +
-    '<label class="check-row"><input type="checkbox" id="prefAuto"' + (app.ui.autoLaunch ? ' checked' : '') + '> <span>' + esc(t('prefAutoLaunch')) + '</span></label></div>';
+  html += '<div class="set-rows"><label class="check-row"><input type="checkbox" id="prefTray"' + (pf.minimizeToTray ? ' checked' : '') + '> <span>' + esc(t('prefTray')) + '</span></label>' +
+    '<label class="check-row"><input type="checkbox" id="prefAuto"' + (pf.autoLaunch ? ' checked' : '') + '> <span>' + esc(t('prefAutoLaunch')) + '</span></label></div>';
   html += '<div class="card-actions"><button class="btn primary small" id="prefSave"><span class="ico">' + icon('check') + '</span>' + esc(t('savePrefs')) + '</button></div>';
   html += '</div></div>';
 
@@ -1220,6 +1245,18 @@ function renderSettings(c, s) {
       });
     } catch (e) { toast(e.message, 'err'); refreshState(true); }
   });
+  // 记住未保存的偏好，后台刷新不覆盖用户的选择
+  const keepDraft = () => {
+    app.prefsDraft = {
+      language: $('#prefLang', c) ? $('#prefLang', c).value : app.ui.language,
+      minimizeToTray: !!($('#prefTray', c) && $('#prefTray', c).checked),
+      autoLaunch: !!($('#prefAuto', c) && $('#prefAuto', c).checked),
+    };
+  };
+  ['#prefLang', '#prefTray', '#prefAuto'].forEach((sel) => {
+    const el = $(sel, c);
+    if (el) el.addEventListener('change', keepDraft);
+  });
   const ps = $('#prefSave', c); if (ps) ps.addEventListener('click', async () => {
     try {
       await api('/api/ui', { body: {
@@ -1227,6 +1264,7 @@ function renderSettings(c, s) {
         minimizeToTray: $('#prefTray', c).checked,
         autoLaunch: $('#prefAuto', c).checked,
       } });
+      app.prefsDraft = null;
       toast(t('prefsSaved'), 'ok');
       refreshState(true);
     } catch (e) { toast(e.message, 'err'); }
@@ -1743,7 +1781,13 @@ function initIcons() {
 document.addEventListener('DOMContentLoaded', () => {
   initIcons();
   $$('#nav .nav-item').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
-  $('#btnRefresh').addEventListener('click', () => refreshState(false));
+  $('#btnRefresh').addEventListener('click', () => refreshState(false, true));
+  // 折叠区（常见问题等）的展开状态记下来，后台刷新时按原样还原，不打断阅读
+  $('#content').addEventListener('toggle', (e) => {
+    const d = e.target;
+    if (!d || d.tagName !== 'DETAILS' || !d.dataset || !d.dataset.dk) return;
+    if (d.open) app.openDetails[d.dataset.dk] = true; else delete app.openDetails[d.dataset.dk];
+  }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
   refreshState(false);
 });
