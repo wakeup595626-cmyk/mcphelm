@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { closeSync, openSync, readSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BRAND } from './brand.ts';
 import { rotateLogIfNeeded } from './logrotate.ts';
@@ -115,11 +116,11 @@ export function childEnv(apiKey: string | undefined, cacheDir?: string): NodeJS.
   if (cacheDir) {
     // 用户的 MCP 服务器常用 npx/uvx/pip 拉起，把这些包管理器的下载缓存
     // 也引到数据根下，避免默认写进 C 盘的 %LOCALAPPDATA%\npm-cache 等位置
-    const npmCache = cacheDir + '\\npm';
+    const npmCache = join(cacheDir, 'npm');
     env.NPM_CONFIG_CACHE = env.NPM_CONFIG_CACHE ?? npmCache;
     env.npm_config_cache = env.npm_config_cache ?? npmCache;
-    env.PIP_CACHE_DIR = env.PIP_CACHE_DIR ?? cacheDir + '\\pip';
-    env.UV_CACHE_DIR = env.UV_CACHE_DIR ?? cacheDir + '\\uv';
+    env.PIP_CACHE_DIR = env.PIP_CACHE_DIR ?? join(cacheDir, 'pip');
+    env.UV_CACHE_DIR = env.UV_CACHE_DIR ?? join(cacheDir, 'uv');
     env.XDG_CACHE_HOME = env.XDG_CACHE_HOME ?? cacheDir;
   }
   return env;
