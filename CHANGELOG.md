@@ -5,6 +5,14 @@
 
 仓库地址：https://github.com/wakeup595626-cmyk/mcphelm
 
+## [Unreleased]
+
+### Changed
+
+- README 重写为中英双版，版式对照 DeepSeek Harness 官方仓库：英文版为 `README.md`、中文版为 `README.zh.md`，两份文件首行互相链接（English | 中文），两边小节一一对应。
+- README 不再包含任何打款内容：「支持作者 / Supporting the project」整节与收款码图片一并删掉，`docs/assets/alipay-qr.png` 随之移除；软件内的 Star / 支持入口不受影响，仍然常驻。
+- `docs/` 各篇的「返回 README」链接改指中文版 `README.zh.md`。
+
 ## [0.1.6] - 2026-10-06
 
 ### Added

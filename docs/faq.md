@@ -1,6 +1,6 @@
 # 常见问题
 
-> 返回 [README](../README.md)
+> 返回 [README](../README.zh.md)
 
 ## 需要 OpenAI 账号吗？
 

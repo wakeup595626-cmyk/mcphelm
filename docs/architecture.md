@@ -1,6 +1,6 @@
 # 架构与原理
 
-> 返回 [README](../README.md)
+> 返回 [README](../README.zh.md)
 
 ## 组件构成
 

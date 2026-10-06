@@ -1,6 +1,6 @@
 # 快速开始
 
-> 返回 [README](../README.md)
+> 返回 [README](../README.zh.md)
 
 目标：用最短路径让 ChatGPT / Codex 通过安全隧道连上你本机的一个 MCP 服务器。
 

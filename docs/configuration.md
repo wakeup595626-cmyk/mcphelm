@@ -1,6 +1,6 @@
 # 配置参考
 
-> 返回 [README](../README.md)
+> 返回 [README](../README.zh.md)
 
 ## 配置文件的查找顺序
 

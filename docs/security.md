@@ -1,6 +1,6 @@
 # 安全说明
 
-> 返回 [README](../README.md)
+> 返回 [README](../README.zh.md)
 
 ## 一句话版本
 

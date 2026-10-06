@@ -1,6 +1,6 @@
 # 新手上手教程（桌面版）
 
-> 返回 [README](../README.md) ｜ 命令行用户请看 [快速开始](quickstart.md)
+> 返回 [README](../README.zh.md) ｜ 命令行用户请看 [快速开始](quickstart.md)
 
 这份教程面向**完全没碰过命令行**的新用户：从双击图标开始，到让 ChatGPT 用上你电脑里的能力，全程只用鼠标。大约 10 分钟。
 
