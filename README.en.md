@@ -6,7 +6,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20.11-339933.svg)](package.json)
 
-> **Status**: this is the 0.1.0 first release. It is not on npm yet; a Windows installer is available from GitHub Releases. It works, but the CLI and config format may still change slightly.
+> **Status**: this is an early 0.1.x release (the first public version was 0.1.0). It is not on npm yet; a Windows installer is available from GitHub Releases. It works, but the CLI and config format may still change slightly.
 
 - Chinese README: [README.md](README.md)
 
@@ -66,8 +66,8 @@ Prefer not to touch a terminal? Grab `MCPHelm-Setup-x.y.z.exe` from [Releases](h
 - **Choose your install location**: the wizard lets you pick any drive or folder (C:, D:, wherever you like);
 - **Feels like a normal app**: after installing you get MCPHelm icons on the desktop and in the Start menu — double-click to open the full interface, no terminal required;
 - **No separate Node install**: the runtime ships inside the installer;
-- **Same config as the CLI**: the app reads and writes the same `~/.mcphelm/config.json`, so you can switch between the two freely;
-- **Clean uninstall**: remove it via Settings → Apps (or the Start menu uninstaller); your `~/.mcphelm` folder with config, logs and runtime is left in place — delete it manually if you want it gone.
+- **Data lives with the install**: the desktop app keeps its data in `<install dir>\data` (config, logs, runtime, exports), so it follows whichever drive you install to; on first launch it migrates an existing `~/.mcphelm` automatically;
+- **Uninstall only removes the app**: remove it via Settings → Apps (or the Start menu uninstaller); config, logs and runtime stay in `<install dir>\data` — upgrades and auto-updates leave them untouched too, so delete that folder manually only if you want it gone.
 
 The window hosts the project's own local panel on an automatically chosen free port, bound to `127.0.0.1` only.
 
@@ -231,7 +231,7 @@ Local files:
   logs/<tunnel>.log     tunnel logs, including a header per start
 ```
 
-`MCPHELM_HOME` relocates the home directory, `MCPHELM_TUNNEL_CLIENT` points at an existing runtime binary. Field-by-field reference: [docs/configuration.md](docs/configuration.md) (Chinese).
+`MCPHELM_HOME` relocates the home directory, `MCPHELM_TUNNEL_CLIENT` points at an existing runtime binary. The desktop app defaults to `<install dir>\data` as its data root (migrated from `~/.mcphelm` on first launch; the lookup order and layout above apply to the CLI). Field-by-field reference: [docs/configuration.md](docs/configuration.md) (Chinese).
 
 ## Security
 
@@ -259,7 +259,7 @@ Yes — one runtime child process, one health port and one log file per tunnel.
 ```bash
 npm uninstall -g mcphelm
 ```
-Then delete `~/.mcphelm` (config, logs, runtime) and remove the `CONTROL_PLANE_API_KEY` environment variable. The desktop app is removed through Settings → Apps and leaves `~/.mcphelm` untouched. More questions: [docs/faq.md](docs/faq.md) (Chinese).
+Then delete `~/.mcphelm` (config, logs, runtime) and remove the `CONTROL_PLANE_API_KEY` environment variable. The desktop app is removed through Settings → Apps: that only removes the program itself and keeps your data in `<install dir>\data`. More questions: [docs/faq.md](docs/faq.md) (Chinese).
 
 ## Relationship to the official project
 
@@ -276,6 +276,17 @@ Most in-repo docs are written in Chinese (the primary audience); this file mirro
 - [docs/architecture.md](docs/architecture.md) — process model, launch arguments, state and logs, panel API
 - [docs/security.md](docs/security.md) — security model, key handling, threat boundaries
 - [docs/faq.md](docs/faq.md) — frequently asked questions
+
+## Supporting the project
+
+MCPHelm is free and open source: no license key, no trial period, every feature is available from the start. **A star or a donation unlocks nothing** and changes no behaviour — it is simply encouragement.
+
+- **Star the repo**: <https://github.com/wakeup595626-cmyk/mcphelm>. Stars are the first signal people look at when judging whether a project is worth trying.
+- **Buy me a coffee**: scan the Alipay QR code below. Entirely optional; the software is fully usable either way.
+
+<img src="docs/assets/alipay-qr.png" alt="Alipay donation QR code" width="220">
+
+The desktop app keeps both entry points permanently visible: the "Star" and "Buy me a coffee" buttons sit at the bottom of the left sidebar, plus a hint bar on the dashboard once all five setup steps are done. GitHub does not allow third-party software to star a repository on a user's behalf, so the final click on the ★ button on the project page is yours to make.
 
 ## Contributing
 

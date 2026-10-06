@@ -111,6 +111,69 @@ a:hover { text-decoration: underline; }
 .dot-err { background: var(--red); box-shadow: 0 0 0 3px rgba(224,57,62,.16); }
 .dot-muted { background: #b9c0d2; }
 
+/* ============ 支持作者：侧边栏常驻入口 ============ */
+/* 全站可见、一眼看出能点：Star 走暖金，咖啡走琥珀，和导航条目区分开，但不抢主流程注意力 */
+.support-entry { display: flex; flex-direction: column; gap: 6px; }
+.support-entry .se-row {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  padding: 8px 11px; border-radius: var(--r-sm);
+  border: 1px solid var(--border); background: var(--surface-2);
+  font-size: var(--fs-aux); font-weight: var(--fw-semibold); color: var(--text-2);
+  transition: background .12s, border-color .12s, color .12s, transform .12s;
+}
+.support-entry .se-row .ico { width: 15px; height: 15px; flex-shrink: 0; }
+.support-entry .se-row:hover { transform: translateY(-1px); }
+.support-entry .se-star { background: #fffaf0; border-color: #f3e0b8; color: #8a6100; }
+.support-entry .se-star .ico { color: #e8a300; }
+.support-entry .se-star:hover { background: #fff3d9; border-color: #e8c985; }
+.support-entry .se-coffee { background: #fdf7f0; border-color: #f0ddc6; color: #8a5a20; }
+.support-entry .se-coffee .ico { color: #c4762c; }
+.support-entry .se-coffee:hover { background: #fbeee0; border-color: #e3c39c; }
+
+/* ============ 支持作者：概览提示条（五步全绿之后才出现） ============ */
+.support-hint {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 14px;
+  padding: 14px 16px; border-radius: var(--r-lg);
+  background: linear-gradient(135deg, #fffaf0 0%, #fdf3e4 100%);
+  border: 1px solid #f0dcb6;
+}
+.support-hint > .ico { width: 22px; height: 22px; flex-shrink: 0; color: #e8a300; }
+.support-hint .sh-text { flex: 1; min-width: 0; }
+.support-hint .sh-text strong { display: block; font-size: var(--fs-h4); font-weight: var(--fw-bold); color: #7a4d00; }
+.support-hint .sh-text span { font-size: var(--fs-aux); color: #8a6420; }
+.support-hint .sh-actions { display: flex; gap: 8px; flex-shrink: 0; }
+@media (max-width: 1000px) {
+  .support-hint { flex-wrap: wrap; }
+  .support-hint .sh-actions { width: 100%; flex-wrap: wrap; }
+}
+
+/* ============ 支持作者：弹窗 ============ */
+.sup-grid { display: grid; grid-template-columns: 1fr 244px; gap: 24px; align-items: start; }
+.sup-grid.no-qr { grid-template-columns: 1fr; }
+.sup-col { display: flex; flex-direction: column; gap: 20px; }
+.sup-block + .sup-block { border-top: 1px solid var(--border); padding-top: 20px; }
+.sup-block-h { display: flex; align-items: center; gap: 8px; font-size: var(--fs-h3); font-weight: var(--fw-bold); color: var(--text); margin-bottom: 10px; }
+.sup-block-h .ico { width: 17px; height: 17px; flex-shrink: 0; }
+.sup-ico-star { color: #e8a300; }
+.sup-ico-coffee { color: #c4762c; }
+.sup-lead { font-size: var(--fs-body); color: var(--text-2); line-height: 1.85; margin-bottom: 12px; }
+.sup-list { list-style: none; display: flex; flex-direction: column; gap: 9px; margin-bottom: 16px; }
+.sup-list li { position: relative; padding-left: 20px; font-size: var(--fs-body); color: var(--text-2); line-height: 1.75; }
+.sup-list li::before { content: ''; position: absolute; left: 4px; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+.sup-fine { font-size: var(--fs-micro); color: var(--text-3); line-height: 1.7; margin-top: 12px; }
+.sup-qr {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: 12px; text-align: center; box-shadow: var(--shadow-sm);
+}
+.sup-qr img { display: block; width: 100%; height: auto; border-radius: var(--r-md); border: 1px solid var(--border); background: #fff; }
+.sup-qr-cap { font-size: var(--fs-micro); color: var(--text-3); margin-top: 9px; }
+.link-item.sup-star .ico { color: #e8a300; }
+.link-item.sup-coffee .ico { color: #c4762c; }
+@media (max-width: 900px) {
+  .sup-grid { grid-template-columns: 1fr; }
+  .sup-qr { max-width: 260px; }
+}
+
 /* ============ 主区域 ============ */
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .topbar {
@@ -133,10 +196,22 @@ a:hover { text-decoration: underline; }
 .btn .ico { width: 15px; height: 15px; }
 .btn.primary { background: var(--primary); color: #fff; box-shadow: 0 3px 8px -2px rgba(79,110,247,.5); }
 .btn.primary:hover { background: var(--primary-strong); transform: translateY(-1px); }
-.btn.ghost { background: var(--surface); border-color: var(--border-strong); color: var(--text-2); }
-.btn.ghost:hover { border-color: var(--primary); color: var(--primary); }
+/* 次要按钮：浅蓝底 + 蓝色描边 + 蓝字——就算不是主操作，也一眼看出「这是能点的」 */
+.btn.ghost { background: #f6f8fe; border-color: #c9d4f7; color: var(--primary-strong); }
+.btn.ghost:hover { background: #e8eefc; border-color: var(--primary); color: var(--primary-strong); }
 .btn.soft { background: var(--primary-soft); color: var(--primary-strong); }
 .btn.soft:hover { background: #e0e6fd; }
+/* 引导型行动按钮（新手向导、各页入口 CTA）：主色→紫的实心渐变 + 白字 + 光晕，全场最醒目的可点信号 */
+.btn.accent {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
+  border-color: transparent; color: #fff; font-weight: var(--fw-bold);
+  box-shadow: 0 4px 12px -4px rgba(93,110,247,.62);
+}
+.btn.accent:hover { filter: brightness(1.07); transform: translateY(-1px); box-shadow: 0 9px 20px -7px rgba(93,110,247,.72); }
+.btn.accent .ico { opacity: .96; }
+/* 弹窗底部保持安静：取消=中性灰，确认=有颜色，别让两个按钮抢注意力 */
+.modal-foot .btn.ghost { background: var(--surface); border-color: var(--border-strong); color: var(--text-2); }
+.modal-foot .btn.ghost:hover { background: var(--surface-2); border-color: var(--primary); color: var(--primary); }
 .btn.success-soft { background: var(--green-soft); color: var(--green); }
 .btn.success-soft:hover { background: #d3efdf; }
 .btn.danger-soft { background: var(--red-soft); color: var(--red); }
@@ -211,7 +286,7 @@ a:hover { text-decoration: underline; }
 .hero-cta .btn.light:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -4px rgba(0,0,0,.25); }
 
 /* 新手指南：单步聚焦向导 */
-.wizard-dots { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.wizard-dots { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
 
 /* 概览页入门步骤（未完成初始化时显示） */
 .step-list { display: flex; flex-direction: column; gap: 12px; }
@@ -235,22 +310,90 @@ a:hover { text-decoration: underline; }
 .step-desc { font-size: var(--fs-aux); color: var(--text-3); margin-top: 2px; }
 .step-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
+/* 进度点：低饱和渐变 + 内高光 + 极轻投影（去掉平涂实心的「贴纸感」） */
 .wizard-dot {
-  width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--border-strong);
-  background: var(--surface-2); color: var(--text-3); font-weight: 700; font-size: var(--fs-body);
-  display: grid; place-items: center; cursor: pointer; transition: all .15s; padding: 0;
+  position: relative; width: 32px; height: 32px; border-radius: 50%; padding: 0; cursor: pointer;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; color: var(--text-3);
+  background: linear-gradient(180deg, #ffffff 0%, #f2f5fa 100%);
+  border: 1px solid rgba(120,132,165,.32);
+  box-shadow: 0 1px 2px rgba(23,31,56,.07), inset 0 1px 0 rgba(255,255,255,.95);
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, color .16s ease;
 }
-.wizard-dot:hover { border-color: var(--primary); color: var(--primary); }
-.wizard-dot.cur { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 0 0 4px rgba(79,110,247,.18); }
-.wizard-dot.done { background: var(--green); border-color: var(--green); color: #fff; }
+.wizard-dot svg { width: 16px; height: 16px; stroke-width: 2.4; }
+.wizard-dot:hover {
+  transform: translateY(-1px); border-color: rgba(61,91,239,.55); color: var(--primary-strong);
+  box-shadow: 0 4px 10px -4px rgba(23,31,56,.32), inset 0 1px 0 rgba(255,255,255,.95);
+}
+.wizard-dot:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.wizard-dot.done {
+  border-color: rgba(9,102,66,.5); color: #fff;
+  background: linear-gradient(180deg, #3ec78f 0%, #17a06a 54%, #0c8054 100%);
+  box-shadow: 0 2px 6px -2px rgba(9,102,66,.42), inset 0 1px 0 rgba(255,255,255,.4),
+              inset 0 -9px 14px -11px rgba(0,38,24,.8);
+}
+.wizard-dot.done:hover { color: #fff; border-color: rgba(9,102,66,.68); }
+.wizard-dot.cur {
+  border-color: rgba(34,52,158,.5); color: #fff;
+  background: linear-gradient(180deg, #7b93ff 0%, #3d5bef 54%, #2a41c6 100%);
+  box-shadow: 0 0 0 4px rgba(61,91,239,.13), 0 4px 10px -4px rgba(34,52,158,.5),
+              inset 0 1px 0 rgba(255,255,255,.4), inset 0 -9px 14px -11px rgba(6,14,60,.8);
+}
+.wizard-dot.cur:hover { color: #fff; border-color: rgba(34,52,158,.68); }
 .wizard-card {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl);
   box-shadow: var(--shadow-md); padding: 28px 30px 24px; margin-bottom: 16px;
 }
-.wizard-step-tag { font-size: var(--fs-micro); font-weight: 600; color: var(--text-3); display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+/* 步骤标签：居中 + 放大（第几步 / 共几步 一眼看到），五步共用同一条规则 */
+.wizard-step-tag {
+  font-size: var(--fs-h2); font-weight: var(--fw-bold); color: var(--primary-strong);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: fit-content; margin: 0 auto 18px; padding: 5px 18px;
+  background: var(--primary-soft); border-radius: 999px;
+}
 .wizard-name { font-size: var(--fs-h1); font-weight: var(--fw-bold); margin: 0 0 10px; }
-.wizard-desc { font-size: var(--fs-body); color: var(--text-2); line-height: 1.8; margin: 0 0 20px; max-width: 640px; }
+.wizard-desc { font-size: var(--fs-body); color: var(--text-2); line-height: 1.8; margin: 0 0 20px; }
+.wizard-note { font-size: var(--fs-body); color: var(--green); line-height: 1.8; margin: -10px 0 20px; }
+/* 详细步骤清单：不再单独放「详细步骤」小标题，省下来的空间给正文（字号放大） */
+/* 每一条详细步骤独立成一个方框，横向等分：4 条 → 2×2 四个等大框；2 条 → 并排两个等大框 */
+.wizard-fine { margin: 0 0 20px; }
+.wizard-fine-list { margin: 0; padding: 0; list-style: none; counter-reset: wf; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; align-items: stretch; gap: 12px; }
+.wizard-fine-list li { position: relative; padding: 12px 14px 12px 44px; font-size: 15px; color: var(--text-2); line-height: 1.75; counter-increment: wf; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); }
+.wizard-fine-list li::before { content: counter(wf); position: absolute; left: 14px; top: 14px; width: 22px; height: 22px; border-radius: 50%; background: var(--primary-strong); color: #fff; font-size: 13px; font-weight: 800; line-height: 1; display: grid; place-items: center; box-shadow: 0 0 0 3px var(--primary-soft), 0 2px 6px -1px rgba(61,91,239,.55); }
+.wizard-fine-list li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+/* ============ 第三步图文教程（真实截图 + 编号方框） ============ */
+.wiz-tut { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface-2); margin: 0 0 20px; }
+.wiz-tut > summary { display: flex; align-items: center; gap: 8px; padding: 12px 16px; cursor: pointer; font-size: var(--fs-body); font-weight: var(--fw-semibold); color: var(--text); list-style: none; }
+.wiz-tut > summary::-webkit-details-marker { display: none; }
+.wiz-tut > summary .chev { margin-left: auto; color: var(--text-3); transition: transform .18s; }
+.wiz-tut[open] > summary { border-bottom: 1px solid var(--border); }
+.wiz-tut[open] > summary .chev { transform: rotate(90deg); }
+.wiz-tut-body { padding: 14px 16px 16px; }
+.wiz-tut-lead { font-size: var(--fs-aux); color: var(--text-2); line-height: 1.85; margin-bottom: 16px; }
+.wiz-tut-fig { margin: 0; }
+.wiz-tut-fig-t { display: flex; align-items: center; gap: 8px; font-size: var(--fs-h4); font-weight: var(--fw-semibold); margin-bottom: 8px; }
+.wiz-tut-fig-n { flex-shrink: 0; font-size: var(--fs-micro); font-weight: var(--fw-bold); color: var(--primary-strong); background: var(--primary-soft); border-radius: 999px; padding: 1px 9px; }
+.wiz-tut-shot { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: var(--r-md); background: #fff; box-shadow: var(--shadow-sm); cursor: zoom-in; transition: box-shadow .15s; }
+.wiz-tut-shot:hover { box-shadow: var(--shadow-md); }
+.wiz-tut-cap { font-size: var(--fs-aux); color: var(--text-2); line-height: 1.85; margin-top: 8px; }
+/* 四张截图竖排成一列：一张图 + 一段说明算一行，四行往下滑读，图横向铺满卡片 */
+.wiz-tut-figs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 1000px) {
+  .wizard-fine-list { grid-template-columns: 1fr; grid-auto-rows: auto; }
+}
+.wiz-tut-tip { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-aux); line-height: 1.75; color: var(--text-2); background: var(--amber-soft); border: 1px solid #f0dcb6; border-radius: var(--r-md); padding: 10px 12px; margin-top: 10px; }
+.wiz-tut-tip .ico { flex-shrink: 0; margin-top: 2px; color: var(--amber); }
+.wiz-tut-tip.soft { background: var(--surface); border-color: var(--border); }
+.wiz-tut-tip.soft .ico { color: var(--primary); }
+
+/* 点教程截图后的大图浮层 */
+.tut-zoom { position: fixed; inset: 0; z-index: 300; background: rgba(14,19,34,.8); display: flex; align-items: center; justify-content: center; padding: 26px; cursor: zoom-out; }
+.tut-zoom img { max-width: 100%; max-height: 100%; border-radius: var(--r-md); background: #fff; box-shadow: var(--shadow-lg); }
+
 .wizard-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
+/* 向导里的行动按钮整体放大一号：目标更大、更好点 */
+.wizard-actions .btn { padding: 10px 18px; font-size: var(--fs-h4); border-radius: 10px; }
 .wizard-nav { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 18px; }
 .wizard-help { margin-top: 4px; }
 .wizard-help summary { display: flex; align-items: center; gap: 8px; padding: 11px 14px; cursor: pointer; font-size: var(--fs-body); font-weight: 600; color: var(--text-3); list-style: none; border-radius: var(--r-md); transition: background .12s; }
@@ -486,6 +629,7 @@ a:hover { text-decoration: underline; }
   border-radius: var(--r-sm); transition: background .12s; color: var(--text-2);
 }
 .link-item:hover { background: var(--surface-2); text-decoration: none; color: var(--text); }
+button.link-item { width: 100%; text-align: left; }
 .link-item .ico { width: 15px; height: 15px; color: var(--primary); }
 .link-item .arrow { margin-left: auto; color: var(--text-3); }
 

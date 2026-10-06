@@ -8,7 +8,7 @@ const I18N = {
     tagline: '把本地 AI 能力安全接进 ChatGPT',
     navDashboard: '概览', navTunnels: '隧道', navServers: '服务器', navMarket: '组件市场', navLogs: '日志', navDoctor: '体检', navSettings: '设置',
     stuckT: '卡住了？常见问题与官方入口',
-    metaDashboardT: '概览', metaDashboardS: '没配完时是上手指引，配完后是运行状态总览',
+    metaDashboardT: '概览', metaDashboardS: '上面是五步上手指引（始终保留），下面是实时运行状态',
     metaTunnelsT: '隧道', metaTunnelsS: '把本地 MCP 服务器安全地暴露给 ChatGPT',
     metaServersT: '服务器', metaServersS: '管理你本机的 MCP 服务器',
     metaMarketT: '组件市场', metaMarketS: '一键安装 GitHub 上主流的 MCP 服务器，免去手写命令',
@@ -31,6 +31,7 @@ const I18N = {
     tunnelStarted: '隧道 {n} 已启动', tunnelStopped: '隧道 {n} 已停止', tunnelRestarted: '隧道 {n} 已重启',
     serverAdded: '已添加服务器 {n}', saved: '已保存 {n}',
     tunnelCreated: '已创建隧道 {n}，点"启动"即可上线',
+    overwriteSave: '用这份配置覆盖', overwriteHint: '已经有一条叫 {n} 的隧道。确认要用现在这份配置覆盖它，就再点一次这个按钮。',
     runtimeReadyToast: '运行环境已就绪',
     downloadFailed: '下载失败：', importedRuntime: '已导入运行环境',
     noZipPath: '请填 zip 文件路径', fillName: '请填写名称', fillCommand: '请填写启动命令',
@@ -48,16 +49,19 @@ const I18N = {
     manageTunnels: '管理隧道', createTunnel: '创建隧道',
     attentionLine: '<strong>有 {n} 处需要关注。</strong> 去<a href="#" data-goto="doctor">体检</a>看看具体问题和修复建议。',
     dashTunnels: '隧道一览', dashTunnelsSub: '点击卡片上的按钮即可启动、停止或查看日志',
-    stRunningOk: '运行正常', stHealthBad: '健康检查未过', stRunning: '运行中', stError: '出错了',
+    stRunningOk: '运行正常', stHealthBad: '本机自检未就绪', stRunning: '运行中', stError: '出错了',
+    stHealthTipOk: '本机健康端点自检通过（healthz、readyz 都是 200），隧道进程和 ChatGPT 侧都在正常工作。',
+    stHealthTipBad: '本机健康端点自检没过：healthz={h}，readyz={r}{e}。这只是本机自检，不代表 ChatGPT 已经断线——隧道进程仍在运行，可以先点「重启」，或点「日志」看输出。',
     stStale: '状态残留', stStopped: '已停止',
     keyReady: '密钥就绪', keyMissing: '密钥未就绪', keyFrom: '密钥来源：',
+    keyMissingTip: '密钥还没就位：点「编辑」重新填一次，或者把密钥来源换成「环境变量」「直接填写」。',
     stop: '停止', restart: '重启', start: '启动', logs: '日志', edit: '编辑',
     tunnelEmptyH: '还没有隧道',
     tunnelEmptyP: '隧道是连接本地服务器和 ChatGPT 的桥梁。先确认已添加服务器，再创建第一条隧道。',
     createFirstTunnel: '创建第一条隧道',
     serverEmptyH: '还没有登记 MCP 服务器',
     serverEmptyP: '把你想给 ChatGPT 用的本地 MCP 服务器登记在这里——可以是一条启动命令（stdio），也可以是一个本机 HTTP 地址。',
-    fromTemplate: '从模板新建', importConfig: '导入已有配置',
+    fromTemplate: '从模板新建', importConfig: '导入已有配置', fromMarket: '从组件市场选',
     deleteServer: '删除服务器', deleteServerMsg: '确定要删除服务器 <strong>{n}</strong> 吗？',
     deleteServerWarn: '<br><span style="color:var(--red)">注意：正被隧道 {l} 使用，删除前需先删掉这些隧道。</span>',
     usedByN: '被 {n} 条隧道使用', usedByNone: '还没有隧道使用',
@@ -103,6 +107,31 @@ const I18N = {
     secAbout: '关于 MCPHelm',
     aboutP: 'MCPHelm 是一个开源的本地隧道管理器，把 OpenAI 官方 tunnel-client 包装成人人能用的图形界面：不用记命令、不用背参数，点几下就能把自己电脑上跑的 MCP 服务器安全地接进 ChatGPT。',
     aboutRepo: '项目仓库', aboutSafe: '你的密钥只保存在你自己的电脑上，MCPHelm 不会上传任何数据。',
+
+    /* 支持作者（Star / 请我喝咖啡）：纯自愿，不参与任何功能判定，点了不解锁、不点也不限制 */
+    supEntryStar: '点个 Star',
+    supEntryCoffee: '请我喝咖啡',
+    supTitle: '支持 MCPHelm',
+    supSub: '免费开源，所有功能一开始就是全的',
+    supWelcomeT: '欢迎使用 MCPHelm',
+    supWelcomeS: '免费开源：没有授权码、没有试用期，全部功能直接可用',
+    supStarBlockT: '给项目点个 Star',
+    supStarWhy1: '完全免费：不需要授权码、没有试用期，Star 也不解锁任何东西。',
+    supStarWhy2: 'Star 是别人判断「这个项目靠不靠谱」的第一眼信号——星越多，愿意试一试的人越多。',
+    supStarWhy3: '点一下不影响你的数据和配置，随时可以在 GitHub 上取消。',
+    supStarBtn: '去 GitHub 点 Star',
+    supStarFine: '会打开浏览器进入项目主页，点右上角的 ★ Star 就行。GitHub 不允许第三方软件替用户点 Star，所以这最后一下得你亲手来。',
+    supCoffeeT: '请我喝杯咖啡',
+    supCoffeeLead: '如果它帮你省下了折腾命令行的时间，可以打开支付宝扫右边的码。几块钱也是实实在在的鼓励。',
+    supCoffeeFine: '完全自愿：不打赏也照样能用全部功能，这一点不会变。',
+    supQrAlt: '支付宝收款码',
+    supQrCap: '支付宝扫一扫 · 收款码',
+    supLater: '以后再说',
+    supHintClose: '不再显示',
+    supStarOpened: '已打开项目主页，点一下 ★ Star 就好',
+    supNoStar: '还没有配置项目主页地址',
+    supHintT: '五步都跑通了',
+    supHintD: '如果 MCPHelm 对你有用，可以给项目点个 Star，或者请我喝杯咖啡。',
     smAddTitle: '添加 MCP 服务器', smEditTitle: '编辑服务器',
     smSub: '登记你本机要暴露给 ChatGPT 的服务',
     fName: '名称', fNamePh: '例如 my-files 或 local-notes',
@@ -155,19 +184,64 @@ const I18N = {
     gDone: '已完成', gTodo: '待完成',
     wizStepOf: '第 {i} 步，共 {n} 步',
     wizPrev: '上一步', wizNext: '下一步',
+    wizAllDoneT: '五步已全部完成',
+    wizAllDoneD: '上手指引会一直留在这里：想回看哪一步，点上面的圆点翻回去就行，每一步的按钮都还在。下面是实时运行状态。',
     wizFinish: '去概览看看', wizHelpT: '常见问题 · 官方链接', wizOpenHere: '在这里继续这一步',
     gs2T: '下载运行环境（发动机）',
-    gs2D: '隧道要跑起来，需要 OpenAI 官方的 tunnel-client。MCPHelm 会从官方仓库自动下载并做完整性校验，点按钮等进度走完即可。如果网络到不了官方仓库，可以手动下载 zip，再到「设置 → 运行环境 → 导入本地安装包」导入。',
+    gs2D: '隧道要跑起来，需要 OpenAI 官方的 tunnel-client。点下面的按钮，MCPHelm 会自动下载并做完整性校验，等进度走完即可。',
+    gs2S1: '点一下按钮，自动下载并校验，等进度条走完。',
+    gs2S2: '如果网络到不了官方仓库：去官方仓库手动下载 zip，再到「设置 → 运行环境 → 导入本地安装包」导入。',
     gs3T: '添加 MCP 服务器（你要接入的能力）',
-    gs3D: '告诉 MCPHelm 你电脑里哪个服务要接给 ChatGPT。命令型：填一行启动命令（从模板新建可以一键填好）；HTTP 型：填本机地址，例如 http://127.0.0.1:3001/mcp。已经在用 Claude / Cursor / VS Code 的，点「导入已有配置」一键搬过来。',
+    gs3D: '告诉 MCPHelm 你电脑里哪个服务要接给 ChatGPT。下面三种方式任选一种，装好一个就会打上「已完成」。',
+    gs3S1: '自定义添加：填一行启动命令（命令型），或填本机地址（HTTP 型）。',
+    gs3S2: '从模板选：常见服务器已写好参数，选一个补全即可。',
+    gs3S3: '从组件市场选：主流开源 MCP 服务器一键装好，启动命令都帮你填好。',
+    gs3S4: '在用 Claude / Cursor / VS Code？点「导入已有配置」一键搬过来。',
     gs4T: '去 OpenAI 平台拿两把钥匙',
-    gs4D: '① 打开隧道管理，创建一条隧道，拿到 tunnel_ 开头的隧道 ID；② 打开 API 密钥页，生成一把 sk- 开头的 runtime key。这两样相当于桥的门票和门锁，只保存在你自己的电脑上。',
+    gs4D: '这一步要拿两样东西：tunnel_ 开头的隧道 ID，和 sk- 开头的 runtime key。两把「钥匙」只保存在你自己的电脑上。',
+    gs4S1: '点「打开隧道管理」，登录 OpenAI 账号，创建一条隧道，复制 tunnel_ 开头的隧道 ID。',
+    gs4S2: '点「打开 API 密钥」，生成一把 runtime key（只完整显示一次，先复制再关页面）。',
+    gs4S3: '两把钥匙先放在手边，下一步创建隧道时要粘贴。',
+    gs4S4: '都拿到了？点下面的「我已经拿到这两把钥匙」，再到下一步。',
     gs4B1: '打开隧道管理', gs4B2: '打开 API 密钥',
+    gs4B3: '我已经拿到这两把钥匙', gs4B3On: '已标记拿到钥匙（点此撤销）',
+    gs4B3Note: '钥匙已经到手了。接着点「下一步」，把隧道 ID 和 runtime key 粘进隧道表单就行。',
+    /* 第三步图文教程：真实截图上叠编号方框，回答「去哪创建隧道 / 去哪拿 runtime key」 */
+    wizTutT: '图文教程：创建隧道 · 拿 runtime key',
+    wizTutD: '下面 4 张图把「去哪创建隧道、弹窗怎么填、去哪创建 runtime key」拆成了带编号方框的截图。红圈里的数字就是操作顺序，和每张图下面的说明一一对应。截图里的账号、组织和密钥都已打码。',
+    wizTutFigN: '图 {n}', wizTutZoom: '点一下看大图',
+    wizTutF1T: '入口就在这张卡片上（三个按钮）',
+    wizTutF1D: '① 点「打开隧道管理」，浏览器会打开 OpenAI 平台的 Tunnels 页面；② 点「打开 API 密钥」，打开 API keys 页面（这两个页面都要求先登录 OpenAI 账号）；③ 两把钥匙都复制好之后，回到这张卡片点「我已经拿到这两把钥匙」。',
+    wizTutF2T: '在 Tunnels 页面创建隧道',
+    wizTutF2D: '① 点右上角黑色的「Create tunnel」；② 填完弹窗（见「图 3」）后，你新建的隧道会出现在列表第一行，就是刚才起的那个名字；③ ID 列里 tunnel_ 开头的一长串，就是隧道 ID；④ 点 ID 右边的复制图标，整串直接进剪贴板，不用手选。',
+    wizTutF3T: 'Create tunnel 弹窗这四个框怎么填',
+    wizTutF3D: '① Name：给自己认的名字，随便起，比如「我的浏览器助手」；② Description：一句话描述，必填；③ Organizations：选中你自己的组织（图中已打码）；④ ChatGPT workspaces：选中要接入的 workspace。填完点右下角「Create」，隧道就建好了。',
+    wizTutF4T: '在 API keys 页面创建 runtime key',
+    wizTutF4D: '① 点右上角「Create new secret key」；② 在弹出的窗口里给这把 key 起名并创建，新 key 会出现在列表第一行；③ 完整密钥（sk- 开头）只在那个弹窗里显示这一次，先复制再关窗口——列表里只看得到头尾几位，关掉就只剩重建一把这条路。',
+    wizTutSafe: '安全提醒：runtime key 就是这条隧道的门钥匙，谁拿到都能连上你的账号。它只保存在你自己的电脑上，别截图发人、别贴进聊天工具。',
+    wizTutTip: '两把钥匙都复制好之后，回到这张卡片点「我已经拿到这两把钥匙」，再点「下一步」把它们粘进隧道表单。',
+    /* 第五步图文教程：ChatGPT 网页端把隧道加成插件 */
+    wizTut5T: '图文教程：把隧道接进 ChatGPT 网页端',
+    wizTut5D: '下面 2 张图是 ChatGPT 网页端的真实操作：先从左栏进「插件」，再从右上角「添加」里选「创建自定义 MCP 服务器」，然后在弹窗里把「连接」切成「隧道」、粘上隧道 ID、身份验证选「无需身份验证」。图里标的红色数字就是点击顺序。',
+    wizTut5F1T: '从左侧栏进「插件」，再点右上角的「添加」',
+    wizTut5F1D: '① 在 ChatGPT 左侧栏点「插件」（就在「资料库」下面），进入插件页；② 点右上角黑色的「添加」，下拉菜单里选「创建自定义 MCP 服务器」——这一步就是让 ChatGPT 认领你在 MCPHelm 里建好的那条隧道。',
+    wizTut5F2T: '弹窗里这两个红框照着填',
+    wizTut5F2D: '① 「连接」切到「隧道」，下面输入框会变成 tunnel 占位提示，把你从 MCPHelm 隧道板块复制的那串隧道 ID（tunnel_ 开头）粘进去；② 「身份验证」下拉里选「无需身份验证」（隧道 ID 本身就是钥匙，这里不需要再叠一层 OAuth）。这两个红框填完后，把下面的「我已了解，并希望继续」勾上——不勾的话右下角那个按钮是灰的、点不动——再点「以插件形式创建」，就完成了。上面的名称、描述随便填一个自己认的就行。',
+    wizTut5Safe: '安全提醒：插件只在你这台电脑上的 MCPHelm 在跑、对应隧道在连的时候才可用；隧道 ID 等于钥匙，别截图发给别人。想停掉它，到 MCPHelm 隧道板块停掉那条隧道，或者在 ChatGPT 里删掉这个插件。',
+    wizTut5Tip: '创建完，插件会出现在插件页的「已安装」里，回到对话就能直接调用你电脑上的能力。ChatGPT 那边要是报连不上，先看 MCPHelm 隧道卡片上的「日志」。',
     gs5T: '创建并启动隧道',
-    gs5D: '回到「隧道」页，点右上角「新建隧道」：选服务器、粘贴隧道 ID、密钥来源选「密钥保险箱（推荐）」。创建后点卡片上的「启动」，状态变成「运行中」就成功了；中途掉线会自动重连。',
+    gs5D: '把两把钥匙填进隧道表单，创建后启动，让本机能力真正在线。',
+    gs5S1: '回到「隧道」页，点右上角「新建隧道」。',
+    gs5S2: '选择要接入的服务器，粘贴 tunnel_ 隧道 ID。',
+    gs5S3: '密钥来源选「密钥保险箱（推荐）」，粘贴 runtime key。',
+    gs5S4: '创建后点卡片上的「启动」；状态变成「运行中」就成功了，掉线会自动重连。',
     gs6T: '在 ChatGPT 里用起来',
-    gs6D: '打开 ChatGPT → 设置 → 连接器，把刚建好的隧道加进去。之后在对话里就能直接调用你电脑里的能力了。',
-    gs6B: '打开 ChatGPT 连接器',
+    gs6D: '最后一步：把隧道加到 ChatGPT 里，让它真正被用上。',
+    gs6S1: '点下面的按钮打开 ChatGPT，然后点左侧栏的「插件」。',
+    gs6S2: '点右上角「添加」→「创建自定义 MCP 服务器」，连接方式选「隧道」、粘贴隧道 ID。',
+    gs6S3: '添加完成后，在对话里就能直接调用你电脑里的能力了。',
+    gs6S4: '想确认它真的在跑：点隧道卡片上的「日志」，那里是这条隧道的实时输出；连不上时先看这里。',
+    gs6B: '打开 ChatGPT',
     guideTipsT: '日常使用，记住三件事',
     tip1T: '关窗不等于断线', tip1D: '点右上角 X 只是收进托盘，隧道继续在线；要彻底关闭，用右下角托盘图标右键，选退出。',
     tip2T: '掉线会自动拉起', tip2D: '守护进程盯着每条隧道，意外断开会自动重连，并在右下角弹通知告诉你原因。',
@@ -190,7 +264,7 @@ const I18N = {
     tagline: 'Securely connect local AI power to ChatGPT',
     navDashboard: 'Overview', navTunnels: 'Tunnels', navServers: 'Servers', navMarket: 'Marketplace', navLogs: 'Logs', navDoctor: 'Doctor', navSettings: 'Settings',
     stuckT: 'Stuck? FAQ & official links',
-    metaDashboardT: 'Overview', metaDashboardS: 'Setup guide until you are online, then a live status board',
+    metaDashboardT: 'Overview', metaDashboardS: 'The five-step guide stays on top; live status is below it',
     metaTunnelsT: 'Tunnels', metaTunnelsS: 'Safely expose local MCP servers to ChatGPT',
     metaServersT: 'Servers', metaServersS: 'Manage MCP servers on this machine',
     metaMarketT: 'Marketplace', metaMarketS: 'Install popular open-source MCP servers in one click',
@@ -213,6 +287,7 @@ const I18N = {
     tunnelStarted: 'Tunnel {n} started', tunnelStopped: 'Tunnel {n} stopped', tunnelRestarted: 'Tunnel {n} restarted',
     serverAdded: 'Server {n} added', saved: '{n} saved',
     tunnelCreated: 'Tunnel {n} created — press Start to go live',
+    overwriteSave: 'Overwrite with this config', overwriteHint: 'A tunnel named {n} already exists. Click this button again to overwrite it with what you just entered.',
     runtimeReadyToast: 'Runtime is ready',
     downloadFailed: 'Download failed: ', importedRuntime: 'Runtime imported',
     noZipPath: 'Please enter the zip path', fillName: 'Please enter a name', fillCommand: 'Please enter the launch command',
@@ -230,16 +305,19 @@ const I18N = {
     manageTunnels: 'Manage tunnels', createTunnel: 'Create tunnel',
     attentionLine: '<strong>{n} thing(s) need attention.</strong> Open <a href="#" data-goto="doctor">Doctor</a> for details and fixes.',
     dashTunnels: 'Your tunnels', dashTunnelsSub: 'Use the buttons on each card to start, stop or view logs',
-    stRunningOk: 'Healthy', stHealthBad: 'Health check failing', stRunning: 'Running', stError: 'Error',
+    stRunningOk: 'Healthy', stHealthBad: 'Local self-check failing', stRunning: 'Running', stError: 'Error',
+    stHealthTipOk: 'Local health endpoints passed (healthz and readyz both returned 200). The tunnel process and the ChatGPT side are both fine.',
+    stHealthTipBad: 'Local health endpoints failed: healthz={h}, readyz={r}{e}. This is a self-check on this machine and does not mean ChatGPT is disconnected — the tunnel process is still running. Try Restart, or open Logs.',
     stStale: 'Stale state', stStopped: 'Stopped',
     keyReady: 'Key ready', keyMissing: 'Key missing', keyFrom: 'Key source: ',
+    keyMissingTip: 'The runtime key is not in place yet: click Edit to enter it again, or switch the key source to env var / direct entry.',
     stop: 'Stop', restart: 'Restart', start: 'Start', logs: 'Logs', edit: 'Edit',
     tunnelEmptyH: 'No tunnels yet',
     tunnelEmptyP: 'A tunnel is the bridge between a local server and ChatGPT. Add a server first, then create your first tunnel.',
     createFirstTunnel: 'Create my first tunnel',
     serverEmptyH: 'No MCP servers registered',
     serverEmptyP: 'Register the local MCP servers you want ChatGPT to use — either a launch command (stdio) or a local HTTP address.',
-    fromTemplate: 'From a template', importConfig: 'Import existing config',
+    fromTemplate: 'From a template', importConfig: 'Import existing config', fromMarket: 'From the marketplace',
     deleteServer: 'Delete server', deleteServerMsg: 'Delete server <strong>{n}</strong>?',
     deleteServerWarn: '<br><span style="color:var(--red)">Warning: used by tunnel(s) {l}. Delete those tunnels first.</span>',
     usedByN: 'Used by {n} tunnel(s)', usedByNone: 'No tunnel uses it yet',
@@ -285,6 +363,31 @@ const I18N = {
     secAbout: 'About MCPHelm',
     aboutP: 'MCPHelm is an open-source local tunnel manager that wraps the official OpenAI tunnel-client in a friendly UI: no commands to memorize, no flags to remember — a few clicks and your local MCP servers are securely connected to ChatGPT.',
     aboutRepo: 'Repository', aboutSafe: 'Your keys stay on your own machine. MCPHelm uploads nothing.',
+
+    /* Support the author (star / coffee): entirely optional, never gates any feature */
+    supEntryStar: 'Star on GitHub',
+    supEntryCoffee: 'Buy me a coffee',
+    supTitle: 'Support MCPHelm',
+    supSub: 'Free and open source, with every feature unlocked',
+    supWelcomeT: 'Welcome to MCPHelm',
+    supWelcomeS: 'Free and open source: no license key, no trial, everything works out of the box',
+    supStarBlockT: 'Star the project',
+    supStarWhy1: 'Completely free: no license key, no trial period, and a star unlocks nothing.',
+    supStarWhy2: 'A star is the first signal people use to judge whether a project is worth trying.',
+    supStarWhy3: 'It changes nothing about your data or config, and you can unstar anytime.',
+    supStarBtn: 'Open GitHub and star',
+    supStarFine: 'This opens the project page in your browser; click the ★ button in the top-right corner. GitHub does not let apps star on your behalf, so that last click has to be yours.',
+    supCoffeeT: 'Buy me a coffee',
+    supCoffeeLead: 'If it saved you from wrestling with command lines, you can scan the Alipay code on the right. Even a couple of yuan is real encouragement.',
+    supCoffeeFine: 'Entirely optional: every feature stays available whether you donate or not.',
+    supQrAlt: 'Alipay donation QR code',
+    supQrCap: 'Scan with Alipay',
+    supLater: 'Maybe later',
+    supHintClose: 'Do not show again',
+    supStarOpened: 'Project page opened — just click the ★ Star button',
+    supNoStar: 'Project URL is not configured yet',
+    supHintT: 'All five steps are done',
+    supHintD: 'If MCPHelm has been useful, a star on GitHub or a coffee goes a long way.',
     smAddTitle: 'Add MCP server', smEditTitle: 'Edit server',
     smSub: 'Register a local service you want to expose to ChatGPT',
     fName: 'Name', fNamePh: 'e.g. my-files or local-notes',
@@ -337,19 +440,64 @@ const I18N = {
     gDone: 'Done', gTodo: 'To do',
     wizStepOf: 'Step {i} of {n}',
     wizPrev: 'Back', wizNext: 'Next',
+    wizAllDoneT: 'All five steps are done',
+    wizAllDoneD: 'The guide stays here for good: click the dots above to revisit any step — every button is still there. Live status is below.',
     wizFinish: 'Go to overview', wizHelpT: 'FAQ · Official links', wizOpenHere: 'Continue this step here',
     gs2T: 'Download the runtime (the engine)',
-    gs2D: 'Tunnels are driven by the official OpenAI tunnel-client. MCPHelm downloads it from the official repo and verifies its integrity — click the button and wait for the progress to finish. If the repo is unreachable, download the zip manually and import it via Settings → Runtime → Import local package.',
+    gs2D: 'Tunnels are driven by the official OpenAI tunnel-client. Click the button below: MCPHelm downloads it and verifies its integrity automatically — just wait for the progress to finish.',
+    gs2S1: 'Click the button: it downloads and verifies on its own, then wait for the progress bar.',
+    gs2S2: 'Repo unreachable? Download the zip from the official repo, then use Settings → Runtime → Import local package.',
     gs3T: 'Add an MCP server (what you expose)',
-    gs3D: 'Tell MCPHelm which local service should reach ChatGPT. Command type: enter one launch command (or start from a template). HTTP type: enter the local URL, for example http://127.0.0.1:3001/mcp. Already using Claude / Cursor / VS Code? Click Import existing config.',
+    gs3D: 'Tell MCPHelm which local service should reach ChatGPT. Pick any of the three ways below — one server is enough to complete this step.',
+    gs3S1: 'Custom: enter one launch command (command type) or a local URL (HTTP type).',
+    gs3S2: 'From a template: common servers come with parameters prefilled — pick one and finish the blanks.',
+    gs3S3: 'From the marketplace: one-click installs of popular open-source MCP servers, launch command included.',
+    gs3S4: 'On Claude / Cursor / VS Code already? Import existing config in one click.',
     gs4T: 'Get the two keys from the OpenAI platform',
-    gs4D: '1) Open Tunnels, create a tunnel and copy its tunnel_ ID. 2) Open API keys and create a runtime key. These two are the ticket and the lock of the bridge — they stay on your own machine.',
+    gs4D: 'Two things are needed here: the tunnel_ ID and an sk- runtime key. Both stay only on your own machine.',
+    gs4S1: 'Open Tunnels, sign in, create a tunnel and copy its tunnel_ ID.',
+    gs4S2: 'Open API keys and create a runtime key (shown in full once — copy it before closing the page).',
+    gs4S3: 'Keep both keys at hand; the next step pastes them into the tunnel form.',
+    gs4S4: 'Got both? Click "I already have both keys" below, then continue.',
     gs4B1: 'Open Tunnels', gs4B2: 'Open API keys',
+    gs4B3: 'I already have both keys', gs4B3On: 'Marked as obtained (click to undo)',
+    gs4B3Note: 'Keys in hand. Click Next and paste the tunnel ID and the runtime key into the tunnel form.',
+    /* Step 3 illustrated tutorial: real screenshots with numbered boxes */
+    wizTutT: 'Illustrated guide: create a tunnel · get a runtime key',
+    wizTutD: 'These four screenshots break down where to create a tunnel, what to fill in the dialog, and where to create the runtime key. The red numbers are the order of clicks and match the notes under each image. Account, org and key values in the screenshots are redacted.',
+    wizTutFigN: 'Fig. {n}', wizTutZoom: 'Click to enlarge',
+    wizTutF1T: 'The entry point is on this card (three buttons)',
+    wizTutF1D: '(1) Click "Open Tunnels" to open the Tunnels page on the OpenAI platform; (2) click "Open API keys" for the API keys page (both ask you to sign in first); (3) once both keys are copied, come back to this card and click "I already have both keys".',
+    wizTutF2T: 'Create the tunnel on the Tunnels page',
+    wizTutF2D: '(1) Click the black "Create tunnel" button at the top right; (2) once the dialog is filled in (see Fig. 3) the new tunnel shows up as the first row under the name you gave it; (3) the ID column holds the tunnel ID - the long tunnel_ string; (4) click the copy icon next to it to copy the whole value instead of selecting it by hand.',
+    wizTutF3T: 'The four fields in the Create tunnel dialog',
+    wizTutF3D: '(1) Name: any name you will recognise, e.g. "my browser helper"; (2) Description: one sentence, required; (3) Organizations: pick your own org (redacted in the screenshot); (4) ChatGPT workspaces: pick the workspace to attach it to. Then click "Create" at the bottom right.',
+    wizTutF4T: 'Create the runtime key on the API keys page',
+    wizTutF4D: '(1) Click "Create new secret key" at the top right; (2) name it in the dialog and create it - the new key appears as the first row; (3) the full key (starting with sk-) is shown only once in that dialog, so copy it before closing. The list only shows the first and last few characters, so closing it means creating a new one.',
+    wizTutSafe: 'Security note: the runtime key is the door key to this tunnel - anyone holding it can connect to your account. It stays on your own machine, so never post it or paste it into a chat.',
+    wizTutTip: 'Once both are copied, come back to this card, click "I already have both keys", then click Next and paste them into the tunnel form.',
+    /* Step 5 illustrated tutorial: adding the tunnel to the ChatGPT web app */
+    wizTut5T: 'Illustrated guide: wire the tunnel into the ChatGPT web app',
+    wizTut5D: 'These two screenshots are the real ChatGPT web flow: open Plugins from the left rail, pick Create custom MCP server from the Add menu at the top right, then in the dialog switch Connection to Tunnel, paste the tunnel ID and pick No authentication. The red numbers on the screenshots are the order of clicks.',
+    wizTut5F1T: 'Open Plugins from the left rail, then Add at the top right',
+    wizTut5F1D: '(1) In the ChatGPT left rail click Plugins (right under Library) to open the plugins page; (2) click the black Add button at the top right and choose Create custom MCP server - this is where ChatGPT claims the tunnel you already built in MCPHelm.',
+    wizTut5F2T: 'Fill in these two boxed spots in the dialog',
+    wizTut5F2D: '(1) Switch Connection to Tunnel - the field below turns into a tunnel placeholder, so paste the tunnel ID you copied from the MCPHelm Tunnels view (the tunnel_ string); (2) in the Authentication dropdown pick No authentication (the tunnel ID is already the key, no extra OAuth layer is needed here). Once those two boxed spots are filled in, tick "I understand and want to continue" - the bottom-right button stays greyed out until you do - and click Create as plugin. Name and description above can be anything you recognise.',
+    wizTut5Safe: 'Security note: the plugin only works while MCPHelm is running on this machine and that tunnel is connected; the tunnel ID is the key, so never screenshot it to others. To stop it, stop the tunnel in the MCPHelm Tunnels view or remove the plugin in ChatGPT.',
+    wizTut5Tip: 'Once created, the plugin shows up under Installed on the plugins page and your chats can call the local capability. If ChatGPT reports it cannot connect, check Logs on the tunnel card in MCPHelm first.',
     gs5T: 'Create and start the tunnel',
-    gs5D: 'Go to the Tunnels page and click New tunnel: pick the server, paste the tunnel ID, and keep the key source as Key vault (recommended). After creating it, press Start on the card — when the state reads Running you are online, and dropped connections are re-raised automatically.',
+    gs5D: 'Fill the tunnel form with the two keys, create it and start it to bring the local capability online.',
+    gs5S1: 'Go to the Tunnels page and click New tunnel.',
+    gs5S2: 'Pick the server you just added and paste the tunnel_ ID.',
+    gs5S3: 'Keep the key source as Key vault (recommended) and paste the runtime key.',
+    gs5S4: 'After creating it, press Start on the card — state Running means you are online (drops re-raise automatically).',
     gs6T: 'Use it inside ChatGPT',
-    gs6D: 'Open ChatGPT → Settings → Connectors and add the tunnel. From then on your chats can call the local capability directly.',
-    gs6B: 'Open ChatGPT Connectors',
+    gs6D: 'Last step: add the tunnel to ChatGPT so it can actually be used.',
+    gs6S1: 'Click the button below to open ChatGPT, then pick Plugins in the left rail.',
+    gs6S2: 'Click Add at the top right → Create custom MCP server, choose Tunnel and paste the tunnel ID.',
+    gs6S3: 'Done — your chats can now call the local capability directly.',
+    gs6S4: 'To confirm it is really running, click Logs on the tunnel card — that is the tunnel live output, and the first place to look if a connection fails.',
+    gs6B: 'Open ChatGPT',
     guideTipsT: 'Three things to remember day to day',
     tip1T: 'Closing the window is not disconnecting', tip1D: 'The X button only hides it to the tray; the tunnel stays online. To quit fully, right-click the tray icon and choose Exit.',
     tip2T: 'Drops are re-raised for you', tip2D: 'A supervisor watches every tunnel, re-raises it after an unexpected drop and tells you in a toast.',
@@ -465,6 +613,8 @@ const ICONS = {
   terminal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6M12 19h8"/></svg>',
   heartbeat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg>',
   market: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l2-3h12l2 3"/><path d="M4 7h16v3a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0z"/><path d="M5 12.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7.5"/><path d="M9.5 21v-5h5v5"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.67l-5.9 3.1 1.13-6.57L2.45 9.54l6.6-.96z"/></svg>',
+  coffee: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v6a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z"/><path d="M6 2v2M10 2v2M14 2v2"/></svg>',
 };
 function icon(name) { return ICONS[name] || ICONS.info; }
 
@@ -483,8 +633,10 @@ const app = {
   guideIdx: 0,
   guideAutoAdvance: true, // 首次进入指南时允许自动推进到第一个未完成步骤
   openDetails: {},        // 记住展开的折叠区（常见问题等），后台刷新时不收起
+  tutClosed: {},          // 图文教程（第三步 / 第五步）默认铺开，用户收起过就记住
   prefsDraft: null,       // 设置页未保存的偏好草稿，刷新时不覆盖用户的选择
   lastFP: null,           // 上一次渲染对应的数据指纹，数据没变就不重建界面
+  supportWelcomeChecked: false, // 欢迎弹窗（Star / 赞助）本轮只判定一次，避免每次轮询重弹
 };
 
 function viewMeta(v) {
@@ -556,6 +708,111 @@ function openModal(opts) {
 }
 function closeModal() { $('#modalRoot').innerHTML = ''; }
 
+/* ---------------- 支持作者（Star / 请我喝咖啡） ---------------- */
+/* 三条底线：
+   1) 不锁功能——不点 Star、不打赏，全部功能照旧，永远不会因为这件事设门槛；
+   2) 不代点 Star——GitHub 禁止自动化刷星，也禁止「给奖励换 Star」，所以软件只负责把仓库页打开，
+      最后那一下必须用户自己在浏览器里点；
+   3) 不反复打扰——欢迎弹窗只弹一次，概览里的提示条关掉就永久不再出现。 */
+function supportInfo() {
+  const b = (app.state && app.state.brand) || {};
+  const sup = b.support || {};
+  let qr = '';
+  if (sup.alipayQr) {
+    try { qr = new URL(sup.alipayQr, location.href).href; } catch (e) { qr = sup.alipayQr; }
+  }
+  return { starUrl: b.starUrl || b.repoUrl || '', qr: qr, link: sup.link || '' };
+}
+
+function openStarPage() {
+  const info = supportInfo();
+  if (!info.starUrl) { toast(t('supNoStar'), 'info'); return; }
+  window.open(info.starUrl, '_blank', 'noopener');
+  toast(t('supStarOpened'), 'ok');
+}
+
+function showSupportModal(opts) {
+  const o = opts || {};
+  const info = supportInfo();
+  let left = '<div class="sup-col">';
+  if (info.starUrl) {
+    left += '<div class="sup-block">' +
+      '<div class="sup-block-h"><span class="ico sup-ico-star">' + icon('star') + '</span>' + esc(t('supStarBlockT')) + '</div>' +
+      '<ul class="sup-list">' +
+        '<li>' + esc(t('supStarWhy1')) + '</li>' +
+        '<li>' + esc(t('supStarWhy2')) + '</li>' +
+        '<li>' + esc(t('supStarWhy3')) + '</li>' +
+      '</ul>' +
+      '<button class="btn accent" type="button" data-support="star"><span class="ico">' + icon('star') + '</span>' + esc(t('supStarBtn')) + '</button>' +
+      '<p class="sup-fine">' + esc(t('supStarFine')) + '</p>' +
+    '</div>';
+  }
+  if (info.qr) {
+    left += '<div class="sup-block">' +
+      '<div class="sup-block-h"><span class="ico sup-ico-coffee">' + icon('coffee') + '</span>' + esc(t('supCoffeeT')) + '</div>' +
+      '<p class="sup-lead">' + esc(t('supCoffeeLead')) + '</p>' +
+      '<p class="sup-fine">' + esc(t('supCoffeeFine')) + '</p>' +
+    '</div>';
+  }
+  left += '</div>';
+  const right = info.qr
+    ? '<div class="sup-qr"><img src="' + esc(info.qr) + '" alt="' + esc(t('supQrAlt')) + '" title="' + esc(t('supQrCap')) + '">' +
+      '<div class="sup-qr-cap">' + esc(t('supQrCap')) + '</div></div>'
+    : '';
+  const actions = o.welcome
+    ? [
+        { label: t('supStarBtn'), kind: 'accent', icon: 'star', onClick: () => { openStarPage(); } },
+        { label: t('supLater'), kind: 'ghost', close: true },
+      ]
+    : [{ label: t('close'), kind: 'ghost', close: true }];
+  openModal({
+    title: o.welcome ? t('supWelcomeT') : t('supTitle'),
+    sub: o.welcome ? t('supWelcomeS') : t('supSub'),
+    wide: true,
+    body: '<div class="sup-grid' + (right ? '' : ' no-qr') + '">' + left + right + '</div>',
+    actions: actions,
+  });
+}
+
+/* 欢迎弹窗只弹一次：「已看过」写进配置，换端口、重启、重开面板都不再打扰 */
+function markSupportSeen() {
+  if (app.state && app.state.ui) app.state.ui.supportSeen = true;
+  api('/api/ui', { method: 'POST', body: { supportSeen: true } }).catch(() => { /* 落库失败最多下次再弹一次，不影响使用 */ });
+}
+
+function maybeShowSupportWelcome() {
+  const s = app.state;
+  if (!s || app.supportWelcomeChecked) return;
+  const info = supportInfo();
+  if (!info.starUrl && !info.qr) { app.supportWelcomeChecked = true; return; }
+  if (s.ui && s.ui.supportSeen) { app.supportWelcomeChecked = true; return; }
+  const root = $('#modalRoot');
+  if (root && root.innerHTML.trim() !== '') return; // 用户正开在别的弹窗里，等下一次轮询
+  app.supportWelcomeChecked = true;
+  markSupportSeen();
+  showSupportModal({ welcome: true });
+}
+
+/* 概览页：五步都跑通后出现一条柔和的支持提示，点「不再显示」就永久消失 */
+function supportHintHtml() {
+  const info = supportInfo();
+  if (!info.starUrl && !info.qr) return '';
+  let h = '<div class="support-hint"><span class="ico sup-ico-star">' + icon('star') + '</span>';
+  h += '<div class="sh-text"><strong>' + esc(t('supHintT')) + '</strong><span>' + esc(t('supHintD')) + '</span></div>';
+  h += '<div class="sh-actions">';
+  if (info.starUrl) h += '<button class="btn accent small" type="button" data-support="star"><span class="ico">' + icon('star') + '</span>' + esc(t('supStarBtn')) + '</button>';
+  if (info.qr) h += '<button class="btn soft small" type="button" data-support="coffee"><span class="ico">' + icon('coffee') + '</span>' + esc(t('supCoffeeT')) + '</button>';
+  h += '<button class="btn ghost small" type="button" data-support="dismiss">' + esc(t('supHintClose')) + '</button>';
+  h += '</div></div>';
+  return h;
+}
+
+function dismissSupportHint() {
+  if (app.state && app.state.ui) app.state.ui.supportHintClosed = true;
+  api('/api/ui', { method: 'POST', body: { supportHintClosed: true } }).catch(() => {});
+  renderView();
+}
+
 function confirmModal(title, message, confirmLabel, danger) {
   return new Promise((resolve) => {
     openModal({
@@ -586,7 +843,7 @@ function detailsOpenAttr(k) {
 
 async function refreshState(silent, force) {
   try {
-    app.state = await api('/api/state');
+    app.state = await api('/api/state', { method: 'GET' });
     syncPrefsFromState();
     renderShell();
     const fp = stateFP(app.state);
@@ -597,6 +854,7 @@ async function refreshState(silent, force) {
     schedulePoll();
     const rb = $('#btnRefresh');
     if (rb) rb.title = t('refreshHint') + ' · ' + new Date().toLocaleTimeString();
+    maybeShowSupportWelcome();
     return true;
   } catch (e) {
     if (!silent) toast(t('offline') + e.message, 'err');
@@ -658,7 +916,6 @@ function applyLanguage() {
   const meta = viewMeta(app.view);
   $('#pageTitle').textContent = meta.title;
   $('#pageSub').textContent = meta.sub;
-  updateTopbarActions();
 }
 
 function schedulePoll() {
@@ -673,6 +930,19 @@ function renderShell() {
   const s = app.state;
   if (!s) return;
   $('#versionText').textContent = s.brand.name + ' v' + s.brand.version;
+  // 侧边栏常驻支持入口：没配 Star 地址 / 收款码时整块隐藏，不留死链
+  const seWrap = $('#supportEntry');
+  if (seWrap) {
+    const info = supportInfo();
+    const seStar = $('#seStarLabel'), seCoffee = $('#seCoffeeLabel');
+    if (seStar) seStar.textContent = t('supEntryStar');
+    if (seCoffee) seCoffee.textContent = t('supEntryCoffee');
+    const starBtn = $('#supportEntry [data-support="star"]');
+    const coffeeBtn = $('#supportEntry [data-support="coffee"]');
+    if (starBtn) starBtn.classList.toggle('hidden', !info.starUrl);
+    if (coffeeBtn) coffeeBtn.classList.toggle('hidden', !info.qr);
+    seWrap.classList.toggle('hidden', !info.starUrl && !info.qr);
+  }
   // 环境状态
   const envDot = $('#envDot'), envText = $('#envText');
   const errCount = (s.configIssues || []).filter((i) => i.level === 'error').length;
@@ -688,25 +958,6 @@ function renderShell() {
   const warnCount = (s.configIssues || []).length;
   nbD.textContent = warnCount;
   nbD.classList.toggle('hidden', warnCount === 0);
-  // 顶栏操作按钮随当前页面更新
-  updateTopbarActions();
-}
-
-/* 顶栏右侧按钮按页面显示：「新建隧道」只属于隧道页 */
-function updateTopbarActions() {
-  const quick = $('#btnQuickAction');
-  if (!quick) return;
-  const onTunnels = app.view === 'tunnels';
-  quick.classList.toggle('hidden', !onTunnels);
-  const s = app.state;
-  if (!onTunnels || !s) return;
-  if (!s.runtime.found) {
-    quick.innerHTML = '<span class="ico">' + icon('download') + '</span>' + esc(t('downloadRuntime'));
-    quick.onclick = () => showRuntimeModal();
-  } else {
-    quick.innerHTML = '<span class="ico">' + icon('plus') + '</span>' + esc(t('newTunnel'));
-    quick.onclick = () => showTunnelModal(null);
-  }
 }
 
 function setView(v) {
@@ -715,7 +966,6 @@ function setView(v) {
   const meta = viewMeta(v);
   $('#pageTitle').textContent = meta.title;
   $('#pageSub').textContent = meta.sub;
-  updateTopbarActions();
   clearInterval(app.logTimer);
   renderView();
   $('#content').scrollTop = 0;
@@ -738,35 +988,57 @@ function renderView() {
 
 
 /* ---------------- 上手流程（概览与新手指南共用的一套五步） ---------------- */
+/* 第三步「拿到两把钥匙」：钥匙有没有到手只有用户自己知道，所以除了「表单里已就绪」，
+   再给一个手动确认开关；否则用户拿到钥匙、还没填回表单时这一步永远不绿。 */
+const KEYS_FLAG = 'mcphelm.keysDone';
+function keysFlagOn() {
+  try { return localStorage.getItem(KEYS_FLAG) === '1'; } catch (e) { return false; }
+}
+function toggleKeysFlag() {
+  const on = keysFlagOn();
+  try { localStorage.setItem(KEYS_FLAG, on ? '0' : '1'); } catch (e) { /* 隐私模式下写不进去也不影响使用 */ }
+  app.guideAutoAdvance = false; // 手动标记之后不要再被自动跳步覆盖掉
+  renderView();
+}
+
 function setupSteps(s) {
   const docs = s.docs || {};
   const hasKey = (s.tunnels || []).some((x) => x.key && x.key.ready);
+  const keysDone = keysFlagOn();
   return [
     {
       name: t('gs2T'), desc: t('gs2D'), done: !!s.runtime.found,
-      actions: [{ label: s.runtime.found ? t('redownload') : t('oneClickDownload'), kind: s.runtime.found ? 'ghost' : 'primary', icon: 'download', fn: () => showRuntimeModal() }],
+      details: [t('gs2S1'), t('gs2S2')],
+      actions: [{ label: s.runtime.found ? t('redownload') : t('oneClickDownload'), kind: 'accent', icon: 'download', fn: () => showRuntimeModal() }],
     },
     {
       name: t('gs3T'), desc: t('gs3D'), done: s.counts.servers > 0,
+      details: [t('gs3S1'), t('gs3S2'), t('gs3S3'), t('gs3S4')],
       actions: [
-        { label: s.counts.servers > 0 ? t('addAnother') : t('addServer'), kind: 'primary', icon: 'plus', fn: () => showServerModal(null) },
-        { label: t('fromTemplate'), kind: 'ghost', icon: 'servers', fn: () => showTemplateModal() },
+        { label: s.counts.servers > 0 ? t('addAnother') : t('addServer'), kind: 'accent', icon: 'plus', fn: () => showServerModal(null) },
+        { label: t('fromTemplate'), kind: 'accent', icon: 'servers', fn: () => showTemplateModal() },
+        { label: t('fromMarket'), kind: 'accent', icon: 'market', fn: () => setView('market') },
       ],
     },
     {
-      name: t('gs4T'), desc: t('gs4D'), done: hasKey,
+      name: t('gs4T'), desc: t('gs4D'), done: hasKey || keysDone,
+      details: [t('gs4S1'), t('gs4S2'), t('gs4S3'), t('gs4S4')],
+      note: keysDone && !hasKey ? t('gs4B3Note') : '',
       actions: [
-        { label: t('gs4B1'), kind: 'ghost', icon: 'ext', href: docs.platformTunnels },
-        { label: t('gs4B2'), kind: 'ghost', icon: 'ext', href: docs.platformApiKeys },
+        { label: t('gs4B1'), kind: 'accent', icon: 'ext', href: docs.platformTunnels },
+        { label: t('gs4B2'), kind: 'accent', icon: 'ext', href: docs.platformApiKeys },
+        { label: keysDone ? t('gs4B3On') : t('gs4B3'), kind: keysDone ? 'soft' : 'accent', icon: 'check', fn: () => toggleKeysFlag() },
       ],
     },
     {
       name: t('gs5T'), desc: t('gs5D'), done: s.counts.tunnels > 0,
-      actions: [{ label: s.counts.tunnels > 0 ? t('manageTunnels') : t('createTunnel'), kind: s.counts.tunnels > 0 ? 'soft' : 'primary', icon: s.counts.tunnels > 0 ? undefined : 'plus', fn: () => (s.counts.tunnels > 0 ? setView('tunnels') : showTunnelModal(null)) }],
+      details: [t('gs5S1'), t('gs5S2'), t('gs5S3'), t('gs5S4')],
+      actions: [{ label: s.counts.tunnels > 0 ? t('manageTunnels') : t('createTunnel'), kind: 'accent', icon: s.counts.tunnels > 0 ? undefined : 'plus', fn: () => (s.counts.tunnels > 0 ? setView('tunnels') : showTunnelModal(null)) }],
     },
     {
       name: t('gs6T'), desc: t('gs6D'), done: s.counts.running > 0,
-      actions: [{ label: t('gs6B'), kind: 'ghost', icon: 'ext', href: docs.chatgptConnectors }],
+      details: [t('gs6S1'), t('gs6S2'), t('gs6S3'), t('gs6S4')],
+      actions: [{ label: t('gs6B'), kind: 'accent', icon: 'ext', href: docs.chatgptConnectors }],
     },
   ];
 }
@@ -786,7 +1058,12 @@ function renderDashboard(c, s) {
 
   const steps = setupSteps(s);
   const doneCount = steps.filter((x) => x.done).length;
-  if (doneCount < steps.length) {
+  const allDone = doneCount === steps.length;
+  /* 五步向导常驻在概览顶部：配完也不消失，随时能翻回去看每一步 */
+  if (allDone) {
+    // 全部完成后停在用户自己选中/回看的那一步，不再自动跳
+    if (app.guideIdx < 0 || app.guideIdx >= steps.length) app.guideIdx = 0;
+  } else {
     // 自动推进：当前步骤刚完成时，跳到下一个未完成步骤；手动导航（上一步/圆点）后锁定不再弹回
     const curDone = !!(steps[app.guideIdx] && steps[app.guideIdx].done);
     if (curDone && app.guideAutoAdvance !== false && app.guideIdx < steps.length - 1) {
@@ -794,81 +1071,153 @@ function renderDashboard(c, s) {
       if (nxt !== -1) { app.guideIdx = nxt; app.guideAutoAdvance = false; }
     }
     if (app.guideIdx >= steps.length) app.guideIdx = steps.length - 1;
-    const i = app.guideIdx;
-    const st = steps[i];
-    const segs = steps.map((x, j) => {
-      const cls = x.done ? 'done' : (j === i ? 'cur' : '');
-      return '<span class="hero-seg' + (cls ? ' ' + cls : '') + '" title="' + esc(x.name) + '"></span>';
-    }).join('');
+    if (app.guideIdx < 0) app.guideIdx = 0;
+  }
+  const i = app.guideIdx;
+  const st = steps[i];
+  const segs = steps.map((x, j) => {
+    const cls = x.done ? 'done' : (j === i ? 'cur' : '');
+    return '<span class="hero-seg' + (cls ? ' ' + cls : '') + '" title="' + esc(x.name) + '"></span>';
+  }).join('');
 
-    html += '<div class="hero">' +
-      '<h2>' + esc(t('heroTitle')) + '</h2>' +
-      '<p>' + esc(t('heroP')) + '</p>' +
-      '<div class="hero-progress"><div class="hero-segs">' + segs + '</div><span class="hero-progress-text">' + esc(t('heroProgress', { d: doneCount, t: steps.length })) + '</span></div>' +
-      '</div>';
+  html += '<div class="hero">' +
+    '<h2>' + esc(t('heroTitle')) + '</h2>' +
+    '<p>' + esc(t('heroP')) + '</p>' +
+    '<div class="hero-progress"><div class="hero-segs">' + segs + '</div><span class="hero-progress-text">' + esc(t('heroProgress', { d: doneCount, t: steps.length })) + '</span></div>' +
+    '</div>';
 
-    // 步骤圆点
-    html += '<div class="wizard-dots">';
-    steps.forEach((x, j) => {
-      const cls = (j === i) ? 'cur' : (x.done ? 'done' : '');
-      html += '<button class="wizard-dot ' + cls + '" data-gnav="' + j + '" title="' + esc(x.name) + '" aria-label="' + esc(t('wizStepOf', { i: j + 1, n: steps.length })) + '">' + (x.done ? icon('check') : (j + 1)) + '</button>';
+  if (allDone) {
+    html += '<div class="notice ok"><span class="ico">' + icon('check') + '</span><div><strong>' + esc(t('wizAllDoneT')) + '</strong> ' + esc(t('wizAllDoneD')) + '</div></div>';
+  }
+  // 五步全绿才出现一次「支持作者」提示；点「不再显示」写进配置，之后永久不再渲染
+  if (allDone && !(s.ui && s.ui.supportHintClosed)) html += supportHintHtml();
+
+  // 步骤圆点
+  html += '<div class="wizard-dots">';
+  steps.forEach((x, j) => {
+    const cls = (j === i) ? 'cur' : (x.done ? 'done' : '');
+    html += '<button class="wizard-dot ' + cls + '" data-gnav="' + j + '" title="' + esc(x.name) + '" aria-label="' + esc(t('wizStepOf', { i: j + 1, n: steps.length })) + '">' + (x.done ? icon('check') : (j + 1)) + '</button>';
+  });
+  html += '</div>';
+
+  // 当前步骤大卡片
+  html += '<div class="wizard-card">' +
+    '<div class="wizard-step-tag">' + esc(t('wizStepOf', { i: i + 1, n: steps.length })) +
+      (st.done ? ' <span class="pill ok">' + esc(t('gDone')) + '</span>' : '') +
+    '</div>' +
+    '<h3 class="wizard-name">' + esc(st.name) + '</h3>' +
+    '<p class="wizard-desc">' + esc(st.desc) + '</p>';
+  if (st.details && st.details.length > 0) {
+    html += '<div class="wizard-fine"><ol class="wizard-fine-list">';
+    st.details.forEach((d) => { html += '<li>' + esc(d) + '</li>'; });
+    html += '</ol></div>';
+  }
+  if (st.note) html += '<p class="wizard-note">' + esc(st.note) + '</p>';
+  if (st.actions.length > 0) {
+    html += '<div class="wizard-actions">';
+    st.actions.forEach((a, j) => {
+      const inner = (a.icon ? '<span class="ico">' + icon(a.icon) + '</span>' : '') + esc(a.label);
+      if (a.href) html += '<a class="btn ' + a.kind + '" href="' + esc(a.href) + '" target="_blank" rel="noopener">' + inner + '</a>';
+      else html += '<button class="btn ' + a.kind + '" data-gact="' + i + '-' + j + '">' + inner + '</button>';
     });
     html += '</div>';
-
-    // 当前步骤大卡片
-    html += '<div class="wizard-card">' +
-      '<div class="wizard-step-tag">' + esc(t('wizStepOf', { i: i + 1, n: steps.length })) +
-        (st.done ? ' <span class="pill ok">' + esc(t('gDone')) + '</span>' : '') +
-      '</div>' +
-      '<h3 class="wizard-name">' + esc(st.name) + '</h3>' +
-      '<p class="wizard-desc">' + esc(st.desc) + '</p>';
-    if (st.actions.length > 0) {
-      html += '<div class="wizard-actions">';
-      st.actions.forEach((a, j) => {
-        const inner = (a.icon ? '<span class="ico">' + icon(a.icon) + '</span>' : '') + esc(a.label);
-        if (a.href) html += '<a class="btn ' + a.kind + '" href="' + esc(a.href) + '" target="_blank" rel="noopener">' + inner + '</a>';
-        else html += '<button class="btn ' + a.kind + '" data-gact="' + i + '-' + j + '">' + inner + '</button>';
-      });
-      html += '</div>';
-    }
-    html += '<div class="wizard-nav">' +
-      '<button class="btn ghost" data-gnav="' + (i - 1) + '"' + (i === 0 ? ' disabled' : '') + '><span class="ico">' + icon('prev') + '</span>' + esc(t('wizPrev')) + '</button>';
-    if (i < steps.length - 1) {
-      html += '<button class="btn primary" data-gnav="' + (i + 1) + '">' + esc(t('wizNext')) + '<span class="ico">' + icon('arrow') + '</span></button>';
-    } else {
-      html += '<span class="wizard-nav-hint">' + esc(t('gTodo')) + '</span>';
-    }
-    html += '</div></div>';
-
-    html += dashHelpSection(s);
-
-    c.innerHTML = html;
-    $$('[data-gact]', c).forEach((b) => b.addEventListener('click', () => {
-      const parts = b.dataset.gact.split('-');
-      const stp = steps[Number(parts[0])];
-      const a = stp && stp.actions[Number(parts[1])];
-      if (a && a.fn) a.fn();
-    }));
-    $$('[data-gnav]', c).forEach((b) => b.addEventListener('click', () => {
-      const j = Number(b.dataset.gnav);
-      if (j >= 0 && j < steps.length) { app.guideIdx = j; app.guideAutoAdvance = false; renderView(); }
-    }));
-    return;
   }
+  html += stepTutorialHtml(i); // 图文教程（第三步 / 第五步）：真实截图 + 编号方框，放在按钮之后、翻页之前
+  html += '<div class="wizard-nav">' +
+    '<button class="btn ghost" data-gnav="' + (i - 1) + '"' + (i === 0 ? ' disabled' : '') + '><span class="ico">' + icon('prev') + '</span>' + esc(t('wizPrev')) + '</button>';
+  if (i < steps.length - 1) {
+    html += '<button class="btn primary" data-gnav="' + (i + 1) + '">' + esc(t('wizNext')) + '<span class="ico">' + icon('arrow') + '</span></button>';
+  } else {
+    html += '<span class="wizard-nav-hint">' + esc(t('gTodo')) + '</span>';
+  }
+  html += '</div></div>';
 
-  // 全部完成：状态监控 + 帮助入口
+  /* 隧道明细统一在「隧道」板块里，概览不再重复；这里只保留需要注意的提醒 */
   if (attention > 0) {
     html += '<div class="notice warn"><span class="ico">' + icon('warn') + '</span><div>' + t('attentionLine', { n: attention }) + '</div></div>';
   }
-  html += '<div class="section-title"><span class="ico">' + icon('tunnels') + '</span>' + esc(t('dashTunnels')) + '</div>';
-  html += '<div class="section-sub">' + esc(t('dashTunnelsSub')) + '</div>';
-  html += '<div class="entity-grid">';
-  s.tunnels.forEach((tn) => { html += tunnelCard(tn); });
-  html += '</div>';
   html += dashHelpSection(s);
+
   c.innerHTML = html;
+  $$('[data-tutshot]', c).forEach((im) => im.addEventListener('click', () => openTutZoom(im.dataset.tutshot)));
+  $$('[data-gact]', c).forEach((b) => b.addEventListener('click', () => {
+    const parts = b.dataset.gact.split('-');
+    const stp = steps[Number(parts[0])];
+    const a = stp && stp.actions[Number(parts[1])];
+    if (a && a.fn) a.fn();
+  }));
+  $$('[data-gnav]', c).forEach((b) => b.addEventListener('click', () => {
+    const j = Number(b.dataset.gnav);
+    if (j >= 0 && j < steps.length) { app.guideIdx = j; app.guideAutoAdvance = false; renderView(); }
+  }));
   bindTunnelCards(c, s);
   $$('[data-goto]', c).forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); setView(a.dataset.goto); }));
+}
+
+/* ---------------- 图文教程（第三步 / 第五步共用一套外壳） ---------------- */
+/* 截图只做过两件事：账号/密钥区域打码 + 叠加红色序号；界面本身没有被改动或重绘。
+   第三步四张图按实际操作顺序排：入口 → 建隧道 → 弹窗怎么填 → 拿 runtime key。
+   第五步两张图沿用用户自己标的红框（只加序号，不裁剪、不放大），顺序：插件页入口 → 创建弹窗。 */
+const TUT3_FIGS = [
+  { src: 'tutorial/step3-entry.png', t: 'wizTutF1T', d: 'wizTutF1D' },
+  { src: 'tutorial/step3-tunnels.png', t: 'wizTutF2T', d: 'wizTutF2D' },
+  { src: 'tutorial/step3-create.png', t: 'wizTutF3T', d: 'wizTutF3D' },
+  { src: 'tutorial/step3-apikeys.png', t: 'wizTutF4T', d: 'wizTutF4D' },
+];
+/* 第五步两张图：ChatGPT 网页端插件页入口 → 创建自定义 MCP 服务器弹窗怎么填 */
+const TUT5_FIGS = [
+  { src: 'tutorial/step5-plugins.png', t: 'wizTut5F1T', d: 'wizTut5F1D' },
+  { src: 'tutorial/step5-create.png', t: 'wizTut5F2T', d: 'wizTut5F2D' },
+];
+/* 步骤序号（第几步，从 1 数）→ 教程配置；文案各自一组，外壳与样式完全共用 */
+const TUTORIALS = {
+  3: { id: 'tut3', figs: TUT3_FIGS, title: 'wizTutT', lead: 'wizTutD', tips: [['warn', 'wizTutSafe'], ['zap', 'wizTutTip']] },
+  5: { id: 'tut5', figs: TUT5_FIGS, title: 'wizTut5T', lead: 'wizTut5D', tips: [['warn', 'wizTut5Safe'], ['zap', 'wizTut5Tip']] },
+};
+
+function tutHtml(cfg) {
+  /* 默认展开：新用户往下滑就能照着做；用户手动收起过就记住，不再自动铺开 */
+  let h = '<details class="wiz-tut" data-tut="' + cfg.id + '"' + (app.tutClosed[cfg.id] ? '' : ' open') + '>' +
+    '<summary><span class="ico">' + icon('info') + '</span>' + esc(t(cfg.title)) +
+    '<span class="chev">' + icon('arrow') + '</span></summary><div class="wiz-tut-body">' +
+    '<p class="wiz-tut-lead">' + esc(t(cfg.lead)) + '</p>' +
+    '<div class="wiz-tut-figs">';
+  cfg.figs.forEach((f, k) => {
+    const head = '<div class="wiz-tut-fig-t"><span class="wiz-tut-fig-n">' + esc(t('wizTutFigN', { n: k + 1 })) + '</span>' + esc(t(f.t)) + '</div>';
+    const shot = '<img class="wiz-tut-shot" src="' + f.src + '" alt="' + esc(t(f.t)) + '" title="' + esc(t('wizTutZoom')) + '" loading="lazy" data-tutshot="' + f.src + '">';
+    const cap = '<figcaption class="wiz-tut-cap">' + esc(t(f.d)) + '</figcaption>';
+    /* 四张图统一「编号标题 → 截图 → 说明」，竖排一列，一行一张，图都横向铺满 */
+    h += '<figure class="wiz-tut-fig">' + head + shot + cap + '</figure>';
+  });
+  h += '</div>';
+  cfg.tips.forEach((tip) => {
+    h += '<div class="wiz-tut-tip' + (tip[0] === 'warn' ? '' : ' soft') + '"><span class="ico">' + icon(tip[0]) + '</span><div>' + esc(t(tip[1])) + '</div></div>';
+  });
+  h += '</div></details>';
+  return h;
+}
+
+/* 教程铺在第三步（拿钥匙）和第五步（接进 ChatGPT）；其余步骤的同类教程后续版本再补 */
+function stepTutorialHtml(stepIdx) {
+  const cfg = TUTORIALS[stepIdx + 1];
+  return cfg ? tutHtml(cfg) : '';
+}
+
+/* 点截图看大图：浮层铺满窗口，点任意处或按 Esc 关掉 */
+function openTutZoom(src) {
+  const old = document.querySelector('.tut-zoom');
+  if (old) old.remove();
+  const box = document.createElement('div');
+  box.className = 'tut-zoom';
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = '';
+  box.appendChild(img);
+  function close() { box.remove(); document.removeEventListener('keydown', onKey); }
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  box.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(box);
 }
 
 /* 概览底部的帮助折叠区：常见问题 + 官方入口，想看再展开 */
@@ -904,11 +1253,19 @@ function statCard(ic, tint, num, label) {
 }
 
 /* ---------------- 隧道卡片 ---------------- */
+/* 健康药丸的悬浮说明：讲清楚「自检没过」到底哪儿没过，以及它并不代表隧道断了 */
+function healthTipText(tn) {
+  const h = tn.health || {};
+  const mark = (v) => (v ? '200' : (currentLang === 'en' ? 'failed' : '未通过'));
+  const e = h.error ? (currentLang === 'en' ? ' (' + h.error + ')' : '（原因：' + h.error + '）') : '';
+  return t('stHealthTipBad', { h: mark(h.healthz), r: mark(h.readyz), e });
+}
+
 function statePill(tn) {
   const st = tn.status.state;
   if (st === 'running') {
-    if (tn.health && tn.health.ok) return '<span class="pill ok"><span class="dot dot-ok"></span>' + esc(t('stRunningOk')) + '</span>';
-    if (tn.health) return '<span class="pill warn"><span class="dot dot-warn"></span>' + esc(t('stHealthBad')) + '</span>';
+    if (tn.health && tn.health.ok) return '<span class="pill ok" title="' + esc(t('stHealthTipOk')) + '"><span class="dot dot-ok"></span>' + esc(t('stRunningOk')) + '</span>';
+    if (tn.health) return '<span class="pill warn" title="' + esc(healthTipText(tn)) + '"><span class="dot dot-warn"></span>' + esc(t('stHealthBad')) + '</span>';
     return '<span class="pill ok"><span class="dot dot-ok"></span>' + esc(t('stRunning')) + '</span>';
   }
   if (st === 'error') return '<span class="pill err"><span class="dot dot-err"></span>' + esc(t('stError')) + '</span>';
@@ -930,7 +1287,7 @@ function tunnelCard(tn) {
   if (tn.status.state === 'running') html += '<span class="m"><span class="ico">' + icon('clock') + '</span>' + fmtUptime(tn.status.uptimeMs) + '</span>';
   const keyM = tn.key.ready
     ? '<span class="m" title="' + esc(t('keyFrom') + (tn.key.source || '')) + '"><span class="ico">' + icon('key') + '</span>' + esc(t('keyReady')) + '</span>'
-    : '<span class="m" style="color:var(--amber)"><span class="ico">' + icon('key') + '</span>' + esc(t('keyMissing')) + '</span>';
+    : '<span class="m" style="color:var(--amber)" title="' + esc(t('keyMissingTip')) + '"><span class="ico">' + icon('key') + '</span>' + esc(t('keyMissing')) + '</span>';
   html += keyM;
   html += '</div>';
   if (tn.lastError) {
@@ -968,14 +1325,14 @@ async function tunnelAction(tn, act, btn) {
   if (act === 'remove') {
     const okGo = await confirmModal(t('deleteTunnel'), t('deleteTunnelMsg', { n: esc(tn.name) }), t('delete'), true);
     if (!okGo) return;
-    try { await api('/api/tunnels/' + encodeURIComponent(tn.name) + '/remove'); toast(t('tunnelDeleted', { n: tn.name }), 'ok'); refreshState(true); }
+    try { await api('/api/tunnels/' + encodeURIComponent(tn.name) + '/remove', { method: 'POST' }); toast(t('tunnelDeleted', { n: tn.name }), 'ok'); refreshState(true); }
     catch (e) { toast(e.message, 'err'); }
     return;
   }
   // start / stop / restart
   btn.disabled = true; btn.classList.add('loading');
   try {
-    await api('/api/tunnels/' + encodeURIComponent(tn.name) + '/' + act);
+    await api('/api/tunnels/' + encodeURIComponent(tn.name) + '/' + act, { method: 'POST' });
     toast(t(act === 'start' ? 'tunnelStarted' : act === 'stop' ? 'tunnelStopped' : 'tunnelRestarted', { n: tn.name }), 'ok');
   } catch (e) { toast(e.message, 'err'); }
   finally { btn.disabled = false; btn.classList.remove('loading'); }
@@ -1026,8 +1383,8 @@ function serverCard(sv) {
 
 function serverToolbar() {
   return '<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
-    '<button class="btn ghost" id="tplBtn"><span class="ico">' + icon('zap') + '</span>' + esc(t('fromTemplate')) + '</button>' +
-    '<button class="btn ghost" id="importBtn"><span class="ico">' + icon('download') + '</span>' + esc(t('importConfig')) + '</button>' +
+    '<button class="btn accent" id="tplBtn"><span class="ico">' + icon('zap') + '</span>' + esc(t('fromTemplate')) + '</button>' +
+    '<button class="btn accent" id="importBtn"><span class="ico">' + icon('download') + '</span>' + esc(t('importConfig')) + '</button>' +
     '<button class="btn primary" id="newServerBtn"><span class="ico">' + icon('plus') + '</span>' + esc(t('addServer')) + '</button>' +
   '</div>';
 }
@@ -1062,7 +1419,7 @@ function renderServers(c, s) {
       const warn = sv.usedBy.length > 0 ? t('deleteServerWarn', { l: esc(sv.usedBy.join('、')) }) : '';
       const okGo = await confirmModal(t('deleteServer'), t('deleteServerMsg', { n: esc(name) }) + warn, t('delete'), true);
       if (!okGo) return;
-      try { await api('/api/servers/' + encodeURIComponent(name) + '/remove'); toast(t('serverDeleted', { n: name }), 'ok'); refreshState(true); }
+      try { await api('/api/servers/' + encodeURIComponent(name) + '/remove', { method: 'POST' }); toast(t('serverDeleted', { n: name }), 'ok'); refreshState(true); }
       catch (e) { toast(e.message, 'err'); }
     });
   });
@@ -1074,7 +1431,7 @@ async function renderMarket(c, s) {
   c.innerHTML = '<div class="empty"><div class="empty-ico">' + icon('market') + '</div><p>' + esc(t('logLoading')) + '</p></div>';
   let items = [];
   try {
-    const data = await api('/api/components');
+    const data = await api('/api/components', { method: 'GET' });
     items = data.components || [];
   } catch (e) {
     c.innerHTML = '<div class="empty"><div class="empty-ico">' + icon('warn') + '</div><h3>' + esc(e.message) + '</h3></div>';
@@ -1101,9 +1458,9 @@ async function renderMarket(c, s) {
       '</div>' +
       '<div class="entity-foot"><span class="spacer"></span>' +
         (installed
-          ? '<button class="btn small ghost" data-act="goto"><span class="ico">' + icon('servers') + '</span>' + esc(t('mkReinstallTip')) + '</button>' +
+          ? '<button class="btn small accent" data-act="goto"><span class="ico">' + icon('servers') + '</span>' + esc(t('mkReinstallTip')) + '</button>' +
             '<button class="btn small danger-soft" data-act="remove"><span class="ico">' + icon('trash') + '</span>' + esc(t('mkUninstall')) + '</button>'
-          : '<button class="btn small primary" data-act="install"><span class="ico">' + icon('download') + '</span>' + esc(t('mkInstall')) + '</button>') +
+          : '<button class="btn small accent" data-act="install"><span class="ico">' + icon('download') + '</span>' + esc(t('mkInstall')) + '</button>') +
       '</div>' +
     '</div>';
   });
@@ -1119,7 +1476,7 @@ async function renderMarket(c, s) {
     if (installBtn) installBtn.addEventListener('click', async () => {
       installBtn.disabled = true;
       try {
-        await api('/api/components/' + encodeURIComponent(id) + '/install');
+        await api('/api/components/' + encodeURIComponent(id) + '/install', { method: 'POST' });
         toast(t('mkInstallOk'), 'ok');
         await refreshState(true, true);
       } catch (e) { toast(e.message, 'err'); installBtn.disabled = false; }
@@ -1131,7 +1488,7 @@ async function renderMarket(c, s) {
       const okGo = await confirmModal(t('mkUninstallTitle'), t('mkUninstallMsg', { t: esc(it.title) }), t('mkUninstall'), true);
       if (!okGo) return;
       try {
-        await api('/api/components/' + encodeURIComponent(id) + '/remove');
+        await api('/api/components/' + encodeURIComponent(id) + '/remove', { method: 'POST' });
         toast(t('mkUninstallOk'), 'ok');
         await refreshState(true, true);
       } catch (e) { toast(e.message, 'err'); }
@@ -1166,7 +1523,7 @@ async function renderLogs(c, s) {
   $('#logAutoChk', c).addEventListener('change', (e) => { app.logAuto = e.target.checked; scheduleLogPoll(); });
   $('#logRefreshBtn', c).addEventListener('click', () => loadLog(false));
   $('#logOpenDir', c).addEventListener('click', async () => {
-    try { await api('/api/open', { body: { target: 'logs' } }); } catch (e) { toast(e.message, 'err'); }
+    try { await api('/api/open', { method: 'POST', body: { target: 'logs' } }); } catch (e) { toast(e.message, 'err'); }
   });
   loadLog(true);
   scheduleLogPoll();
@@ -1181,7 +1538,7 @@ async function loadLog(silent) {
   const viewer = $('#logViewer');
   if (!viewer || !app.logTunnel) return;
   try {
-    const data = await api('/api/logs/' + encodeURIComponent(app.logTunnel) + '?lines=400');
+    const data = await api('/api/logs/' + encodeURIComponent(app.logTunnel) + '?lines=400', { method: 'GET' });
     const atBottom = viewer.scrollHeight - viewer.scrollTop - viewer.clientHeight < 40;
     if (data.lines && data.lines.length > 0) {
       viewer.textContent = data.lines.join('\n');
@@ -1225,7 +1582,7 @@ async function runDoctorChecks(online) {
   if (!body) return;
   body.innerHTML = '<div style="color:var(--text-3);font-size:13.5px;display:flex;align-items:center;gap:8px"><span class="ico" style="animation:indet 1.2s infinite">' + icon('refresh') + '</span>' + esc(t('doctorChecking')) + (online ? esc(t('doctorOnlineNote')) : '') + '…</div>';
   try {
-    const data = await api('/api/doctor' + (online ? '?online=1' : ''));
+    const data = await api('/api/doctor' + (online ? '?online=1' : ''), { method: 'GET' });
     const checks = data.checks || [];
     if (checks.length === 0) { body.innerHTML = '<div class="check-item ok"><span class="ico">' + icon('check') + '</span><div><div class="check-name">' + esc(t('doctorAllOk')) + '</div><div class="check-detail">' + esc(t('doctorAllOkSub')) + '</div></div></div>'; return; }
     let html = '<div class="check-list">';
@@ -1346,6 +1703,13 @@ function renderSettings(c, s) {
   html += '<div class="card"><div class="card-head"><div><div class="card-title"><span class="ico">' + icon('info') + '</span>' + esc(t('secAbout')) + '</div></div></div><div class="card-body" style="padding-top:8px">';
   html += '<p style="font-size:13.5px;color:var(--text-2);line-height:1.8;margin:0">' + esc(t('aboutP')) + '</p>';
   html += '<div class="set-rows">' + setRow(t('aboutRepo'), s.brand.repoUrl || '', true) + '</div>';
+  const supInfo = supportInfo();
+  if (supInfo.starUrl || supInfo.qr) {
+    html += '<div class="link-row" style="margin-top:10px">';
+    if (supInfo.starUrl) html += '<button class="link-item sup-star" type="button" data-support="star"><span class="ico">' + icon('star') + '</span>' + esc(t('supStarBtn')) + '<span class="arrow">' + icon('arrow') + '</span></button>';
+    if (supInfo.qr) html += '<button class="link-item sup-coffee" type="button" data-support="coffee"><span class="ico">' + icon('coffee') + '</span>' + esc(t('supCoffeeT')) + '<span class="arrow">' + icon('arrow') + '</span></button>';
+    html += '</div>';
+  }
   html += '<div class="notice info"><span class="ico">' + icon('info') + '</span><div>' + esc(t('aboutSafe')) + '</div></div>';
   html += '</div></div>';
 
@@ -1353,7 +1717,7 @@ function renderSettings(c, s) {
   c.innerHTML = html;
 
   $$('[data-open]', c).forEach((b) => b.addEventListener('click', async () => {
-    try { await api('/api/open', { body: { target: b.dataset.open } }); } catch (e) { toast(e.message, 'err'); }
+    try { await api('/api/open', { method: 'POST', body: { target: b.dataset.open } }); } catch (e) { toast(e.message, 'err'); }
   }));
   const rb = $('#runtimeBtn', c); if (rb) rb.addEventListener('click', () => showRuntimeModal());
   const rib = $('#runtimeImportBtn', c); if (rib) rib.addEventListener('click', () => showImportRuntimeModal());
@@ -1365,9 +1729,9 @@ function renderSettings(c, s) {
     try {
       dmb.disabled = true;
       dmb.textContent = t('dlMigrating');
-      const picked = await api('/api/data-location/choose', { body: {} });
+      const picked = await api('/api/data-location/choose', { method: 'POST', body: {} });
       if (!picked || !picked.path) { refreshState(true); return; }
-      const result = await api('/api/data-location/migrate', { body: { target: picked.path } });
+      const result = await api('/api/data-location/migrate', { method: 'POST', body: { target: picked.path } });
       openModal({
         title: t('dlRestart'),
         body: '<div class="notice ok"><span class="ico">' + icon('check') + '</span><div>' + esc(result.message || t('dlRestartHint')) + '</div></div>' +
@@ -1391,7 +1755,7 @@ function renderSettings(c, s) {
   });
   const ps = $('#prefSave', c); if (ps) ps.addEventListener('click', async () => {
     try {
-      await api('/api/ui', { body: {
+      await api('/api/ui', { method: 'POST', body: {
         language: $('#prefLang', c).value,
         minimizeToTray: $('#prefTray', c).checked,
         autoLaunch: $('#prefAuto', c).checked,
@@ -1423,7 +1787,7 @@ async function showServerModal(editName, prefill) {
   let existing = null;
   if (editName) {
     try {
-      const data = await api('/api/config');
+      const data = await api('/api/config', { method: 'GET' });
       existing = (data.config.servers || []).find((x) => x.name === editName) || null;
     } catch (e) { toast(e.message, 'err'); return; }
   }
@@ -1483,7 +1847,7 @@ async function showServerModal(editName, prefill) {
           box.style.marginBottom = '2px';
           box.innerHTML = '<span class="ico" style="animation:indet 1.2s infinite">' + icon('refresh') + '</span><div>' + esc(t('testRunning')) + '</div>';
           try {
-            const data = await api('/api/servers/test', { body: req });
+            const data = await api('/api/servers/test', { method: 'POST', body: req });
             const r = data.result || {};
             box.className = 'notice ' + (r.ok ? 'ok' : 'err');
             box.innerHTML = '<span class="ico">' + icon(r.ok ? 'check' : 'x') + '</span><div><strong>' + esc(r.ok ? t('testOk') : t('testFail')) + '</strong>' + (r.message ? ' ' + esc(r.message) : '') + '</div>';
@@ -1522,10 +1886,10 @@ async function showServerModal(editName, prefill) {
           }
           if (!existing) {
             if (!name) throw new Error(t('fillName'));
-            await api('/api/servers', { body: payload });
+            await api('/api/servers', { method: 'POST', body: payload });
             toast(t('serverAdded', { n: name }), 'ok');
           } else {
-            await api('/api/servers/' + encodeURIComponent(editName) + '/update', { body: payload });
+            await api('/api/servers/' + encodeURIComponent(editName) + '/update', { method: 'POST', body: payload });
             toast(t('saved', { n: name }), 'ok');
           }
           refreshState(true);
@@ -1547,6 +1911,18 @@ async function showServerModal(editName, prefill) {
 }
 
 /* ---------------- 隧道表单 ---------------- */
+/* 409「隧道已存在」的就地确认：表单不关、填写内容不丢，按钮自己变成「用这份配置覆盖」 */
+function armOverwrite(bodyEl, btn, name) {
+  const old = $('#overwriteNotice', bodyEl);
+  if (old) old.remove();
+  const n = document.createElement('div');
+  n.className = 'notice warn';
+  n.id = 'overwriteNotice';
+  n.innerHTML = '<span class="ico">' + icon('warn') + '</span><div>' + esc(t('overwriteHint', { n: name })) + '</div>';
+  if (bodyEl.firstChild) bodyEl.insertBefore(n, bodyEl.firstChild); else bodyEl.appendChild(n);
+  if (btn) btn.innerHTML = '<span class="ico">' + icon('check') + '</span>' + esc(t('overwriteSave'));
+}
+
 async function showTunnelModal(editName) {
   const s = app.state;
   if (!s) return;
@@ -1558,7 +1934,7 @@ async function showTunnelModal(editName) {
   let existing = null;
   if (editName) {
     try {
-      const data = await api('/api/config');
+      const data = await api('/api/config', { method: 'GET' });
       existing = (data.config.tunnels || []).find((x) => x.name === editName) || null;
     } catch (e) { toast(e.message, 'err'); return; }
   }
@@ -1600,6 +1976,9 @@ async function showTunnelModal(editName) {
     '<div class="field"><label class="field-label">' + esc(t('fHealthPort')) + '</label>' +
     '<input class="input mono" id="f_tport" placeholder="8080" value="' + esc(existing && existing.healthPort ? String(existing.healthPort) : '') + '"></div>';
 
+  /* 同名隧道覆盖：服务器回 409 时先不关表单，等用户再点一次才真的覆盖 */
+  let overwriteArmed = false;
+  let armedName = '';
   const m = openModal({
     title: existing ? t('tmEditTitle') : t('tmCreateTitle'),
     sub: t('tmSub'),
@@ -1609,7 +1988,7 @@ async function showTunnelModal(editName) {
       { label: t('cancel'), kind: 'ghost' },
       {
         label: existing ? t('save') : t('createTunnel'), kind: 'primary', icon: 'check',
-        onClick: async (bodyEl) => {
+        onClick: async (bodyEl, btn) => {
           const name = $('#f_tname', bodyEl).value.trim();
           const keyMode = $('#f_keymode button.active', bodyEl).dataset.k;
           const portRaw = $('#f_tport', bodyEl).value.trim();
@@ -1641,11 +2020,23 @@ async function showTunnelModal(editName) {
           if (!existing) {
             if (!name) throw new Error(t('fillName'));
             if (!payload.tunnelId) throw new Error(t('fillTunnelId'));
-            await api('/api/tunnels', { body: payload });
-            toast(t('tunnelCreated', { n: name }), 'ok');
+            if (overwriteArmed && armedName === name) payload.overwrite = true;
+            let res = null;
+            try {
+              res = await api('/api/tunnels', { method: 'POST', body: payload });
+            } catch (e) {
+              if (!(e.data && e.data.code === 'tunnel_exists')) throw e;
+              overwriteArmed = true;
+              armedName = name;
+              armOverwrite(bodyEl, btn, name);
+              return true; // 表单保持打开，等用户再点一次确认覆盖
+            }
+            if (res && res.warning) toast(res.warning, 'info');
+            else toast(t('tunnelCreated', { n: name }), 'ok');
           } else {
-            await api('/api/tunnels/' + encodeURIComponent(editName) + '/update', { body: payload });
-            toast(t('saved', { n: name }), 'ok');
+            const res = await api('/api/tunnels/' + encodeURIComponent(editName) + '/update', { method: 'POST', body: payload });
+            if (res && res.warning) toast(res.warning, 'info');
+            else toast(t('saved', { n: name }), 'ok');
           }
           refreshState(true);
         },
@@ -1682,7 +2073,7 @@ function showRuntimeModal() {
         onClick: async (bodyEl, btn) => {
           $('#dlProgress', bodyEl).classList.remove('hidden');
           btn.classList.add('hidden');
-          await api('/api/runtime/fetch', { body: {} });
+          await api('/api/runtime/fetch', { method: 'POST', body: {} });
           pollRuntimeJob(bodyEl);
           return true; // 保持弹窗开着看进度
         },
@@ -1695,7 +2086,7 @@ async function pollRuntimeJob(bodyEl) {
   if (!document.body.contains(bodyEl)) { app.jobPolling = false; return; }
   app.jobPolling = true;
   try {
-    const data = await api('/api/runtime/job');
+    const data = await api('/api/runtime/job', { method: 'GET' });
     const job = data.job;
     const logEl = $('#dlLog', bodyEl);
     if (job && logEl) logEl.textContent = (job.lines || []).slice(-40).join('\n');
@@ -1735,7 +2126,7 @@ function showImportRuntimeModal() {
           const zipPath = $('#f_zippath', bodyEl).value.trim();
           if (!zipPath) throw new Error(t('noZipPath'));
           const version = $('#f_zipver', bodyEl).value.trim();
-          await api('/api/runtime/import', { body: { zipPath, version: version || undefined } });
+          await api('/api/runtime/import', { method: 'POST', body: { zipPath, version: version || undefined } });
           toast(t('importedRuntime'), 'ok');
           refreshState(true);
         },
@@ -1747,7 +2138,7 @@ function showImportRuntimeModal() {
 /* ---------------- 服务器模板 ---------------- */
 async function showTemplateModal() {
   let data;
-  try { data = await api('/api/templates'); } catch (e) { toast(e.message, 'err'); return; }
+  try { data = await api('/api/templates', { method: 'GET' }); } catch (e) { toast(e.message, 'err'); return; }
   const templates = data.templates || [];
   let html = '<div class="entity-grid" style="grid-template-columns:1fr">';
   templates.forEach((tp) => {
@@ -1799,7 +2190,7 @@ function showImportModal() {
           if (state.tab === 'paste' && state.pasted) body.pastedText = state.pasted;
           else if (state.tab === 'scan' && state.found.length > 0) body.sourceFile = state.found[0].file;
           else throw new Error(t('imNothing'));
-          const data = await api('/api/import/apply', { body });
+          const data = await api('/api/import/apply', { method: 'POST', body });
           const o = data.outcome || { added: [], replaced: [], skipped: [] };
           toast(t('imDone', { a: o.added.length, r: o.replaced.length, s: o.skipped.length }), 'ok');
           refreshState(true);
@@ -1818,7 +2209,7 @@ function showImportModal() {
   const renderScan = () => {
     const body = $('#imBody', m.body);
     body.innerHTML = '<div style="color:var(--text-3);font-size:13.5px;display:flex;align-items:center;gap:8px;padding:12px 0"><span class="ico" style="animation:indet 1.2s infinite">' + icon('refresh') + '</span>' + esc(t('imScanning')) + '</div>';
-    api('/api/import/scan').then((data) => {
+    api('/api/import/scan', { method: 'GET' }).then((data) => {
       state.found = (data.found || []).filter((f) => !f.error && f.servers && f.servers.length > 0);
       const errs = (data.found || []).filter((f) => f.error);
       if (state.found.length === 0) {
@@ -1920,6 +2311,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!d || d.tagName !== 'DETAILS' || !d.dataset || !d.dataset.dk) return;
     if (d.open) app.openDetails[d.dataset.dk] = true; else delete app.openDetails[d.dataset.dk];
   }, true);
+  // 图文教程（第三步 / 第五步）：默认展开，用户收起过就记住这次选择，后台刷新不再自动铺开
+  $('#content').addEventListener('toggle', (e) => {
+    const d = e.target;
+    if (!d || d.tagName !== 'DETAILS' || !d.dataset || !d.dataset.tut) return;
+    app.tutClosed[d.dataset.tut] = !d.open;
+  }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+  // 支持入口统一走事件委托：侧边栏常驻入口、概览提示条、设置页「关于」都用同一套动作
+  document.addEventListener('click', (e) => {
+    const el = e.target && e.target.closest ? e.target.closest('[data-support]') : null;
+    if (!el) return;
+    const act = el.dataset.support;
+    if (act === 'star') openStarPage();
+    else if (act === 'coffee') showSupportModal({});
+    else if (act === 'dismiss') dismissSupportHint();
+  });
   refreshState(false);
 });

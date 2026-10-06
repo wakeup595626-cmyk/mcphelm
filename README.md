@@ -6,7 +6,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20.11-339933.svg)](package.json)
 
-> **项目状态**：0.1.0 首个版本，尚未发布到 npm；Windows 安装包见 GitHub Releases。功能已经可用，CLI 与配置格式仍可能小幅调整。
+> **项目状态**：0.1.x 早期版本（首个公开版本为 0.1.0），尚未发布到 npm；Windows 安装包见 GitHub Releases。功能已经可用，CLI 与配置格式仍可能小幅调整。
 
 ## 这是什么
 
@@ -71,8 +71,8 @@ OpenAI 的安全隧道（Secure MCP Tunnel）让 ChatGPT / Codex 能连上你本
 - **自选安装位置**：安装向导里可以改盘符和目录，C 盘、D 盘或任意其他盘都行；不想装的话也有 `MCPHelm-Portable-x.y.z.exe` 便携版，双击即用、不写系统；
 - **像普通软件一样用**：装完桌面和开始菜单会出现 MCPHelm 图标，双击打开就是完整界面，不用开终端；
 - **不用另外装 Node**：运行环境打包在安装包里；
-- **和命令行共用一份配置**：桌面版读写同一份 `~/.mcphelm/config.json`，两个入口随时切换；
-- **卸载干净**：走系统「设置 → 应用 → MCPHelm」卸载（或开始菜单里的卸载入口）；`~/.mcphelm` 里的配置、日志、运行时不会被自动删除，想清干净手动删掉即可。
+- **数据跟着安装盘走**：桌面版默认把数据放在 `<安装目录>\data`（配置、日志、运行时、导出），装到哪个盘数据就跟着放哪个盘；首次启动会自动从命令行版的 `~/.mcphelm` 迁移一份过来；
+- **卸载只删程序本身**：走系统「设置 → 应用 → MCPHelm」卸载（或开始菜单里的卸载入口）；配置、日志、运行时都留在 `<安装目录>\data` 里不会被删除，覆盖安装 / 自动更新同样不动它们，想清干净卸载后手动删掉即可。
 
 窗口内容就是本项目自带的本地面板：启动时自动挑一个空闲端口，只监听 `127.0.0.1`，看状态、启停隧道、翻日志都能在界面里点。
 
@@ -236,7 +236,7 @@ curl -X POST http://127.0.0.1:7331/api/tunnels/code/start
   logs/<隧道名>.log      隧道日志，含每次启动的时间与完整命令
 ```
 
-`MCPHELM_HOME` 可以改主目录，`MCPHELM_TUNNEL_CLIENT` 可以直接指定一个已有的运行时二进制。字段级说明见 [docs/configuration.md](docs/configuration.md)。
+`MCPHELM_HOME` 可以改主目录，`MCPHELM_TUNNEL_CLIENT` 可以直接指定一个已有的运行时二进制。桌面版默认使用安装目录下的 `data\` 作为数据根（首次启动自动从 `~/.mcphelm` 迁移），上面的查找顺序与目录结构适用于命令行版。字段级说明见 [docs/configuration.md](docs/configuration.md)。
 
 ## 安全说明
 
@@ -264,7 +264,7 @@ curl -X POST http://127.0.0.1:7331/api/tunnels/code/start
 ```bash
 npm uninstall -g mcphelm   # 或删除源码目录并 npm unlink
 ```
-然后删除 `~/.mcphelm`（配置、日志、运行时都在里面），并清掉 `CONTROL_PLANE_API_KEY` 环境变量。桌面版则在系统「设置 → 应用」里卸载，它同样不会动 `~/.mcphelm`。
+然后删除 `~/.mcphelm`（配置、日志、运行时都在里面），并清掉 `CONTROL_PLANE_API_KEY` 环境变量。桌面版则在系统「设置 → 应用」里卸载：它只删程序本身，数据保留在安装目录下的 `data\`，想清干净卸载后手动删除即可。
 
 更多问答见 [docs/faq.md](docs/faq.md)。
 
@@ -283,6 +283,17 @@ npm uninstall -g mcphelm   # 或删除源码目录并 npm unlink
 - [docs/security.md](docs/security.md) — 安全模型、密钥处理、威胁边界
 - [docs/faq.md](docs/faq.md) — 常见问题
 - [README.en.md](README.en.md) — English version
+
+## 支持作者
+
+MCPHelm 是免费开源项目：没有授权码、没有试用期，全部功能一开始就是可用的。**Star 和打赏都解锁不了任何东西**，也不会改变软件的任何行为——纯粹是一点鼓励。
+
+- **点个 Star**：<https://github.com/wakeup595626-cmyk/mcphelm>。星标是别人判断「这个项目靠不靠谱」的第一眼信号，星越多，愿意试一试的人越多，对项目帮助最大。
+- **请我喝杯咖啡**：用支付宝扫下面的收款码。完全自愿，不打赏照样能用全部功能。
+
+<img src="docs/assets/alipay-qr.png" alt="支付宝收款码" width="220">
+
+桌面版软件里也有常驻入口，不用回到这里找：左侧边栏最底部有「点个 Star」和「请我喝咖啡」两个按钮，概览页五步全部跑通后还会出现一条提示。GitHub 不允许第三方软件替用户点 Star，所以点完之后需要你自己在项目主页右上角按一下 ★。
 
 ## 贡献
 

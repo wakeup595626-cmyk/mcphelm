@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { buildRunArgs, childEnv, maskTunnelId, readLogTail } from '../src/runtime.ts';
+import { buildRunArgs, childEnv, maskTunnelId, probeHealth, readLogTail } from '../src/runtime.ts';
 import type { McpServerConfig, TunnelConfig } from '../src/store.ts';
 
 const TUNNEL_ID = 'tunnel_' + '0f'.repeat(16);
@@ -106,4 +108,51 @@ test('childEnv 尊重用户已设置的缓存位置，不强行覆盖', () => {
     const env = childEnv(undefined, join(tmpdir(), 'mcphelm-cache-demo'));
     assert.equal(env.NPM_CONFIG_CACHE, 'D:/my-npm-cache');
   });
+});
+
+/* 0.1.4 修复的误报：探针只有 healthz / readyz 两个布尔值、没有汇总字段，
+   界面读到 undefined，于是隧道只要在运行就一律显示「健康检查未过」。
+   下面三条把 ok 的语义钉死：有 readyz 才算 ok，没有就没有。 */
+
+async function withHttpServer<T>(handler: (path: string) => number, fn: (addr: string) => Promise<T>): Promise<T> {
+  const server = createServer((req, res) => {
+    res.writeHead(handler(req.url || ''));
+    res.end('x');
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+  const port = (server.address() as AddressInfo).port;
+  try {
+    return await fn('127.0.0.1:' + String(port));
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+}
+
+test('probeHealth：healthz / readyz 都 200 时 ok 为 true', async () => {
+  await withHttpServer(() => 200, async (addr) => {
+    const probe = await probeHealth(addr, 1500);
+    assert.equal(probe.healthz, true);
+    assert.equal(probe.readyz, true);
+    assert.equal(probe.ok, true);
+  });
+});
+
+test('probeHealth：healthz 通过但 readyz 没就绪时 ok 为 false', async () => {
+  await withHttpServer((path) => (path === '/healthz' ? 200 : 503), async (addr) => {
+    const probe = await probeHealth(addr, 1500);
+    assert.equal(probe.healthz, true);
+    assert.equal(probe.readyz, false);
+    assert.equal(probe.ok, false);
+  });
+});
+
+test('probeHealth：端口没人监听时 ok 为 false，且不抛异常', async () => {
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+  const port = (server.address() as AddressInfo).port;
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  const probe = await probeHealth('127.0.0.1:' + String(port), 1200);
+  assert.equal(probe.healthz, false);
+  assert.equal(probe.readyz, false);
+  assert.equal(probe.ok, false);
 });

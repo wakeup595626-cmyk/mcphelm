@@ -31,6 +31,9 @@ win:
   artifactName: ${productName}-Setup-${version}.exe
 
 nsis:
+  # 自定义卸载脚本（build/installer.nsh）：覆盖模板的 customRemoveFiles，
+  # 避免覆盖安装 / 自动更新时把 <安装目录>\data 数据根一起删掉
+  include: installer.nsh
   oneClick: false
   perMachine: false
   allowElevation: true

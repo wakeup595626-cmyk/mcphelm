@@ -56,6 +56,44 @@ describe('panel 安全与 API', () => {
     assert.equal(body.brand.name, 'MCPHelm');
   });
 
+  it('/api/state 暴露 Star 与赞助入口，收款码是免口令的同源静态图', async () => {
+    const { base, token } = await boot();
+    const res = await fetch(base + '/api/state', { headers: { 'x-mcphelm-token': token } });
+    const body = (await res.json()) as {
+      brand: { starUrl: string; repoUrl: string; support: { alipayQr: string } };
+      ui: { supportSeen: boolean; supportHintClosed: boolean };
+    };
+    assert.equal(body.brand.starUrl, body.brand.repoUrl);
+    assert.ok(body.brand.starUrl.startsWith('https://github.com/'));
+    assert.equal(body.brand.support.alipayQr, 'support/alipay.png');
+    assert.equal(body.ui.supportSeen, false);
+    assert.equal(body.ui.supportHintClosed, false);
+    // 面板里的 <img src> 直接取这张图，静态资源不受口令限制，否则弹窗会显示裂图
+    const qr = await fetch(base + '/support/alipay.png');
+    assert.equal(qr.status, 200);
+    assert.equal(qr.headers.get('content-type'), 'image/png');
+    assert.ok((await qr.arrayBuffer()).byteLength > 1000);
+  });
+
+  it('/api/ui 记住「看过欢迎弹窗」「关掉支持提示条」，刷新后不再打扰', async () => {
+    const { base, token } = await boot();
+    const res = await fetch(base + '/api/ui', {
+      method: 'POST',
+      headers: { 'x-mcphelm-token': token, 'content-type': 'application/json' },
+      body: JSON.stringify({ supportSeen: true, supportHintClosed: true }),
+    });
+    assert.equal(res.status, 200);
+    const state = await fetch(base + '/api/state', { headers: { 'x-mcphelm-token': token } });
+    const body = (await state.json()) as { ui: { supportSeen: boolean; supportHintClosed: boolean } };
+    assert.equal(body.ui.supportSeen, true);
+    assert.equal(body.ui.supportHintClosed, true);
+    // 语言 / 托盘这些老字段不能被顺带改动
+    const keep = (await (
+      await fetch(base + '/api/state', { headers: { 'x-mcphelm-token': token } })
+    ).json()) as { ui: { language: string } };
+    assert.equal(keep.ui.language, 'zh');
+  });
+
   it('伪造域名 Host 头会被 403 拒绝', async () => {
     const { base, token } = await boot();
     const status = await new Promise<number>((done, reject) => {

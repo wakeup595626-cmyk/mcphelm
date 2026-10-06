@@ -468,7 +468,14 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
     const issues = validateConfig(opts.config);
     const running = statuses.filter((status) => status.state === 'running').length;
     return {
-      brand: { name: BRAND.name, slug: BRAND.slug, version: BRAND.version, repoUrl: BRAND.repoUrl },
+      brand: {
+        name: BRAND.name,
+        slug: BRAND.slug,
+        version: BRAND.version,
+        repoUrl: BRAND.repoUrl,
+        starUrl: BRAND.starUrl,
+        support: { alipayQr: BRAND.support.alipayQr, link: BRAND.support.link },
+      },
       configPath: opts.paths.configFile,
       configExists: opts.paths.configScope !== 'missing',
       configScope: describeConfigScope(opts.paths.configScope),
@@ -507,7 +514,13 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
       counts: { servers: opts.config.servers.length, tunnels: statuses.length, running },
       docs: BRAND.docs,
       panelVersion: BRAND.version,
-      ui: { language: opts.config.ui?.language ?? 'zh', minimizeToTray: opts.config.ui?.minimizeToTray ?? false, autoLaunch: opts.config.ui?.autoLaunch ?? false },
+      ui: {
+        language: opts.config.ui?.language ?? 'zh',
+        minimizeToTray: opts.config.ui?.minimizeToTray ?? false,
+        autoLaunch: opts.config.ui?.autoLaunch ?? false,
+        supportSeen: opts.config.ui?.supportSeen === true,
+        supportHintClosed: opts.config.ui?.supportHintClosed === true,
+      },
     };
   }
 
@@ -735,17 +748,19 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         }
         const existing = findTunnel(opts.config, name);
         if (existing && body.overwrite !== true) {
-          sendJson(res, 409, { ok: false, error: '隧道已存在：' + name });
+          sendJson(res, 409, {
+            ok: false,
+            code: 'tunnel_exists',
+            error: '隧道已存在：' + name + '（想用现在这份配置覆盖它，再点一次创建按钮就行）',
+          });
           return;
         }
         const value = parsed.value;
         const tunnel: TunnelConfig = { name, tunnelId: value.tunnelId, server: value.server };
         if (value.healthPort !== undefined) tunnel.healthPort = value.healthPort;
+        // 密钥写保险箱失败不再让创建整个失败：隧道先存下来，把原因作为 warning 交回界面。
+        // 之前的写法是直接 400，用户看到「没创建成功」，其实连隧道记录都没保存。
         const keyResult = await applyTunnelKey(tunnel, value.key);
-        if (keyResult.warning) {
-          sendJson(res, 400, { ok: false, error: keyResult.warning });
-          return;
-        }
         if (existing) {
           opts.config.tunnels[opts.config.tunnels.indexOf(existing)] = tunnel;
         } else {
@@ -757,7 +772,11 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         sendJson(res, 200, {
           ok: true,
           message: '已保存隧道：' + name,
-          warning: keyCheck.ok ? null : '还没有配置 runtime key，启动前请补上（环境变量、密钥保险箱或直接填写）。',
+          warning: keyResult.warning
+            ? '隧道已保存，但 runtime key 没能写进密钥保险箱（' + keyResult.warning + '）。点这张卡片的「编辑」，把密钥来源换成「环境变量」或「直接填写」再保存一次就行。'
+            : keyCheck.ok
+              ? null
+              : '隧道已保存，但还没有可用的 runtime key，启动前请补上（环境变量、密钥保险箱或直接填写）。',
         });
         return;
       }
@@ -785,18 +804,19 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         tunnel.server = value.server;
         if (value.healthPort !== undefined) tunnel.healthPort = value.healthPort;
         else delete tunnel.healthPort;
+        // 同创建接口：写保险箱失败也照常保存改动，用 warning 告诉用户怎么补救
         const keyResult = await applyTunnelKey(tunnel, value.key);
-        if (keyResult.warning) {
-          sendJson(res, 400, { ok: false, error: keyResult.warning });
-          return;
-        }
         saveConfig(opts.paths, opts.config);
         opts.onLog?.('面板更新了隧道：' + name);
         const keyCheck = await resolveApiKeyAsync(tunnel);
         sendJson(res, 200, {
           ok: true,
           message: '已更新隧道：' + name + '（若正在运行，重启后生效）',
-          warning: keyCheck.ok ? null : '该隧道当前没有可用的 runtime key，启动前请补上。',
+          warning: keyResult.warning
+            ? '改动已保存，但 runtime key 没能写进密钥保险箱（' + keyResult.warning + '）。原来的密钥来源保持不变，也可以把它换成「环境变量」或「直接填写」再保存一次。'
+            : keyCheck.ok
+              ? null
+              : '改动已保存，但该隧道当前没有可用的 runtime key，启动前请补上。',
         });
         return;
       }
@@ -1221,6 +1241,9 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         if (language === 'zh' || language === 'en') opts.config.ui.language = language;
         if (typeof body.minimizeToTray === 'boolean') opts.config.ui.minimizeToTray = body.minimizeToTray;
         if (typeof body.autoLaunch === 'boolean') opts.config.ui.autoLaunch = body.autoLaunch;
+        // 一次性欢迎弹窗 / 概览支持提示条：只记「不再打扰」，不改任何功能行为
+        if (typeof body.supportSeen === 'boolean') opts.config.ui.supportSeen = body.supportSeen;
+        if (typeof body.supportHintClosed === 'boolean') opts.config.ui.supportHintClosed = body.supportHintClosed;
         const customToken = bodyString(body.token);
         if (customToken !== undefined) {
           if (customToken === '') delete opts.config.ui.token;

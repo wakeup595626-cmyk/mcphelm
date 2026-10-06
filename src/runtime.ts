@@ -79,6 +79,8 @@ export interface StopResult {
 
 export interface HealthProbe {
   checkedAt: string;
+  /** 本机健康端点自检是否通过：与启动等待流程保持一致，以 readyz 为准 */
+  ok: boolean;
   healthz: boolean;
   readyz: boolean;
   error: string | null;
@@ -321,7 +323,7 @@ async function probeUrl(url: string, timeoutMs: number): Promise<boolean> {
 
 export async function probeHealth(healthAddr: string, timeoutMs = 2500): Promise<HealthProbe> {
   const base = 'http://' + healthAddr;
-  const probe: HealthProbe = { checkedAt: nowIso(), healthz: false, readyz: false, error: null };
+  const probe: HealthProbe = { checkedAt: nowIso(), ok: false, healthz: false, readyz: false, error: null };
   try {
     probe.healthz = await probeUrl(base + '/healthz', timeoutMs);
   } catch (err) {
@@ -332,6 +334,8 @@ export async function probeHealth(healthAddr: string, timeoutMs = 2500): Promise
   } catch (err) {
     if (!probe.error) probe.error = err instanceof Error ? err.message : String(err);
   }
+  // readyz 才是「可以接活」的判据（启动等待循环读的也是它），界面统一读 ok 即可
+  probe.ok = probe.readyz;
   return probe;
 }
 

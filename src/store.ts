@@ -52,6 +52,10 @@ export interface AppConfig {
     minimizeToTray?: boolean;
     /** 桌面端专属：登录系统后自动启动 MCPHelm */
     autoLaunch?: boolean;
+    /** 首次打开面板时的欢迎弹窗（Star / 赞助邀请）是否已经弹过；弹过就不再打扰 */
+    supportSeen?: boolean;
+    /** 概览页「五步都跑通了」下面的支持提示条是否已被用户关掉 */
+    supportHintClosed?: boolean;
   };
 }
 

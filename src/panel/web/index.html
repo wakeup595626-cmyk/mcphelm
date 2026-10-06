@@ -30,6 +30,15 @@
       <button class="nav-item" data-view="settings"><span class="nav-ico" data-ico="settings"></span><span class="nav-label">设置</span></button>
     </nav>
     <div class="sidebar-foot">
+      <!-- 常驻支持入口：全站可见，点了 Star 直接开仓库页，点了咖啡弹出收款码 -->
+      <div class="support-entry" id="supportEntry">
+        <button class="se-row se-star" type="button" data-support="star" title="在 GitHub 上给项目点个 Star">
+          <span class="ico" data-ico="star"></span><span class="se-label" id="seStarLabel">点个 Star</span>
+        </button>
+        <button class="se-row se-coffee" type="button" data-support="coffee" title="请作者喝杯咖啡">
+          <span class="ico" data-ico="coffee"></span><span class="se-label" id="seCoffeeLabel">请我喝咖啡</span>
+        </button>
+      </div>
       <div class="env-chip" id="envChip" title="本地运行环境状态">
         <span class="dot dot-muted" id="envDot"></span><span id="envText">检测中…</span>
       </div>
@@ -45,7 +54,6 @@
       </div>
       <div class="topbar-actions">
         <button class="btn ghost" id="btnRefresh" title="重新同步最新数据"><span class="ico" data-ico="refresh"></span>刷新</button>
-        <button class="btn primary hidden" id="btnQuickAction"><span class="ico" data-ico="plus"></span>新建隧道</button>
       </div>
     </header>
     <main class="content" id="content"></main>
