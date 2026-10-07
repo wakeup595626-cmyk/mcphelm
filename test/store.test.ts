@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -127,6 +127,42 @@ test('损坏的 JSON 被视为配置错误', () => {
     const loaded = loadConfig(paths);
     assert.equal(loaded.ok, false);
     assert.equal(loaded.error, 'config-not-found');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('loadConfig 会自动修好旧版本留下的坏命令，并写回磁盘（0.1.10）', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mcphelm-migrate-'));
+  try {
+    const paths = resolvePaths({ cwd: dir, env: { MCPHELM_HOME: join(dir, 'home') } });
+    const config: AppConfig = {
+      version: 1,
+      servers: [
+        { name: 'windows-mcp', kind: 'stdio', command: 'uvx windows-mcp' },
+        { name: 'sqlite', kind: 'stdio', command: 'uvx mcp-server-sqlite --db-path C:\\tmp\\a.db' },
+        { name: 'mine', kind: 'stdio', command: 'npx -y my-own-mcp --port 7788' },
+      ],
+      tunnels: [],
+    };
+    saveConfig(paths, config);
+
+    const loaded = loadConfig(paths);
+    assert.equal(loaded.ok, true);
+    assert.equal(findServer(loaded.config, 'windows-mcp')?.command, 'uvx windows-mcp serve');
+    assert.equal(
+      findServer(loaded.config, 'sqlite')?.command,
+      'uvx --with mcp==1.17.0 mcp-server-sqlite --db-path C:\\tmp\\a.db'
+    );
+    assert.equal(findServer(loaded.config, 'mine')?.command, 'npx -y my-own-mcp --port 7788', '用户自己的命令不动');
+    assert.equal((loaded.migrations ?? []).length, 2);
+
+    /* 磁盘上已经是修好的命令：下次载入不再迁移，且原配置留了备份 */
+    const again = loadConfig(paths);
+    assert.deepEqual(again.migrations ?? [], []);
+    const onDisk = JSON.parse(readFileSync(paths.configFile, 'utf8')) as AppConfig;
+    assert.equal(findServer(onDisk, 'windows-mcp')?.command, 'uvx windows-mcp serve');
+    assert.equal(existsSync(join(paths.configDir, 'config.backup.json')), true);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

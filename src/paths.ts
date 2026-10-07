@@ -98,6 +98,14 @@ export function stopFileFor(paths: AppPaths, tunnelName: string): string {
   return join(paths.runDir, sanitizeName(tunnelName) + '.stop');
 }
 
+/**
+ * 守护进程「放弃自动重启」时写下的原因摘要（0.1.10）。
+ * 面板读它给用户显示人话原因，而不是只说一句「状态残留」。
+ */
+export function lastErrorFileFor(paths: AppPaths, tunnelName: string): string {
+  return join(paths.runDir, sanitizeName(tunnelName) + '.last-error.json');
+}
+
 export function describeConfigScope(scope: ConfigScope): string {
   switch (scope) {
     case 'explicit':

@@ -1,4 +1,5 @@
 import { BRAND } from './brand.ts';
+import { migrateComponentCommand } from './components.ts';
 import type { AppPaths } from './paths.ts';
 import { join } from 'node:path';
 import { atomicWriteJson, isProcessAlive, maskSecret, readJsonSafe } from './util.ts';
@@ -69,6 +70,12 @@ export interface LoadResult {
   config: AppConfig;
   issues: ConfigIssue[];
   error?: string;
+  /**
+   * 0.1.10：载入时自动修好的旧版组件命令（人话说明，给日志用）。
+   * 老版本（≤0.1.9）生成的 windows-mcp / sqlite / obsidian 命令本身就起不来，
+   * 用户升级后这些命令还留在 config.json 里，必须就地修好。
+   */
+  migrations?: string[];
 }
 
 export const TUNNEL_ID_RE = /^tunnel_[0-9a-f]{32}$/;
@@ -147,6 +154,32 @@ export function validateConfig(config: AppConfig): ConfigIssue[] {
   return issues;
 }
 
+/**
+ * 修好旧版本留下的坏命令（0.1.10 新增）。
+ *
+ * 只动「确定跑不起来」的写法（见 components.ts 的迁移表），改完立刻落盘——
+ * saveConfig 会先把磁盘上原样的配置留一份到 config.backup.json，所以这一步可回退。
+ * 磁盘写不进去也不影响本次运行：内存里的配置已经是修好的。
+ */
+function migrateKnownCommands(paths: AppPaths, config: AppConfig, hasError: boolean): string[] {
+  const notes: string[] = [];
+  for (const server of config.servers) {
+    if (server.kind !== 'stdio' || typeof server.command !== 'string' || !server.command.trim()) continue;
+    const fixed = migrateComponentCommand(server.command);
+    if (!fixed || fixed.command === server.command) continue;
+    notes.push(server.name + '：' + server.command + ' → ' + fixed.command + '（' + fixed.note + '）');
+    server.command = fixed.command;
+  }
+  if (notes.length > 0 && !hasError) {
+    try {
+      saveConfig(paths, config);
+    } catch {
+      // 备份 + 落盘失败不该阻断启动：内存里已经修好了
+    }
+  }
+  return notes;
+}
+
 export function loadConfig(paths: AppPaths): LoadResult {
   const raw = readJsonSafe<unknown>(paths.configFile);
   if (raw === null) {
@@ -167,7 +200,7 @@ export function loadConfig(paths: AppPaths): LoadResult {
   };
   const issues = validateConfig(config);
   const hasError = issues.some((i) => i.level === 'error');
-  return { ok: !hasError, config, issues };
+  return { ok: !hasError, config, issues, migrations: migrateKnownCommands(paths, config, hasError) };
 }
 
 /**

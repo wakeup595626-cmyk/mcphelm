@@ -56,6 +56,13 @@ export interface ComponentSpec {
   runner: ComponentRunner;
   /** 传给 npx / uvx 的包名（含可选版本），例如 "@playwright/mcp@latest" */
   package: string;
+  /**
+   * uvx 专属：插在包名前面的 uvx 参数。
+   * 真事故：uvx mcp-server-sqlite 默认拉到的 mcp 新版会报
+   * AttributeError: Server object has no attribute list_resources，必须把依赖锁到
+   * 已知可用版本（--with mcp==1.17.0）才能启动。
+   */
+  uvxArgs?: string[];
   /** 额外固定的启动参数 */
   args?: string[];
   /** 需要用户注意的参数/环境说明（中文，界面提示，可选） */
@@ -103,6 +110,7 @@ export const COMPONENTS: ComponentSpec[] = [
     kind: 'stdio',
     runner: 'uvx',
     package: 'windows-mcp',
+    args: ['serve'],
     hint: '需要 Windows 桌面环境；远程/无界面场景不适用。',
     hintEn: 'Needs a Windows desktop session; headless/remote use is not supported.',
     serverDescription: 'Windows-MCP 桌面自动化（组件市场安装）',
@@ -268,9 +276,8 @@ export const COMPONENTS: ComponentSpec[] = [
     kind: 'stdio',
     runner: 'uvx',
     package: 'mcp-server-git',
-    args: ['--repository', '%USERPROFILE%\\Documents'],
-    hint: '默认指向"文档"下的仓库；装好后把它改成你自己的 Git 仓库路径。',
-    hintEn: 'Points at a repo under Documents by default; change it to your own repo path.',
+    hint: '默认读取当前目录；要指定仓库，装好后把命令改成 uvx mcp-server-git --repository "你的仓库路径"（该目录必须含 .git，否则启动会报错）。',
+    hintEn: 'Reads the current directory by default; to pin a repo edit the command to uvx mcp-server-git --repository "your repo path" (the folder must contain .git).',
     serverDescription: 'Git 仓库读取（组件市场安装）',
   },
   {
@@ -286,9 +293,10 @@ export const COMPONENTS: ComponentSpec[] = [
     kind: 'stdio',
     runner: 'uvx',
     package: 'mcp-server-sqlite',
+    uvxArgs: ['--with', 'mcp==1.17.0'],
     args: ['--db-path', '%USERPROFILE%\\Documents\\mcphelm.db'],
-    hint: '默认库文件是"文档\\mcphelm.db"；换成你自己的 .db 路径即可。',
-    hintEn: 'Defaults to Documents\\mcphelm.db; point it at your own .db file instead.',
+    hint: '默认库文件是"文档\\mcphelm.db"；换成你自己的 .db 路径即可。已锁定 mcp 1.17.0 依赖，避免上游新版不兼容。',
+    hintEn: 'Defaults to Documents\\mcphelm.db; point it at your own .db file. Dependency mcp 1.17.0 is pinned so upstream breakage cannot bite you.',
     serverDescription: 'SQLite 数据库（组件市场安装）',
   },
   {
@@ -352,10 +360,10 @@ export const COMPONENTS: ComponentSpec[] = [
     stars: 739,
     kind: 'stdio',
     runner: 'npx',
-    package: 'obsidian-mcp',
-    args: ['%USERPROFILE%\\Documents\\Obsidian'],
-    hint: '默认指向"文档\\Obsidian"；装好后改成你自己笔记库的路径。',
-    hintEn: 'Defaults to Documents\\Obsidian; change it to your own vault path.',
+    package: 'obsidian-mcp@2',
+    args: ['serve', '--vault', 'notes=%USERPROFILE%\\Documents\\Obsidian'],
+    hint: '需要 Node.js 22 或更新版本；默认笔记库是"文档\\Obsidian"，换成你自己的库路径（目录里要有 .obsidian 文件夹）。',
+    hintEn: 'Needs Node.js 22+; defaults to Documents\\Obsidian — change it to your own vault path (the folder must contain .obsidian).',
     serverDescription: 'Obsidian 笔记库（组件市场安装）',
   },
   {
@@ -393,7 +401,7 @@ export function componentCommand(spec: ComponentSpec, paths: AppPaths): string {
   if (spec.runner === 'npx') {
     parts.push('npx', '-y', spec.package);
   } else {
-    parts.push('uvx', spec.package);
+    parts.push('uvx', ...(spec.uvxArgs ?? []), spec.package);
   }
   if (spec.args) parts.push(...spec.args);
   return parts.join(' ');
@@ -402,4 +410,134 @@ export function componentCommand(spec: ComponentSpec, paths: AppPaths): string {
 /** 该组件依赖的运行器名称（用于界面提示和体检）：npx 随 Node 自带；uvx 需要装 uv */
 export function runnerName(runner: ComponentRunner): string {
   return runner === 'npx' ? 'npx（随 Node.js 自带）' : 'uvx（需先安装 uv）';
+}
+
+/**
+ * 旧版本（0.1.9 及更早）留下的「装完也跑不起来」的命令：载入配置时就地修好。
+ *
+ * 真机事故：组件市场按老写法生成的三条命令在本机根本起不来，用户只看到
+ * 「隧道连上了但用不了」——
+ *   1) uvx windows-mcp：windows-mcp 0.4 起必须有子命令，裸跑直接
+ *      "Error: Missing command." 退出（实测 exit=2，1.8 秒后隧道跟着下线）；
+ *   2) uvx mcp-server-sqlite：上游 mcp 新版删掉了 Server.list_resources，必须把依赖
+ *      锁到 mcp==1.17.0 才能启动；
+ *   3) npx obsidian-mcp <库路径>：obsidian-mcp 2.x 已改成 serve --vault notes=<路径>，
+ *      老的位置参数写法会直接报错。
+ *
+ * 这些命令已经写进用户的 config.json，光升级软件不会自己变好——所以载入时按下面的
+ * 规则就地修好，并留一句人话说明为什么改。只认「确定坏掉」的写法：用户自己加过参数、
+ * 换成别的包的命令一律不动（他们显然已经改过了）。
+ */
+export interface CommandMigration {
+  /** 修好后的命令 */
+  command: string;
+  /** 为什么要改（写进日志，用户能看到自己的命令为什么变了） */
+  note: string;
+}
+
+interface CommandToken {
+  text: string;
+  /** 该 token 在原始命令里的起止位置——迁移时就地插入，不重排用户写下的其他内容 */
+  start: number;
+  end: number;
+  quoted: boolean;
+}
+
+/** 按引号规则切词，并记住每个 token 的位置 */
+function tokenizeCommand(command: string): CommandToken[] {
+  const out: CommandToken[] = [];
+  const re = /"([^"]*)"|'([^']*)'|(\S+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(command)) !== null) {
+    const text = m[1] ?? m[2] ?? m[3] ?? '';
+    if (text.length === 0) continue;
+    const raw = m[0];
+    out.push({
+      text,
+      start: m.index,
+      end: m.index + raw.length,
+      quoted: raw.startsWith('"') || raw.startsWith("'"),
+    });
+  }
+  return out;
+}
+
+/** 去掉包名尾巴上的版本号：obsidian-mcp@2 → obsidian-mcp（@scope/name@ver 也照顾到） */
+function stripPackageVersion(token: string): string {
+  const at = token.startsWith('@') ? token.indexOf('@', 1) : token.indexOf('@');
+  return at <= 0 ? token : token.slice(0, at);
+}
+
+/** 这个 token 是不是某个工具（uvx / npx，允许写完整路径或带 .exe / .cmd） */
+function isToolToken(token: string | undefined, name: string): boolean {
+  if (!token) return false;
+  const base = token.replace(/^.*[\\/]/, '').replace(/\.(exe|cmd|bat|com)$/i, '');
+  return base.toLowerCase() === name;
+}
+
+/** 该包在命令行里的位置（-1 = 这条命令不是用这个包拉的） */
+function packageIndex(tokens: string[], packageName: string): number {
+  return tokens.findIndex(
+    (token) => stripPackageVersion(token).toLowerCase() === packageName.toLowerCase()
+  );
+}
+
+export function migrateComponentCommand(command: string): CommandMigration | null {
+  const tokens = tokenizeCommand(command);
+  const first = tokens[0];
+  if (!first || tokens.length < 2) return null;
+  const texts = tokens.map((token) => token.text);
+  const insertAfter = (index: number, text: string): string => {
+    const anchor = tokens[index];
+    if (!anchor) return command;
+    return command.slice(0, anchor.end) + text + command.slice(anchor.end);
+  };
+  const insertBefore = (index: number, text: string): string => {
+    const anchor = tokens[index];
+    if (!anchor) return command;
+    return command.slice(0, anchor.start) + text + command.slice(anchor.start);
+  };
+
+  /* windows-mcp：补上 serve 子命令 */
+  const winIdx = packageIndex(texts, 'windows-mcp');
+  if (isToolToken(first.text, 'uvx') && winIdx > 0 && !texts.includes('serve')) {
+    return {
+      command: insertAfter(winIdx, ' serve'),
+      note: 'windows-mcp 要带 serve 子命令，裸写会立刻退出（缺子命令）',
+    };
+  }
+
+  /* mcp-server-sqlite：锁定 mcp 1.17.0，绕开上游不兼容改动 */
+  const sqliteIdx = packageIndex(texts, 'mcp-server-sqlite');
+  if (isToolToken(first.text, 'uvx') && sqliteIdx > 0 && !texts.includes('--with')) {
+    return {
+      command: insertBefore(sqliteIdx, '--with mcp==1.17.0 '),
+      note: '上游 mcp 新版和 mcp-server-sqlite 不兼容，已锁定 mcp==1.17.0',
+    };
+  }
+
+  /* obsidian-mcp 1.x → 2.x：位置参数改成 serve --vault notes=<路径>。
+     这条要重排参数，所以只在「写法确实是最老的那一种」时动手：
+     包名后面只剩一个位置参数、没有别的开关。 */
+  const obsIdx = packageIndex(texts, 'obsidian-mcp');
+  if (isToolToken(first.text, 'npx') && obsIdx > 0) {
+    const version = texts[obsIdx] ?? '';
+    const tail = tokens.slice(obsIdx + 1);
+    const extras = tail.filter((token) => !token.text.startsWith('-'));
+    const flags = tail.filter((token) => token.text.startsWith('-'));
+    const known = (token: CommandToken): boolean => token.text === '-y' || token.text === '--yes';
+    const alreadyNew = texts.includes('serve') || texts.includes('--vault');
+    if (!alreadyNew && flags.every(known) && extras.length === 1 && !version.includes('@')) {
+      const prefix = tokens.slice(0, obsIdx).filter((token) => !known(token));
+      const vault = extras[0];
+      const vaultText = vault?.quoted || /\s/.test(vault?.text ?? '') ? '"' + (vault?.text ?? '') + '"' : (vault?.text ?? '');
+      const fixed = [...prefix.map((token) => token.text), '-y', 'obsidian-mcp@2', 'serve', '--vault', 'notes=' + vaultText];
+      return {
+        command: fixed.join(' '),
+        note: 'obsidian-mcp 2.x 改用 serve --vault notes=<笔记库路径>，老写法已废弃',
+      };
+    }
+  }
+
+  return null;
 }

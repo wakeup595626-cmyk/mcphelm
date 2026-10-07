@@ -563,6 +563,26 @@ a:hover { text-decoration: underline; }
 }
 
 /* ============ Toast ============ */
+/* ============ 隧道卡片上的失败原因（0.1.10） ============ */
+.tun-err {
+  padding: 10px 18px 11px; border-top: 1px solid var(--border);
+  background: var(--red-soft); color: var(--red);
+  font-size: 12.5px; line-height: 1.6;
+}
+.tun-err-t { display: flex; align-items: flex-start; gap: 6px; font-weight: var(--fw-semibold); }
+.tun-err-t .ico { width: 14px; height: 14px; margin-top: 2px; flex-shrink: 0; }
+.tun-err-h {
+  display: flex; align-items: flex-start; gap: 7px; margin-top: 7px;
+  padding: 7px 10px; border-radius: var(--r-sm);
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text-2); font-weight: 400;
+}
+.tun-err-tag {
+  flex-shrink: 0; padding: 1px 7px; border-radius: 999px;
+  background: var(--amber-soft); color: var(--amber);
+  font-size: 11px; font-weight: var(--fw-semibold);
+}
+
 .toast-root {
   position: fixed; bottom: 22px; right: 22px; z-index: 200;
   display: flex; flex-direction: column; gap: 10px;
@@ -578,6 +598,8 @@ a:hover { text-decoration: underline; }
 .toast.ok .ico { color: #4ade80; }
 .toast.err .ico { color: #f87171; }
 .toast.info .ico { color: #7ea2ff; }
+.toast.warn .ico { color: #fbbf24; }
+.toast.warn { max-width: 520px; }
 .toast.out { opacity: 0; transform: translateX(24px); transition: all .25s; }
 
 /* ============ 进度条 ============ */

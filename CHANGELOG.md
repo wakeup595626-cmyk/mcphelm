@@ -7,6 +7,32 @@
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-10-07
+
+### Fixed
+
+- 修掉「隧道永远起不来、面板只说一句『状态残留』」这条主链路（真机复现）：组件市场装的 windows-mcp 用 `uvx` 拉起本地 MCP 进程，而 uv 装在 `%USERPROFILE%\.local\bin`、这个目录不在 PATH 里，tunnel-client 一启动就报 `exec: "uvx": executable file not found in %PATH%`，0.1 秒退出，守护进程在 8 秒窗口内连试 5 次后放弃，界面上只剩一句「状态残留」，用户完全看不出发生了什么。现在这条链路每一环都能自证：
+  - 启动隧道前先探测 stdio 命令：找不到就直接返回「为什么 + 怎么修」的人话错误，不再进崩溃循环、不再让用户白等。
+  - 命令只在常见安装目录里（`~/.local\bin`、`%APPDATA%\npm`、`.cargo\bin`、pnpm / scoop / bun / go 等）时，自动把这些目录补进 tunnel-client 子进程的 PATH（PATH 与 Path 双写、去重、Windows 忽略大小写），用户不需要去改系统环境变量。
+  - 守护进程放弃自动重启时会写一份失败摘要（数据根 `run/<隧道名>.last-error.json`），面板卡片直接显示退出原因，并在下面按「修复建议」写明下一步怎么做。
+  - 面板点「启动 / 重启」失败时，提示里带上修复建议；12 秒内没就绪时会把真实原因（命令找不到、连续崩溃…）一并弹出来，不再是「请稍后复检」。
+  - 状态徽标从「状态残留」改为「进程已退出」，鼠标悬停解释这是什么意思；命令行 `status` 同步改文案。
+  - 面板上这条状态附带的说明文字也一并换成大白话：不再出现「残留状态 / 可执行 stop 清理」这种术语，直接说「上次运行的进程已经不在了（面板还留着上次的运行记录）」，修复建议改成「想清掉旧记录就点『停止』；要重新连上，直接点『启动』。如果启动后又马上退出，点『体检』能让软件把原因查出来」。
+- 体检（doctor）里的 stdio 检查从「找不到就警告」升级为失败并给出安装指引；命令命中常见安装目录时会标注「启动时会自动补齐，无需手工设置」。
+- 组件市场：卡片上直接标注这条组件要用的 `uvx` / `npx` 本机是否可用，缺了就写「需先安装 uv / Node.js」；安装成功后运行器仍然缺失时会再提醒一次，不会再出现「装完、挂上隧道才发现启动不了」。
+- 组件市场里有 5 条带参数的命令「装上了也起不来」，本版按真机复现逐条修正：
+  - `windows-mcp` 缺子命令：`uvx windows-mcp` 会打印 `Error: Missing command.` 后退出，现改为 `uvx windows-mcp serve`。
+  - `filesystem` / `git` / `sqlite` / `obsidian` 的 `%USERPROFILE%` 以前是字面量直传：tunnel-client 不经过 cmd.exe，变量没人展开，子进程收到的是字符串 `%USERPROFILE%\Documents`。现在启动隧道前先把 `%NAME%` / `${NAME}` 展开成真实路径（Windows 下大小写不敏感，值里有空格时自动补引号）。
+  - 同一条链路上还有第二层：tunnel-client 的参数拆分器把反斜杠当转义符，`C:\Users\me\Documents` 传到子进程会变成 `C:UsersmeDocuments`（已用真机运行时二进制逐条实测）。现在按拆分器的规则做精确逆运算，只把单引号之外的 `\` 复制一份，不做正斜杠改写。
+  - `sqlite` 默认拉到的新版 mcp 依赖会报 `AttributeError: 'Server' object has no attribute 'list_resources'`，现固定 `--with mcp==1.17.0`。
+  - `obsidian` 的 v1 位置参数写法已废弃，现改为 `npx -y obsidian-mcp@2 serve --vault notes=路径`，提示里同步写明需要 Node.js 22+、笔记库目录必须含 `.obsidian`。
+- 上面这三条坏命令已经写进老用户的 `config.json` 了，光升级软件不会自己变好：现在载入配置时就地修好并写回磁盘（原文件同时留一份 `config.backup.json` 可回退），命令行启动时会把「改了什么、为什么改」写在终端里，不让软件偷偷动用户配置。只认「确定跑不起来」的写法，用户自己加过参数或换过包的命令一律不动。
+- 服务器模板里的 git / sqlite 两条同步修正（git 原来指向家目录、根本不是 Git 仓库；sqlite 缺依赖锁定），避免新手照着模板填出来就是坏的。
+
+### Added
+
+新增命令探测模块 `src/mcpcommand.ts`（按「用户写的路径 → 系统 PATH → 常见安装目录」逐层探测，找不到时按工具给出安装指引）；新增测试 `test/mcpcommand.test.ts`（19 条）与旧命令自动迁移用例（`test/components.test.ts` 5 条、`test/store.test.ts` 1 条），全套 110 条测试全部通过。
+
 ## [0.1.9] - 2026-10-07
 
 ### Fixed
@@ -165,6 +191,7 @@
 - 桌面版打包命令：`npm run dist:win`（产出在 `release/`）；本地调试用 `npm run desktop`。
 - 本项目是独立第三方工具，只按需下载 openai/tunnel-client 的官方发布二进制，不修改也不重新分发其源码；本项目非 OpenAI 官方产品。
 
+[0.1.10]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.10
 [0.1.9]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.9
 [0.1.8]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.8
 [0.1.7]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.7

@@ -114,7 +114,7 @@ function stateLabel(state: TunnelStatus['state']): string {
     case 'stopped':
       return dim('未启动');
     case 'stale':
-      return yellow('残留状态');
+      return yellow('进程已退出');
     default:
       return red('异常');
   }
@@ -176,6 +176,11 @@ function extractGlobals(argv: string[]): GlobalOptions {
 function buildCtx(g: GlobalOptions): Ctx {
   const paths = resolvePaths({ configFlag: g.configFlag });
   const loaded = loadConfig(paths);
+  /* 0.1.10：老版本组件市场留下的坏命令（例如 uvx windows-mcp）在载入时就被修好，
+     这里把「改了什么、为什么改」写到 stderr，用户不会觉得软件偷偷动了自己的配置 */
+  for (const note of loaded.migrations ?? []) {
+    process.stderr.write(yellow('  ! 已自动修复旧版本留下的 MCP 命令：' + note) + '\n');
+  }
   return { paths, config: loaded.config, issues: loaded.issues };
 }
 

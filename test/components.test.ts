@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
-import { COMPONENTS, componentCommand, findComponent } from '../src/components.ts';
+import { COMPONENTS, componentCommand, findComponent, migrateComponentCommand } from '../src/components.ts';
 import { startPanel } from '../src/panel/server.ts';
 import type { AppPaths } from '../src/paths.ts';
 import { emptyConfig, findServer } from '../src/store.ts';
@@ -135,5 +135,47 @@ describe('组件市场 API', () => {
       headers: { 'x-mcphelm-token': token, 'content-type': 'application/json' },
     });
     assert.equal(res.status, 404);
+  });
+});
+
+/* 真机事故回归：老版本组件市场写下的命令本身跑不起来（windows-mcp 缺 serve 子命令、
+   sqlite 没锁 mcp 版本、obsidian-mcp 用废弃的位置参数）。这些命令留在用户 config.json 里，
+   升级软件不会自己变好——载入配置时必须就地修好。 */
+describe('旧版 MCP 命令自动修复（0.1.10）', () => {
+  it('uvx windows-mcp 补上 serve 子命令', () => {
+    const fixed = migrateComponentCommand('uvx windows-mcp');
+    assert.ok(fixed);
+    assert.equal(fixed.command, 'uvx windows-mcp serve');
+    assert.match(fixed.note, /serve/);
+  });
+
+  it('已经修好的写法一律不动', () => {
+    assert.equal(migrateComponentCommand('uvx windows-mcp serve'), null);
+    assert.equal(migrateComponentCommand('uvx windows-mcp serve --transport stdio'), null);
+    assert.equal(migrateComponentCommand('npx -y @playwright/mcp@latest'), null);
+    assert.equal(migrateComponentCommand('python -m my_server'), null);
+  });
+
+  it('uvx mcp-server-sqlite 锁定 mcp==1.17.0，且不动用户写的路径', () => {
+    const fixed = migrateComponentCommand('uvx mcp-server-sqlite --db-path "C:\\Users\\me\\data\\mcphelm.db"');
+    assert.ok(fixed);
+    assert.equal(
+      fixed.command,
+      'uvx --with mcp==1.17.0 mcp-server-sqlite --db-path "C:\\Users\\me\\data\\mcphelm.db"'
+    );
+    assert.equal(migrateComponentCommand('uvx --with mcp==1.17.0 mcp-server-sqlite --db-path x.db'), null);
+  });
+
+  it('npx obsidian-mcp 老写法改成 serve --vault notes=<路径>', () => {
+    const fixed = migrateComponentCommand('npx obsidian-mcp %USERPROFILE%\\Documents\\Obsidian');
+    assert.ok(fixed);
+    assert.equal(
+      fixed.command,
+      'npx -y obsidian-mcp@2 serve --vault notes=%USERPROFILE%\\Documents\\Obsidian'
+    );
+  });
+
+  it('带了额外开关的 obsidian-mcp 命令不乱改（用户显然自己动过）', () => {
+    assert.equal(migrateComponentCommand('npx obsidian-mcp --port 3000 %USERPROFILE%\\Notes'), null);
   });
 });

@@ -16,7 +16,7 @@
  */
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 
 const WATCH_MS = 800;
 const MAX_RAPID_CRASHES = 5;
@@ -26,6 +26,22 @@ const MAX_DELAY_MS = 60_000;
 
 function log(line: string): void {
   process.stdout.write('[' + new Date().toISOString() + '][supervisor] ' + line + '\n');
+}
+
+/**
+ * 把「为什么退出」写成一份摘要文件（0.1.10 新增）。
+ * 面板读到它就能给出人话原因，而不是让用户对着「状态残留」发愣。
+ */
+function writeErrorFile(
+  file: string,
+  info: { kind: string; message: string; hint: string | null; detail?: string }
+): void {
+  if (!file) return;
+  try {
+    writeFileSync(file, JSON.stringify({ at: new Date().toISOString(), ...info }, null, 2) + '\n', 'utf8');
+  } catch {
+    // 摘要写不进去不影响守护进程本身
+  }
 }
 
 function parseArgv(argv: string[]): { runtime: string; args: string[] } | null {
@@ -47,6 +63,7 @@ async function main(): Promise<void> {
   const parsed = parseArgv(process.argv.slice(2));
   const name = process.env.MCPHELM_SUPERVISOR_NAME ?? 'tunnel';
   const stopFile = process.env.MCPHELM_SUPERVISOR_STOP ?? '';
+  const errorFile = process.env.MCPHELM_SUPERVISOR_ERROR ?? '';
   if (!parsed) {
     log('参数不完整（需要 <runtime> -- <args...>），守护进程退出');
     process.exit(2);
@@ -126,6 +143,11 @@ async function main(): Promise<void> {
     const exit = await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((wait) => {
       child?.once('error', (err) => {
         log('无法拉起 tunnel-client：' + err.message);
+        writeErrorFile(errorFile, {
+          kind: 'spawn',
+          message: '无法拉起 tunnel-client：' + err.message,
+          hint: '先确认软件安装目录没有被杀毒软件隔离或删除，然后在面板里点「启动」重试。',
+        });
         wait({ code: 127, signal: null });
       });
       child?.once('exit', (code, signal) => wait({ code, signal }));
@@ -146,6 +168,13 @@ async function main(): Promise<void> {
     crashTimes.push(now);
     while (crashTimes.length > 0 && now - (crashTimes[0] ?? now) > RAPID_WINDOW_MS) crashTimes.shift();
     if (crashTimes.length >= MAX_RAPID_CRASHES) {
+      writeErrorFile(errorFile, {
+        kind: 'giveup',
+        message:
+          '隧道在 ' + Math.round(RAPID_WINDOW_MS / 1000) + ' 秒内连续崩溃 ' + MAX_RAPID_CRASHES + ' 次，已停止自动重启',
+        hint: '日志最后几行通常就是原因（本地命令找不到 / 密钥无效 / 网络不通）；修好后回到面板点「启动」重试。',
+        detail: how + '，最近一次存活 ' + (ranMs / 1000).toFixed(1) + ' 秒',
+      });
       log(
         '隧道 ' + name + ' 在 ' + Math.round(RAPID_WINDOW_MS / 1000) + ' 秒内连续崩溃 ' + MAX_RAPID_CRASHES +
           ' 次，停止自动重启。请检查：runtime key 是否有效、隧道 ID 是否正确、本地 MCP 命令能否手动跑通；修复后在面板或命令行重新启动。'

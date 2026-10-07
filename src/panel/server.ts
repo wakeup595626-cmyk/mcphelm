@@ -13,9 +13,10 @@ import { mergeServers, parseExternalFile, parsePastedConfig, scanExternalConfigs
 import { keyringDelete, keyringSet, keyringSupported } from '../keyring.ts';
 import { pruneLogs } from '../logrotate.ts';
 import { readStarsCache, refreshStars, starsCacheFresh } from '../marketstars.ts';
+import { installHintFor, resolveCommand } from '../mcpcommand.ts';
 import { describeConfigScope, logFileFor } from '../paths.ts';
 import type { AppPaths } from '../paths.ts';
-import { listStatuses, probeHealth, readLogTail, readState, startTunnel, stopTunnel } from '../runtime.ts';
+import { listStatuses, probeHealth, readLogTail, readState, startTunnel, stopTunnel, tunnelStatus } from '../runtime.ts';
 import {
   findServer,
   findTunnel,
@@ -473,6 +474,8 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         },
         health,
         lastError: status.lastError,
+        /* 0.1.10：面板要把「为什么没起来」连同修复建议一起显示，而不是只给一句状态残留 */
+        lastErrorHint: status.lastErrorHint,
         key: {
           ready: key.ready,
           source: key.source,
@@ -913,7 +916,13 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
           }
           const result = await startTunnel({ paths: opts.paths, config: opts.config, tunnel });
           if (!result.ok) {
-            sendJson(res, 400, { ok: false, error: result.error ?? '启动失败' });
+            const reason = result.error ?? '启动失败';
+            sendJson(res, 400, {
+              ok: false,
+              error: reason,
+              hint: result.hint ?? null,
+              message: result.hint ? reason + ' 修复建议：' + result.hint : reason,
+            });
             return;
           }
           const state = result.state;
@@ -936,6 +945,15 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
             }
             await sleep(600);
           }
+          /* 没就绪时，把守护进程写下的真实原因（命令找不到 / 连续崩溃）一起带回去，
+             用户看到的是「为什么」，而不是一句「请稍后复检」 */
+          let failReason: string | null = null;
+          let failHint: string | null = null;
+          if (!ready) {
+            const fresh = tunnelStatus(opts.paths, tunnel);
+            failReason = fresh.lastError;
+            failHint = fresh.lastErrorHint;
+          }
           opts.onLog?.(
             (action === 'restart' ? '面板重启了隧道 ' : '面板启动了隧道 ') +
               name +
@@ -952,9 +970,14 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
               (action === 'restart' ? '隧道 ' + name + ' 已重启' : '隧道 ' + name + ' 已启动') +
               '（PID ' +
               String(state?.pid ?? '?') +
-              (ready ? '，健康检查已通过' : '，健康端点 ' + healthAddr + ' 尚未就绪，请稍后在状态里复检') +
+              (ready
+                ? '，健康检查已通过'
+                : '，健康端点 ' + healthAddr + ' 尚未就绪' +
+                  (failReason ? '：' + failReason : '，请稍后在状态里复检')) +
               '）',
             state: 'running',
+            lastError: failReason,
+            lastErrorHint: failHint,
           });
           return;
         } finally {
@@ -1119,6 +1142,21 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
           void refreshStars(repos, starsFile, cache).catch(() => undefined);
         }
         const live = fresh ? cache : null;
+        /* 0.1.10：这条组件靠 uvx / npx 拉起，本机没装就直接在卡片上说明白，
+           别再等用户装完、挂上隧道才发现「命令找不到」 */
+        const runnerCache = new Map<string, { available: boolean; path: string | null; hint: string | null }>();
+        const runnerInfo = (runner: string): { available: boolean; path: string | null; hint: string | null } => {
+          const cached = runnerCache.get(runner);
+          if (cached) return cached;
+          const probe = resolveCommand(runner, { cwd: opts.paths.cwd });
+          const info = {
+            available: probe.ok,
+            path: probe.path,
+            hint: probe.ok ? null : installHintFor(probe.token || runner),
+          };
+          runnerCache.set(runner, info);
+          return info;
+        };
         const items = COMPONENTS.map((c) => ({
           id: c.id,
           title: c.title,
@@ -1139,6 +1177,8 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
           starsRefreshedAt: live?.at ?? '',
           command: componentCommand(c, opts.paths),
           installed: !!findServer(opts.config, c.id),
+          runnerAvailable: c.kind === 'stdio' ? runnerInfo(c.runner).available : true,
+          runnerHint: c.kind === 'stdio' ? runnerInfo(c.runner).hint : null,
         }));
         sendJson(res, 200, { ok: true, components: items });
         return;
@@ -1166,7 +1206,18 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         opts.config.servers.push(server);
         saveConfig(opts.paths, opts.config);
         opts.onLog?.('组件市场安装了组件：' + spec.title + '（' + id + '）');
-        sendJson(res, 200, { ok: true, message: '已安装 ' + spec.title + '，去“服务器”里挂上隧道就能用', server });
+        /* 0.1.10：本机没有 uvx / npx 时当场提醒，别等隧道启动失败才发现 */
+        const runnerProbe = spec.kind === 'stdio' ? resolveCommand(spec.runner, { cwd: opts.paths.cwd }) : null;
+        const runnerWarning =
+          runnerProbe && !runnerProbe.ok
+            ? '本机还找不到命令 ' + (runnerProbe.token || spec.runner) + '。' + (runnerProbe.hint ?? '')
+            : null;
+        sendJson(res, 200, {
+          ok: true,
+          message: '已安装 ' + spec.title + '，去“服务器”里挂上隧道就能用',
+          server,
+          runnerWarning,
+        });
         return;
       }
 

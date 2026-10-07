@@ -39,6 +39,19 @@ test('HTTP 隧道会带上 extra-headers 与自定义参数', () => {
   ]);
 });
 
+test('进隧道前把 Windows 路径转义（真机事故回归）', () => {
+  const windowsServer: McpServerConfig = {
+    name: 'sqlite',
+    kind: 'stdio',
+    command: 'uvx --with mcp==1.17.0 mcp-server-sqlite --db-path "C:\\Users\\demo\\mcphelm.db"',
+  };
+  const escaped = buildRunArgs(tunnel, windowsServer, '127.0.0.1:8080');
+  assert.equal(
+    escaped[3],
+    '--mcp.command=uvx --with mcp==1.17.0 mcp-server-sqlite --db-path "C:\\\\Users\\\\demo\\\\mcphelm.db"'
+  );
+});
+
 test('命令里不会出现 runtime key', () => {
   const withKey: TunnelConfig = { ...tunnel, apiKey: 'sk-super-secret' };
   const server: McpServerConfig = { name: 'demo', kind: 'stdio', command: 'npx -y demo' };

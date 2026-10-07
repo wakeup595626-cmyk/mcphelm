@@ -2,12 +2,13 @@ import { createServer } from 'node:net';
 import { BRAND } from './brand.ts';
 import { keyringHas, keyringSupported } from './keyring.ts';
 import { logsUsage } from './logrotate.ts';
+import { firstToken, resolveCommand } from './mcpcommand.ts';
 import type { AppPaths } from './paths.ts';
 import { describeConfigScope } from './paths.ts';
 import { readState } from './runtime.ts';
 import type { AppConfig, ConfigIssue, McpServerConfig, TunnelConfig } from './store.ts';
 import { findServer, healthPortFor, isValidTunnelId, resolveApiKeyAsync, serverTarget } from './store.ts';
-import { fetchLatestVersion, findRuntime, whichBinary } from './tunnelclient.ts';
+import { fetchLatestVersion, findRuntime } from './tunnelclient.ts';
 import { fmtBytes, isProcessAlive } from './util.ts';
 
 export type CheckLevel = 'pass' | 'info' | 'warn' | 'fail';
@@ -38,13 +39,8 @@ function portFree(port: number): Promise<boolean> {
   });
 }
 
-export function firstToken(command: string): string {
-  const trimmed = command.trim();
-  if (!trimmed) return '';
-  const m = /^"([^"]+)"|^'([^']+)'|^(\S+)/.exec(trimmed);
-  if (!m) return trimmed;
-  return m[1] ?? m[2] ?? m[3] ?? trimmed;
-}
+/** 兼容旧引用：firstToken 从 0.1.10 起住在 mcpcommand.ts（命令探测模块） */
+export { firstToken };
 
 export async function probeHttpMcp(url: string, timeoutMs = 5000): Promise<{ level: CheckLevel; detail: string }> {
   const ctrl = new AbortController();
@@ -75,32 +71,34 @@ export async function probeHttpMcp(url: string, timeoutMs = 5000): Promise<{ lev
 }
 
 function checkStdioServer(server: McpServerConfig): DoctorCheck {
-  const exe = firstToken(server.command ?? '');
-  if (!exe) {
+  const probe = resolveCommand(server.command ?? '');
+  const id = 'server-' + server.name;
+  const title = 'MCP 服务器 ' + server.name;
+  if (!probe.token) {
     return {
-      id: 'server-' + server.name,
-      title: 'MCP 服务器 ' + server.name,
+      id,
+      title,
       level: 'fail',
       detail: 'stdio 命令为空',
       hint: '重新执行 server remove / server add 填写完整命令',
     };
   }
-  const absolute = /[\\/]/.test(exe);
-  const found = absolute ? exe : whichBinary(exe);
-  if (!found) {
+  if (!probe.ok) {
     return {
-      id: 'server-' + server.name,
-      title: 'MCP 服务器 ' + server.name,
-      level: 'warn',
-      detail: '找不到可执行文件 ' + exe + '（隧道启动时会由 tunnel-client 亲自尝试拉起）',
-      hint: '确认它已安装并在 PATH 中，或改用绝对路径',
+      id,
+      title,
+      level: 'fail',
+      detail: probe.error ?? '找不到可执行文件 ' + probe.token,
+      hint: probe.hint ?? '确认它已安装并在 PATH 中，或改用绝对路径',
     };
   }
+  /* 在「常见安装目录」里找到的命令，启动隧道时会自动补进子进程 PATH（0.1.10） */
+  const extra = probe.source === 'wellknown' ? '（不在 PATH，但启动时会自动补齐，无需手工设置）' : '';
   return {
-    id: 'server-' + server.name,
-    title: 'MCP 服务器 ' + server.name,
+    id,
+    title,
     level: 'pass',
-    detail: 'stdio 命令可用：' + found,
+    detail: 'stdio 命令可用：' + probe.path + extra,
   };
 }
 

@@ -65,7 +65,13 @@ const I18N = {
     stRunningOk: '运行正常', stHealthBad: '本机自检未就绪', stRunning: '运行中', stError: '出错了',
     stHealthTipOk: '本机健康端点自检通过（healthz、readyz 都是 200），隧道进程和 ChatGPT 侧都在正常工作。',
     stHealthTipBad: '本机健康端点自检没过：healthz={h}，readyz={r}{e}。这只是本机自检，不代表 ChatGPT 已经断线——隧道进程仍在运行，可以先点「重启」，或点「日志」看输出。',
-    stStale: '状态残留', stStopped: '已停止',
+    stStale: '进程已退出', stStopped: '已停止',
+    stStaleTip: '这条隧道的进程已经退出了（面板还保留着上一次的运行记录）。下面写了退出原因，按建议处理后再点「启动」。',
+    /* 0.1.10：隧道起不来时，卡片上直接给出「为什么」和「怎么修」 */
+    errFix: '修复建议',
+    tunErrWhy: '这条隧道没能起来',
+    mkRunnerMissing: '需先安装 {r}',
+    mkRunnerMissingTip: '这条 MCP 组件要用 {r} 拉起，本机现在还找不到它。',
     keyReady: '密钥就绪', keyMissing: '密钥未就绪', keyFrom: '密钥来源：',
     keyMissingTip: '密钥还没就位：点「编辑」重新填一次，或者把密钥来源换成「环境变量」「直接填写」。',
     stop: '停止', restart: '重启', start: '启动', logs: '日志', edit: '编辑',
@@ -335,7 +341,13 @@ const I18N = {
     stRunningOk: 'Healthy', stHealthBad: 'Local self-check failing', stRunning: 'Running', stError: 'Error',
     stHealthTipOk: 'Local health endpoints passed (healthz and readyz both returned 200). The tunnel process and the ChatGPT side are both fine.',
     stHealthTipBad: 'Local health endpoints failed: healthz={h}, readyz={r}{e}. This is a self-check on this machine and does not mean ChatGPT is disconnected — the tunnel process is still running. Try Restart, or open Logs.',
-    stStale: 'Stale state', stStopped: 'Stopped',
+    stStale: 'Process exited', stStopped: 'Stopped',
+    stStaleTip: 'This tunnel process has already exited (the panel still shows the last run record). See the reason below, apply the fix, then press Start.',
+    /* 0.1.10: when a tunnel cannot come up, the card shows why and how to fix it */
+    errFix: 'How to fix',
+    tunErrWhy: 'This tunnel could not start',
+    mkRunnerMissing: 'Needs {r}',
+    mkRunnerMissingTip: 'This MCP component is launched with {r}, which is not available on this machine yet.',
     keyReady: 'Key ready', keyMissing: 'Key missing', keyFrom: 'Key source: ',
     keyMissingTip: 'The runtime key is not in place yet: click Edit to enter it again, or switch the key source to env var / direct entry.',
     stop: 'Stop', restart: 'Restart', start: 'Start', logs: 'Logs', edit: 'Edit',
@@ -575,7 +587,8 @@ async function api(path, opts) {
   let data = null;
   try { data = await res.json(); } catch (e) { /* ignore */ }
   if (!res.ok) {
-    const msg = data && data.error ? data.error : ('请求失败 (' + res.status + ')');
+    /* message 通常比 error 更完整（0.1.10 起失败响应会把修复建议拼进 message） */
+    const msg = data && (data.message || data.error) ? (data.message || data.error) : ('请求失败 (' + res.status + ')');
     const err = new Error(msg);
     err.data = data;
     throw err;
@@ -1302,7 +1315,7 @@ function statePill(tn) {
     return '<span class="pill ok"><span class="dot dot-ok"></span>' + esc(t('stRunning')) + '</span>';
   }
   if (st === 'error') return '<span class="pill err"><span class="dot dot-err"></span>' + esc(t('stError')) + '</span>';
-  if (st === 'stale') return '<span class="pill warn"><span class="dot dot-warn"></span>' + esc(t('stStale')) + '</span>';
+  if (st === 'stale') return '<span class="pill warn" title="' + esc(t('stStaleTip')) + '"><span class="dot dot-warn"></span>' + esc(t('stStale')) + '</span>';
   return '<span class="pill muted"><span class="dot dot-muted"></span>' + esc(t('stStopped')) + '</span>';
 }
 
@@ -1324,7 +1337,12 @@ function tunnelCard(tn) {
   html += keyM;
   html += '</div>';
   if (tn.lastError) {
-    html += '<div style="padding:8px 18px;font-size:12.5px;color:var(--red);background:var(--red-soft);border-top:1px solid var(--border)">' + esc(tn.lastError) + '</div>';
+    html += '<div class="tun-err">' +
+      '<div class="tun-err-t"><span class="ico">' + icon('x') + '</span><span>' + esc(tn.lastError) + '</span></div>' +
+      (tn.lastErrorHint
+        ? '<div class="tun-err-h"><span class="tun-err-tag">' + esc(t('errFix')) + '</span><span>' + esc(tn.lastErrorHint) + '</span></div>'
+        : '') +
+      '</div>';
   }
   html += '<div class="entity-foot">';
   if (tn.status.state === 'running') {
@@ -1365,8 +1383,10 @@ async function tunnelAction(tn, act, btn) {
   // start / stop / restart
   btn.disabled = true; btn.classList.add('loading');
   try {
-    await api('/api/tunnels/' + encodeURIComponent(tn.name) + '/' + act, { method: 'POST' });
-    toast(t(act === 'start' ? 'tunnelStarted' : act === 'stop' ? 'tunnelStopped' : 'tunnelRestarted', { n: tn.name }), 'ok');
+    const res = await api('/api/tunnels/' + encodeURIComponent(tn.name) + '/' + act, { method: 'POST' });
+    /* 起不来的话后端会把「原因 + 修复建议」放进 message，直接给用户看，别只说一句「已启动」 */
+    if (res && res.ready === false && res.message) toast(res.message, 'warn');
+    else toast(t(act === 'start' ? 'tunnelStarted' : act === 'stop' ? 'tunnelStopped' : 'tunnelRestarted', { n: tn.name }), 'ok');
   } catch (e) { toast(e.message, 'err'); }
   finally { btn.disabled = false; btn.classList.remove('loading'); }
   setTimeout(() => refreshState(true), 600);
@@ -1500,6 +1520,11 @@ async function renderMarket(c, s) {
       '<div class="entity-meta">' +
         '<span class="m">' + esc(desc) + '</span>' +
       '</div>' +
+      /* 0.1.10：这条组件要用的 uvx / npx 本机没装的话，卡片上先说清楚，别等隧道启动失败 */
+      (it.runnerAvailable === false
+        ? '<div class="entity-meta"><span class="m" style="color:var(--amber)" title="' + esc(it.runnerHint || '') + '">' +
+          '<span class="ico">' + icon('warn') + '</span>' + esc(t('mkRunnerMissingTip', { r: it.runner })) + '</span></div>'
+        : '') +
       /* 能力清单：这个组件到底能干什么，一行一条，新用户不用猜 */
       (abilities.length
         ? '<div class="mk-abil"><div class="mk-abil-t">' + esc(t('mkAbilities')) + '</div>' +
@@ -1532,8 +1557,9 @@ async function renderMarket(c, s) {
     if (installBtn) installBtn.addEventListener('click', async () => {
       installBtn.disabled = true;
       try {
-        await api('/api/components/' + encodeURIComponent(id) + '/install', { method: 'POST' });
+        const res = await api('/api/components/' + encodeURIComponent(id) + '/install', { method: 'POST' });
         toast(t('mkInstallOk'), 'ok');
+        if (res && res.runnerWarning) toast(res.runnerWarning, 'warn');
         await refreshState(true, true);
       } catch (e) { toast(e.message, 'err'); installBtn.disabled = false; }
     });
