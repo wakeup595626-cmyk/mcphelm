@@ -104,7 +104,16 @@ describe('panel 安全与 API', () => {
       });
     const readState = async () =>
       (await (await fetch(base + '/api/state', { headers: { 'x-mcphelm-token': token } })).json()) as {
-        keys: { tunnelId?: string; tunnelIdMasked?: string; apiKeyReady: boolean; apiKeyStore: string | null };
+        keys: {
+          tunnelId?: string;
+          tunnelIdMasked?: string;
+          tunnelIdSavedAt?: string | null;
+          tunnelIdUsedBy?: string[];
+          apiKeyReady: boolean;
+          apiKeyStore: string | null;
+          apiKeyTail?: string | null;
+          apiKeySavedAt?: string | null;
+        };
       };
 
     // 格式不对的隧道密钥要被挡下，不能把脏数据写进配置
@@ -117,6 +126,11 @@ describe('panel 安全与 API', () => {
     assert.equal(kept.keys.tunnelIdMasked, 'tunnel_aaaa***');
     assert.equal(kept.keys.apiKeyReady, true);
     assert.equal(kept.keys.apiKeyStore, 'inline');
+    // 「密钥管理」要能显示保存时间和末四位提示（完整密钥不回传界面）
+    assert.ok(kept.keys.tunnelIdSavedAt, '保存隧道密钥时要记下时间');
+    assert.ok(kept.keys.apiKeySavedAt, '保存 API 密钥时要记下时间');
+    assert.equal(kept.keys.apiKeyTail, 'ft-1'); // 'sk-draft-1' 的末四位
+    assert.deepEqual(kept.keys.tunnelIdUsedBy, []);
 
     // 清空之后两把钥匙都要消失，配置里不留空壳
     assert.equal((await save({ tunnelId: '', keyMode: 'clear' })).status, 200);
@@ -124,6 +138,29 @@ describe('panel 安全与 API', () => {
     assert.ok(!cleared.keys.tunnelId);
     assert.ok(!cleared.keys.tunnelIdMasked);
     assert.equal(cleared.keys.apiKeyReady, false);
+    assert.ok(!cleared.keys.tunnelIdSavedAt);
+    assert.ok(!cleared.keys.apiKeyTail);
+    assert.ok(!cleared.keys.apiKeySavedAt);
+    assert.deepEqual(cleared.keys.tunnelIdUsedBy, []);
+  });
+
+  it('「密钥管理」能看出隧道密钥正在被哪条隧道使用', async () => {
+    const key = 'tunnel_' + 'c'.repeat(32);
+    const config = emptyConfig();
+    config.servers.push({ name: 'demo', kind: 'stdio', command: 'node -v' });
+    config.tunnels.push({ name: 'used-by-me', tunnelId: key, server: 'demo', apiKey: 'sk-x' });
+    const { base, token } = await boot(config);
+    const save = (payload: unknown) =>
+      fetch(base + '/api/keys', {
+        method: 'POST',
+        headers: { 'x-mcphelm-token': token, 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    assert.equal((await save({ tunnelId: key })).status, 200);
+    const state = (await (await fetch(base + '/api/state', { headers: { 'x-mcphelm-token': token } })).json()) as {
+      keys: { tunnelIdUsedBy?: string[] };
+    };
+    assert.deepEqual(state.keys.tunnelIdUsedBy, ['used-by-me']);
   });
 
   it('新建隧道留空即复用「密钥」里存好的 runtime key', async () => {

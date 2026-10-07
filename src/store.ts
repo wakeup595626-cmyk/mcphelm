@@ -47,10 +47,20 @@ export type PanelLanguage = 'zh' | 'en';
 export interface DraftKeys {
   /** 隧道密钥：OpenAI 平台生成的隧道 ID（tunnel_ + 32 位小写十六进制） */
   tunnelId?: string;
+  /** 隧道密钥最后一次存进来的时间（面板「密钥管理」显示用） */
+  tunnelIdSavedAt?: string;
   /** API 密钥（runtime key）已存进 Windows 凭据管理器（保险箱，不落盘） */
   apiKeyStore?: 'keyring';
   /** 保险箱不可用时的兜底：直接写进配置文件（不推荐，仅本地临时用） */
   apiKey?: string;
+  /**
+   * runtime key 的末四位提示：只留 4 个字符，用来在面板上显示「你存的是哪一把」
+   * （sk-••••••••1234）。完整密钥仍然只进凭据管理器，这几个字符不足以还原密钥，
+   * 和各家控制台展示末四位的做法一致。
+   */
+  apiKeyTail?: string;
+  /** API 密钥最后一次存进来的时间 */
+  apiKeySavedAt?: string;
 }
 
 export interface AppConfig {

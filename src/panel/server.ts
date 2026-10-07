@@ -568,15 +568,30 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
       })),
       tunnels,
       counts: { servers: opts.config.servers.length, tunnels: statuses.length, running },
-      /* 「密钥」板块：待用钥匙的现状（隧道密钥给完整值供表单预填，界面自己决定怎么显示） */
+      /*
+       * 「密钥」板块（0.1.12 起带管理区）：待用钥匙的现状。
+       * 隧道密钥给完整值供表单预填与复制（它不是机密）；runtime key 只回末四位提示，
+       * 完整密钥永远留在凭据管理器或配置文件里，不回传界面。
+       */
       keys: await (async () => {
         const draft = await draftKeyStatus();
+        const keys = opts.config.keys;
+        const tunnelId = keys?.tunnelId ?? null;
         return {
-          tunnelId: opts.config.keys?.tunnelId ?? null,
-          tunnelIdMasked: opts.config.keys?.tunnelId ? maskTunnelId(opts.config.keys.tunnelId) : null,
+          tunnelId,
+          tunnelIdMasked: tunnelId ? maskTunnelId(tunnelId) : null,
+          tunnelIdSavedAt: keys?.tunnelIdSavedAt ?? null,
+          /* 谁在用这把隧道密钥：面板要能一眼看出「存了但没人用」还是「已经有隧道在跑」 */
+          tunnelIdUsedBy: tunnelId
+            ? opts.config.tunnels
+                .filter((tunnel) => tunnel.tunnelId === tunnelId)
+                .map((tunnel) => tunnel.name)
+            : [],
           apiKeyReady: draft.ready,
           apiKeySource: draft.source,
           apiKeyStore: draft.store,
+          apiKeyTail: keys?.apiKeyTail ?? null,
+          apiKeySavedAt: keys?.apiKeySavedAt ?? null,
         };
       })(),
       docs: BRAND.docs,
@@ -820,12 +835,16 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         const keys = opts.config.keys;
         if ('tunnelId' in body) {
           const tunnelId = bodyString(body.tunnelId) ?? '';
-          if (!tunnelId) delete keys.tunnelId;
+          if (!tunnelId) {
+            delete keys.tunnelId;
+            delete keys.tunnelIdSavedAt;
+          }
           else if (!isValidTunnelId(tunnelId)) {
             sendJson(res, 400, { ok: false, error: '隧道密钥格式不对（应为 tunnel_ 加 32 位小写十六进制）' });
             return;
           } else {
             keys.tunnelId = tunnelId;
+            keys.tunnelIdSavedAt = new Date().toISOString();
           }
         }
         const keyMode = bodyString(body.keyMode) ?? 'keep';
@@ -854,10 +873,19 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
             keys.apiKey = value;
             delete keys.apiKeyStore;
           }
+          /*
+           * 末四位提示：面板上要能显示「你存的是哪一把」（sk-••••••••1234）。
+           * 太短的输入不留提示，免得把密钥本身写进配置文件。
+           */
+          if (value.length >= 8) keys.apiKeyTail = value.slice(-4);
+          else delete keys.apiKeyTail;
+          keys.apiKeySavedAt = new Date().toISOString();
           invalidateKeyringPresence(DRAFT_KEY_SLOT);
         } else if (keyMode === 'clear') {
           delete keys.apiKey;
           delete keys.apiKeyStore;
+          delete keys.apiKeyTail;
+          delete keys.apiKeySavedAt;
           invalidateKeyringPresence(DRAFT_KEY_SLOT);
           const cleared = await keyringDelete(DRAFT_KEY_SLOT);
           if (!cleared.ok) opts.onLog?.('清理「密钥」里的 runtime key 失败：' + (cleared.error ?? '未知原因'));
