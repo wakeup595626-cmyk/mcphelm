@@ -735,12 +735,12 @@ button.link-item { width: 100%; text-align: left; }
 textarea.mono { font-family: var(--mono); font-size: var(--fs-aux); }
 
 /* ============ 密钥页 ============ */
-/* 「密钥管理」：一行一把钥匙——状态、值、谁在用、操作全在同一行里 */
-.keys-list { display: flex; flex-direction: column; gap: 14px; }
-.keys-item { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 16px 18px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); transition: border-color .15s, box-shadow .15s; }
+/* 「密钥管理」：一行两列——一把钥匙一列，状态、值、谁在用、操作都在同一列里 */
+.keys-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+.keys-item { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); transition: border-color .15s, box-shadow .15s; }
 .keys-item.is-saved { background: var(--surface); border-color: #cfe6da; }
 .keys-item.editing { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
-.keys-item-main { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.keys-item-main { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .keys-item-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .keys-item-name { display: inline-flex; align-items: center; gap: 7px; font-size: var(--fs-h3); font-weight: var(--fw-semibold); color: var(--text); }
 .keys-item-name .ico { width: 16px; height: 16px; color: var(--primary); }
@@ -748,11 +748,13 @@ textarea.mono { font-family: var(--mono); font-size: var(--fs-aux); }
 .keys-item-empty { font-size: var(--fs-aux); color: var(--text-3); line-height: 1.7; }
 .keys-item-notes { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: var(--fs-aux); color: var(--text-3); line-height: 1.7; }
 .keys-item-note.hot { color: var(--green); font-weight: var(--fw-semibold); }
-.keys-item-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+.keys-item-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-start; }
 .keys-item-actions .btn { justify-content: center; }
-.keys-item-editor { flex: 1 1 100%; display: flex; flex-direction: column; gap: 12px; padding-top: 14px; border-top: 1px dashed var(--border-strong); }
+.keys-item-editor { flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding-top: 14px; border-top: 1px dashed var(--border-strong); }
 .keys-item-editor[hidden] { display: none; }
 .keys-item-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* 「保存方式」是右卡独有的控件，贴到卡片最底部，两张卡等高、字段行逐行对齐 */
+.keys-item-store { margin-top: auto; padding-top: 12px; border-top: 1px dashed var(--border-strong); }
 /* 折叠指南：两组纵向步骤，序号圆点用主色加重，和向导里的样式保持一致 */
 .keys-guide { padding: 14px 16px 4px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); }
 .keys-guide + .keys-guide { margin-top: 14px; }
@@ -763,9 +765,11 @@ textarea.mono { font-family: var(--mono); font-size: var(--fs-aux); }
 .keys-steps { list-style: none; counter-reset: ks; display: flex; flex-direction: column; gap: 10px; margin: 0 0 14px; padding: 0; }
 .keys-steps li { position: relative; padding: 11px 14px 11px 46px; font-size: 15px; color: var(--text-2); line-height: 1.75; counter-increment: ks; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); }
 .keys-steps li::before { content: counter(ks); position: absolute; left: 14px; top: 12px; width: 22px; height: 22px; border-radius: 50%; background: var(--primary-strong); color: #fff; font-size: 13px; font-weight: 800; line-height: 1; display: grid; place-items: center; box-shadow: 0 0 0 3px var(--primary-soft), 0 2px 6px -1px rgba(61,91,239,.55); }
+/* 窗口不够宽时两列并回一列，免得每列被挤得放不下按钮 */
+@media (max-width: 1120px) {
+  .keys-list { grid-template-columns: 1fr; }
+}
 @media (max-width: 860px) {
-  .keys-item { align-items: flex-start; }
-  .keys-item-actions { flex: 1 1 100%; justify-content: flex-start; }
   .keys-item-actions .btn { flex: 1 1 auto; }
 }
 

@@ -33,7 +33,7 @@ const I18N = {
     metaKeysT: '密钥', metaKeysS: '先把隧道密钥和 API 密钥存好，建隧道时会自动带上',
     keysIntroT: '先存两把钥匙，后面两步就顺了',
     keysIntroD: '建隧道一共要用两样东西：一把「隧道密钥」（Tunnel ID，tunnel_ 开头）和一把「API 密钥」（runtime key，sk- 开头）。在这里存一次就行，之后新建隧道会自动带上，不用来回跑平台复制。',
-    /* 「密钥管理」：一行一把钥匙，状态、值、谁在用它、操作都在这一行里 */
+    /* 「密钥管理」：一行两列，一把钥匙一列，状态、值、谁在用它、操作都在这一列里 */
     keysManageT: '密钥管理',
     keysManageD: '本机保存的两把钥匙都在这里：状态、存放位置、谁在用它一目了然，随时可以复制、更新或清除。',
     keysSummary: '{a}/{b} 已就绪',
@@ -44,8 +44,8 @@ const I18N = {
     keysTailHint: '只保留保存时的末四位，完整密钥不会显示在界面或日志里',
     keysNeedResavePill: '需重新保存',
     keysNeedResave: '保险箱里找不到这把密钥了（可能被系统清理过），重新粘贴一次就能恢复。',
-    keysEmptyTunnel: '还没保存：点右边「粘贴并保存」，把 tunnel_ 开头的那串 ID 存进来。',
-    keysEmptyApi: '还没保存：点右边「粘贴并保存」，把 runtime key 存进来。',
+    keysEmptyTunnel: '还没保存：点「粘贴并保存」，把 tunnel_ 开头的那串 ID 存进来。',
+    keysEmptyApi: '还没保存：点「粘贴并保存」，把 runtime key 存进来。',
     keysBtnCopy: '复制', keysBtnEdit: '更新', keysBtnPaste: '粘贴并保存',
     keysCopied: '已复制到剪贴板', keysCopyFail: '复制失败，请手动选中这串 ID 复制',
     keysClearTunnelAsk: '清除之后，新建隧道不会再自动预填这条隧道 ID（平台上那条隧道不受影响），随时可以再存一次。',
@@ -370,8 +370,8 @@ const I18N = {
     keysTailHint: 'only the last four characters are kept - the full key never shows up in the UI or the logs',
     keysNeedResavePill: 'Re-save needed',
     keysNeedResave: 'This key is no longer in the vault (it may have been cleaned up) - paste it again to restore it.',
-    keysEmptyTunnel: 'Not saved yet: click Paste and save on the right and drop the tunnel_ ID in.',
-    keysEmptyApi: 'Not saved yet: click Paste and save on the right and drop the runtime key in.',
+  keysEmptyTunnel: 'Not saved yet: click Paste and save, then drop the tunnel_ ID in.',
+  keysEmptyApi: 'Not saved yet: click Paste and save, then drop the runtime key in.',
     keysBtnCopy: 'Copy', keysBtnEdit: 'Replace', keysBtnPaste: 'Paste and save',
     keysCopied: 'Copied to clipboard', keysCopyFail: 'Copy failed — select the ID and copy it manually',
     keysClearTunnelAsk: 'After clearing, new tunnels will not pre-fill this tunnel ID (the tunnel on the platform is untouched). You can save it again any time.',
@@ -1543,7 +1543,7 @@ function renderKeys(c, s) {
 
   let html = '<div class="notice info"><span class="ico">' + icon('key') + '</span><div><strong>' + esc(t('keysIntroT')) + '</strong><br>' + esc(t('keysIntroD')) + '</div></div>';
 
-  /* ① 密钥管理：一行一把钥匙，不再左右分栏 */
+  /* ① 密钥管理：一行两列，一把钥匙一列 */
   html += '<div class="card"><div class="card-head"><div>' +
       '<div class="card-title"><span class="ico">' + icon('key') + '</span>' + esc(t('keysManageT')) + '</div>' +
       '<div class="card-sub">' + esc(t('keysManageD')) + '</div></div>' +
@@ -1584,7 +1584,8 @@ function renderKeys(c, s) {
       '</div>' +
     '</div></div>';
 
-  /* ①-2 API 密钥（runtime key）：只显示末四位，保存方式与隧道表单一致（保险箱优先） */
+  /* ①-2 API 密钥（runtime key）：只显示末四位，保存方式与隧道表单一致（保险箱优先）。
+     输入框排在编辑器最前面，和左边「隧道密钥」的第一行字段对齐；「保存方式」跟在输入框下面。 */
   const keyringBtn = app.keyringSupported
     ? '<button data-k="keyring" type="button" class="' + (storeMode === 'keyring' ? 'active' : '') + '">' + esc(t('keyModeKeyring')) + '</button>'
     : '';
@@ -1608,11 +1609,6 @@ function renderKeys(c, s) {
         : '<button class="btn primary" data-focus="api"><span class="ico">' + icon('lock') + '</span>' + esc(t('keysBtnPaste')) + '</button>') +
     '</div>' +
     '<div class="keys-item-editor" data-editor="api"' + (apiReady ? ' hidden' : '') + '>' +
-      '<div class="field" style="margin-bottom:0"><label class="field-label">' + esc(t('keysStoreLabel')) + '</label>' +
-      '<div class="seg" id="k_store">' + keyringBtn +
-        '<button data-k="inline" type="button" class="' + (storeMode === 'inline' ? 'active' : '') + '">' + esc(t('keyModeInline')) + '</button>' +
-      '</div>' +
-      '<div class="field-hint" id="k_storeHint">' + esc(app.keyringSupported ? t('fKeyKeyringHint') : t('keysKeyringOff')) + '</div></div>' +
       '<div class="field" style="margin-bottom:0"><label class="field-label" for="k_apikey">' + esc(t('keysField2')) + '</label>' +
       '<input class="input mono" id="k_apikey" type="password" placeholder="' + esc(t('fKeyInlinePh')) + '" value="">' +
       '<div class="field-hint">' + t('fKeyInlineHint', { a: '<a href="' + esc(docs.platformApiKeys || '#') + '" target="_blank" rel="noopener">' + esc(t('fKeyInlineA')) + '</a>' }) + '</div></div>' +
@@ -1621,6 +1617,13 @@ function renderKeys(c, s) {
         '<button class="btn ghost" data-cancel="api">' + esc(t('cancel')) + '</button>' +
         extLink(docs.platformApiKeys, t('keysOpenApiKeys')) +
       '</div>' +
+      /* 「保存方式」贴卡片最底部：左边那张卡是版式模板（标签 → 输入框 → 说明 → 按钮），
+         这一项是右卡独有的，放到按钮下面，两张卡的字段行才在同一水平线上 */
+      '<div class="keys-item-store"><div class="field" style="margin-bottom:0"><label class="field-label">' + esc(t('keysStoreLabel')) + '</label>' +
+      '<div class="seg" id="k_store">' + keyringBtn +
+        '<button data-k="inline" type="button" class="' + (storeMode === 'inline' ? 'active' : '') + '">' + esc(t('keyModeInline')) + '</button>' +
+      '</div>' +
+      '<div class="field-hint" id="k_storeHint">' + esc(app.keyringSupported ? t('fKeyKeyringHint') : t('keysKeyringOff')) + '</div></div></div>' +
     '</div></div>';
 
   html += '</div></div></div>';
