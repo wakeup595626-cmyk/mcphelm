@@ -1,6 +1,6 @@
 {
   "name": "mcphelm",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Open-source control center for the OpenAI Secure MCP Tunnel: register local MCP servers (stdio/HTTP), run and supervise the official tunnel-client, and connect ChatGPT / Codex through a desktop app, local web panel and CLI. No license key, zero runtime dependencies.",
   "type": "module",
   "license": "Apache-2.0",

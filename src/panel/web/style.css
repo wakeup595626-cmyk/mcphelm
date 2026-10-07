@@ -441,6 +441,9 @@ a:hover { text-decoration: underline; }
 .entity-meta .ico { width: 13px; height: 13px; color: var(--text-3); }
 .entity-foot {
   display: flex; align-items: center; gap: 7px;
+  /* 吸底对齐：同一行的卡片被网格拉伸到等高后，动作区用 margin-top:auto 顶到卡片底部，
+     保证每张卡片的按钮落在同一条水平线上（组件市场里卡片内容长短不一时尤其明显）。 */
+  margin-top: auto;
   padding: 11px 14px; border-top: 1px solid var(--border);
   background: var(--surface-2); border-radius: 0 0 var(--r-lg) var(--r-lg);
 }

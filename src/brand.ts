@@ -4,7 +4,7 @@ export const BRAND = {
   name: 'MCPHelm',
   slug: 'mcphelm',
   bin: 'mcphelm',
-  version: '0.1.8',
+  version: '0.1.9',
   configFileName: 'mcphelm.config.json',
   homeDirName: '.mcphelm',
   envPrefix: 'MCPHELM',

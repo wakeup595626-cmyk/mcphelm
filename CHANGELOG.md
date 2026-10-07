@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-10-07
+
+### Fixed
+
+- 组件市场里每张卡片的「安装」按钮不再高低不齐：卡片本身会被网格拉伸到同一高度，但按钮所在的动作区没有吸底，内容少（能力条目少、没有注意事项）的卡片，按钮就会浮在文字末尾，同一行里实测最多差出 71 像素。现在动作区固定贴在卡片底部，一行内所有卡片（包括「已安装」那种带两个按钮的卡片）的按钮都落在同一条水平线上；隧道、服务器、模板等复用同款卡片的页面一并生效。
+
 ## [0.1.8] - 2026-10-07
 
 ### Fixed
@@ -159,6 +165,7 @@
 - 桌面版打包命令：`npm run dist:win`（产出在 `release/`）；本地调试用 `npm run desktop`。
 - 本项目是独立第三方工具，只按需下载 openai/tunnel-client 的官方发布二进制，不修改也不重新分发其源码；本项目非 OpenAI 官方产品。
 
+[0.1.9]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.9
 [0.1.8]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.8
 [0.1.7]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.7
 [0.1.2]: https://github.com/wakeup595626-cmyk/mcphelm/releases/tag/v0.1.2
