@@ -598,7 +598,9 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
       panelVersion: BRAND.version,
       ui: {
         language: opts.config.ui?.language ?? 'zh',
-        minimizeToTray: opts.config.ui?.minimizeToTray ?? false,
+        /* 默认 true（关窗口最小化到托盘）：与 desktop/main.cjs 的实现一致。
+           以前这里默认 false、桌面壳默认 true，界面上的勾选框和真实行为是反的。 */
+        minimizeToTray: opts.config.ui?.minimizeToTray !== false,
         autoLaunch: opts.config.ui?.autoLaunch ?? false,
         supportSeen: opts.config.ui?.supportSeen === true,
         supportHintClosed: opts.config.ui?.supportHintClosed === true,

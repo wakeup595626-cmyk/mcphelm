@@ -769,7 +769,9 @@ const app = {
   pollTimer: null,
   logTimer: null,
   jobPolling: false,
-  ui: { language: 'zh', minimizeToTray: false, autoLaunch: false },
+  /* minimizeToTray 默认 true：关窗口最小化到托盘、隧道继续在线，
+     与 desktop/main.cjs 的默认行为保持一致（以前这里是 false，勾选框与真实行为相反）。 */
+  ui: { language: 'zh', minimizeToTray: true, autoLaunch: false },
   desktop: false,
   keyringSupported: false,
   guideIdx: 0,
@@ -1033,7 +1035,7 @@ function syncPrefsFromState() {
   const ui = s.ui || {};
   const lang = ui.language === 'en' ? 'en' : 'zh';
   const changed = lang !== currentLang;
-  app.ui = { language: lang, minimizeToTray: ui.minimizeToTray === true, autoLaunch: ui.autoLaunch === true };
+  app.ui = { language: lang, minimizeToTray: ui.minimizeToTray !== false, autoLaunch: ui.autoLaunch === true };
   app.keyringSupported = !!(s.security && s.security.keyringSupported);
   if (changed) {
     currentLang = lang;
@@ -1901,6 +1903,10 @@ async function renderMarket(c, s) {
     if (gotoBtn) gotoBtn.addEventListener('click', () => setView('servers'));
     const removeBtn = $('[data-act="remove"]', card);
     if (removeBtn) removeBtn.addEventListener('click', async () => {
+      /* 标题必须在这里重取一次：上面那层的 title 属于另一个 forEach 的作用域，
+         直接引用会抛 ReferenceError，点「卸载」整张卡片就哑了（0.1.14 修复）。 */
+      const en = currentLang === 'en';
+      const title = (en && it.titleEn) ? it.titleEn : it.title;
       const okGo = await confirmModal(t('mkUninstallTitle'), t('mkUninstallMsg', { t: esc(title) }), t('mkUninstall'), true);
       if (!okGo) return;
       try {
@@ -2005,14 +2011,26 @@ async function runDoctorChecks(online) {
     checks.forEach((ck) => {
       const raw = String(ck.level || '').toLowerCase();
       const lvl = (raw === 'fail' || raw === 'error') ? 'err' : (raw === 'warn' ? 'warn' : (raw === 'info' ? 'info' : 'ok'));
+      /* 体检给出的修复建议原本只有命令行写法（mcphelm runtime fetch / tunnel add），
+         桌面版用户没装 CLI 就无处可抄。能在界面里一键做完的，直接在条目上给按钮。 */
+      const cta = (lvl === 'err' && ck.id === 'runtime')
+        ? '<div style="margin-top:10px"><button class="btn primary small" id="doctorRuntimeBtn"><span class="ico">' + icon('download') + '</span>' + esc(t('downloadNow')) + '</button></div>'
+        : (ck.id === 'tunnels'
+          ? '<div style="margin-top:10px"><button class="btn ghost small" id="doctorTunnelBtn"><span class="ico">' + icon('plus') + '</span>' + esc(t('goCreateTunnel')) + '</button></div>'
+          : '');
       html += '<div class="check-item ' + lvl + '"><span class="ico">' + icon(lvl === 'err' ? 'x' : lvl === 'warn' ? 'warn' : lvl === 'info' ? 'info' : 'check') + '</span>' +
         '<div><div class="check-name">' + esc(ck.title || ck.name || ck.id || t('checkItem')) + '</div>' +
         '<div class="check-detail">' + esc(ck.detail || ck.message || '') + '</div>' +
         (ck.hint ? '<div class="check-detail" style="color:var(--primary)">' + esc(t('doctorHint')) + esc(ck.hint) + '</div>' : '') +
+        cta +
       '</div></div>';
     });
     html += '</div>';
     body.innerHTML = html;
+    const drb = $('#doctorRuntimeBtn', body);
+    if (drb) drb.addEventListener('click', () => showRuntimeModal());
+    const dtb = $('#doctorTunnelBtn', body);
+    if (dtb) dtb.addEventListener('click', () => showTunnelModal(null));
   } catch (e) {
     body.innerHTML = '<div class="notice err"><span class="ico">' + icon('x') + '</span><div>' + esc(t('doctorFailed')) + esc(e.message) + '</div></div>';
   }

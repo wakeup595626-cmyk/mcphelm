@@ -312,6 +312,8 @@ function rebuildTrayMenu(statusText) {
     { label: '打开主窗口', click: () => showWindow() },
     { label: '打开日志文件夹', click: () => context && shell.openPath(context.paths.logsDir) },
     { type: 'separator' },
+    { label: '停止全部隧道…', click: () => { void stopAllTunnels(); } },
+    { type: 'separator' },
     {
       label: quitting ? '正在退出…' : '退出 MCPHelm',
       click: () => {
@@ -321,6 +323,75 @@ function rebuildTrayMenu(statusText) {
     },
   ]);
   tray.setContextMenu(menu);
+}
+
+/**
+ * 一键停掉所有正在运行的隧道。
+ *
+ * 退出时故意不自动停隧道——面板横幅里写明了「已启动的隧道在后台继续运行」，
+ * 这是隧道工具该有的行为（关了窗口/退出工具，ChatGPT 那边的连接不该莫名断掉）。
+ * 但用户想收手的时候，以前只能回面板一条条点，这里给个一次性入口。
+ */
+async function stopAllTunnels() {
+  if (!context) return;
+  let statuses = [];
+  try {
+    const { listStatuses } = await importDist('runtime.js');
+    statuses = listStatuses(context.paths, context.loaded.config);
+  } catch (err) {
+    dialog.showMessageBox({
+      type: 'warning',
+      title: '停止隧道失败',
+      message: '读不到隧道状态',
+      detail: String((err && err.message) || err),
+    });
+    return;
+  }
+  const running = statuses.filter((status) => status.state === 'running');
+  if (running.length === 0) {
+    dialog.showMessageBox({
+      type: 'info',
+      title: '没有正在运行的隧道',
+      message: '当前没有隧道在运行',
+      detail: '共 ' + statuses.length + ' 条隧道配置，全部都处于停止状态。',
+    });
+    return;
+  }
+  const choice = dialog.showMessageBoxSync({
+    type: 'question',
+    title: '停止全部隧道',
+    message: '要停止这 ' + running.length + ' 条隧道吗？',
+    detail:
+      running.map((status) => '· ' + status.name + (status.pid ? '（PID ' + status.pid + '）' : '')).join('\n') +
+      '\n\n停止后 ChatGPT 端会立即断开这些服务器的连接，随时可以在面板里重新启动。',
+    buttons: ['停止全部隧道', '取消'],
+    defaultId: 0,
+    cancelId: 1,
+  });
+  if (choice !== 0) return;
+  const { stopTunnel } = await importDist('runtime.js');
+  const failed = [];
+  for (const status of running) {
+    try {
+      const result = await stopTunnel(context.paths, status.name);
+      if (!result.ok) failed.push(status.name + '：' + result.message);
+    } catch (err) {
+      failed.push(status.name + '：' + String((err && err.message) || err));
+    }
+  }
+  rebuildTrayMenu();
+  notify(
+    'MCPHelm',
+    failed.length ? '有 ' + failed.length + ' 条隧道没能停下来，详见面板日志' : '已停止 ' + running.length + ' 条隧道'
+  );
+  if (failed.length) {
+    dialog.showMessageBox({
+      type: 'warning',
+      title: '部分隧道停止失败',
+      message: '有 ' + failed.length + ' 条隧道没能停下来',
+      detail: failed.join('\n') + '\n\n可以到面板的隧道页再点一次「停止」，或查看日志排查。',
+    });
+  }
 }
 
 function showWindow() {
@@ -475,6 +546,8 @@ function buildMenu() {
             applyLoginItem();
           },
         },
+        { type: 'separator' },
+        { label: '停止全部隧道…', click: () => { void stopAllTunnels(); } },
         { type: 'separator' },
         { role: 'quit', label: '退出 MCPHelm' },
       ],
