@@ -4,7 +4,7 @@
   "description": "Open-source control center for the OpenAI Secure MCP Tunnel: register local MCP servers (stdio/HTTP), run and supervise the official tunnel-client, and connect ChatGPT / Codex through a desktop app, local web panel and CLI. No license key, zero runtime dependencies.",
   "type": "module",
   "license": "Apache-2.0",
-  "author": "wakeup <wakeup595626@gmail.com> (https://github.com/wakeup595626-cmyk)",
+  "author": "wakeup595626-cmyk (https://github.com/wakeup595626-cmyk)",
   "engines": {
     "node": ">=20.11.0"
   },
