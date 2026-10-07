@@ -493,6 +493,8 @@ a:hover { text-decoration: underline; }
 .empty-ico svg { width: 28px; height: 28px; }
 .empty h3 { font-size: var(--fs-h2); font-weight: var(--fw-bold); }
 .empty p { color: var(--text-3); font-size: var(--fs-body); margin: 6px auto 16px; max-width: 420px; }
+.empty-sub { color: var(--text-3); font-size: var(--fs-aux); margin: -8px auto 16px; max-width: 460px; }
+.empty-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
 /* ============ 表格 ============ */
 .tbl { width: 100%; border-collapse: collapse; }
@@ -511,6 +513,7 @@ a:hover { text-decoration: underline; }
 .field-label .req { color: var(--red); margin-left: 2px; }
 .field-hint { font-size: var(--fs-aux); color: var(--text-3); margin-top: 5px; }
 .field-hint a { font-weight: 600; }
+.field-hint .hint-ok { color: var(--green); font-weight: 600; }
 .input, .select, .textarea {
   width: 100%; padding: 9px 12px;
   border: 1.5px solid var(--border-strong); border-radius: var(--r-sm);
@@ -730,6 +733,27 @@ button.link-item { width: 100%; text-align: left; }
 .faq-a { padding: 0 16px 14px 42px; font-size: var(--fs-body); color: var(--text-2); line-height: 1.75; }
 
 textarea.mono { font-family: var(--mono); font-size: var(--fs-aux); }
+
+/* 滚动条 */
+/* ============ 密钥页 ============ */
+.keys-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
+.keys-grid > .card { height: 100%; display: flex; flex-direction: column; }
+.keys-grid > .card .card-head { align-items: flex-start; }
+.keys-grid > .card .card-body { flex: 1; display: flex; flex-direction: column; }
+.keys-steps { list-style: none; counter-reset: ks; display: flex; flex-direction: column; gap: 10px; margin: 0 0 16px; padding: 0; }
+.keys-steps li { position: relative; padding: 11px 14px 11px 44px; font-size: 15px; color: var(--text-2); line-height: 1.7; counter-increment: ks; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); }
+.keys-steps li::before { content: counter(ks); position: absolute; left: 14px; top: 13px; width: 21px; height: 21px; border-radius: 50%; background: var(--primary-strong); color: #fff; font-size: 12.5px; font-weight: 800; line-height: 1; display: grid; place-items: center; box-shadow: 0 0 0 3px var(--primary-soft); }
+.keys-mask { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; padding: 9px 12px; background: var(--green-soft); border: 1px solid #cbe8d8; border-radius: var(--r-md); }
+.keys-mask-k { font-size: var(--fs-micro); font-weight: 700; color: var(--green); }
+.keys-mask-v { font-size: var(--fs-aux); color: #14603a; word-break: break-all; }
+.keys-form { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
+.keys-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.keys-row .btn { flex: 1 1 auto; justify-content: center; }
+.keys-hint-text { font-size: var(--fs-aux); color: var(--text-3); line-height: 1.75; margin-top: 12px; }
+.keys-next { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.keys-next .guide-tip { display: flex; flex-direction: column; }
+.keys-next .guide-tip .d { margin-bottom: 12px; }
+.keys-next .guide-tip .btn { margin-top: auto; align-self: flex-start; }
 
 /* 滚动条 */
 ::-webkit-scrollbar { width: 10px; height: 10px; }

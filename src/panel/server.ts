@@ -10,13 +10,13 @@ import { BRAND } from '../brand.ts';
 import { COMPONENTS, STARS_SNAPSHOT_AT, componentCommand, findComponent, runnerName } from '../components.ts';
 import { runDoctor } from '../doctor.ts';
 import { mergeServers, parseExternalFile, parsePastedConfig, scanExternalConfigs } from '../importer.ts';
-import { keyringDelete, keyringSet, keyringSupported } from '../keyring.ts';
+import { keyringDelete, keyringGet, keyringSet, keyringSupported } from '../keyring.ts';
 import { pruneLogs } from '../logrotate.ts';
 import { readStarsCache, refreshStars, starsCacheFresh } from '../marketstars.ts';
 import { installHintFor, resolveCommand } from '../mcpcommand.ts';
 import { describeConfigScope, logFileFor } from '../paths.ts';
 import type { AppPaths } from '../paths.ts';
-import { listStatuses, probeHealth, readLogTail, readState, startTunnel, stopTunnel, tunnelStatus } from '../runtime.ts';
+import { listStatuses, maskTunnelId, probeHealth, readLogTail, readState, startTunnel, stopTunnel, tunnelStatus } from '../runtime.ts';
 import {
   findServer,
   findTunnel,
@@ -178,6 +178,13 @@ function parseServerPayload(
   }
   return { ok: true, value: { kind, url, description: description || undefined, headers } };
 }
+
+/*
+ * 「密钥」板块（0.1.11）里待用钥匙的保险箱槽位。
+ * 隧道名必须以字母数字开头（见 store.ts 的 SAFE_NAME_RE），'__draft__' 永远不可能是
+ * 合法隧道名，所以这个槽位不会和任何真实隧道的密钥条目撞名。
+ */
+const DRAFT_KEY_SLOT = '__draft__';
 
 type TunnelKeyPayload =
   | { mode: 'env'; envName: string }
@@ -448,6 +455,31 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
     return true;
   }
 
+  /**
+   * 「密钥」板块里两把待用钥匙的就绪情况。
+   *
+   * 保险箱那一路复用 resolveApiKeyPresence 的 60 秒缓存（面板每 2.5–8 秒轮询一次状态，
+   * 每次都去 PowerShell 读一遍凭据要花 300ms 左右）；明文兜底那一路只看配置里有没有值。
+   */
+  async function draftKeyStatus(): Promise<{
+    ready: boolean;
+    source: string | null;
+    store: 'keyring' | 'inline' | null;
+  }> {
+    const keys = opts.config.keys;
+    if (!keys || (!keys.apiKeyStore && !keys.apiKey)) return { ready: false, source: null, store: null };
+    if (keys.apiKeyStore === 'keyring') {
+      const presence = await resolveApiKeyPresence({
+        name: DRAFT_KEY_SLOT,
+        tunnelId: '',
+        server: '',
+        apiKeyStore: 'keyring',
+      });
+      return { ready: presence.ready, source: presence.source, store: 'keyring' };
+    }
+    return { ready: Boolean(keys.apiKey), source: keys.apiKey ? 'config(明文)' : null, store: 'inline' };
+  }
+
   async function buildState(): Promise<unknown> {
     const runtime = runtimeInfo();
     const statuses = listStatuses(opts.paths, opts.config);
@@ -536,6 +568,17 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
       })),
       tunnels,
       counts: { servers: opts.config.servers.length, tunnels: statuses.length, running },
+      /* 「密钥」板块：待用钥匙的现状（隧道密钥给完整值供表单预填，界面自己决定怎么显示） */
+      keys: await (async () => {
+        const draft = await draftKeyStatus();
+        return {
+          tunnelId: opts.config.keys?.tunnelId ?? null,
+          tunnelIdMasked: opts.config.keys?.tunnelId ? maskTunnelId(opts.config.keys.tunnelId) : null,
+          apiKeyReady: draft.ready,
+          apiKeySource: draft.source,
+          apiKeyStore: draft.store,
+        };
+      })(),
       docs: BRAND.docs,
       panelVersion: BRAND.version,
       ui: {
@@ -761,6 +804,75 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         return;
       }
 
+      /* ---------------------------------------------------------- 密钥（待用钥匙） */
+
+      /*
+       * 「密钥」板块的保存接口：把两把还没绑定隧道的钥匙收在本机。
+       * 只有请求体里出现的字段会被写；keyMode 为 'keep' 时只处理 tunnelId。
+       */
+      if (method === 'POST' && path === '/api/keys') {
+        const body = bodyObject(await readBody(req));
+        if (!body) {
+          sendJson(res, 400, { ok: false, error: '请求体需要是 JSON 对象' });
+          return;
+        }
+        if (!opts.config.keys) opts.config.keys = {};
+        const keys = opts.config.keys;
+        if ('tunnelId' in body) {
+          const tunnelId = bodyString(body.tunnelId) ?? '';
+          if (!tunnelId) delete keys.tunnelId;
+          else if (!isValidTunnelId(tunnelId)) {
+            sendJson(res, 400, { ok: false, error: '隧道密钥格式不对（应为 tunnel_ 加 32 位小写十六进制）' });
+            return;
+          } else {
+            keys.tunnelId = tunnelId;
+          }
+        }
+        const keyMode = bodyString(body.keyMode) ?? 'keep';
+        if (keyMode === 'keyring' || keyMode === 'inline') {
+          const value = bodyString(body.apiKey) ?? '';
+          if (!value) {
+            sendJson(res, 400, {
+              ok: false,
+              error: keyMode === 'keyring' ? '密钥保险箱模式需要粘贴一次 runtime key' : '直接填写模式需要粘贴 runtime key',
+            });
+            return;
+          }
+          if (keyMode === 'keyring') {
+            if (!keyringSupported()) {
+              sendJson(res, 400, { ok: false, error: '当前平台不支持系统密钥保险箱，请改用「直接填写」' });
+              return;
+            }
+            const stored = await keyringSet(DRAFT_KEY_SLOT, value);
+            if (!stored.ok) {
+              sendJson(res, 400, { ok: false, error: stored.error ?? '写入 Windows 凭据管理器失败' });
+              return;
+            }
+            keys.apiKeyStore = 'keyring';
+            delete keys.apiKey;
+          } else {
+            keys.apiKey = value;
+            delete keys.apiKeyStore;
+          }
+          invalidateKeyringPresence(DRAFT_KEY_SLOT);
+        } else if (keyMode === 'clear') {
+          delete keys.apiKey;
+          delete keys.apiKeyStore;
+          invalidateKeyringPresence(DRAFT_KEY_SLOT);
+          const cleared = await keyringDelete(DRAFT_KEY_SLOT);
+          if (!cleared.ok) opts.onLog?.('清理「密钥」里的 runtime key 失败：' + (cleared.error ?? '未知原因'));
+        } else if (keyMode !== 'keep') {
+          sendJson(res, 400, { ok: false, error: '密钥来源参数不合法：' + keyMode });
+          return;
+        }
+        // 两把钥匙都清空了就不要再留一个空对象在配置里
+        if (!keys.tunnelId && !keys.apiKey && !keys.apiKeyStore) delete opts.config.keys;
+        saveConfig(opts.paths, opts.config);
+        opts.onLog?.('面板保存了密钥设置（隧道密钥 / runtime key）');
+        sendJson(res, 200, { ok: true, message: '密钥已保存' });
+        return;
+      }
+
       /* ---------------------------------------------------------- 隧道增删改 */
 
       if (method === 'POST' && path === '/api/tunnels') {
@@ -773,6 +885,33 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         if (!isValidName(name)) {
           sendJson(res, 400, { ok: false, error: '名称不合法（只允许字母数字与 . _ -，最长 40 字符）' });
           return;
+        }
+        /*
+         * 「密钥」板块里已经收好 runtime key 的用户，创建隧道时只要选「密钥保险箱」就能直接复用，
+         * 不用再粘第二次；这里把待用钥匙补进请求体，后面完全走原有逻辑。
+         */
+        if (
+          bodyString(body.keyMode) === 'keyring' &&
+          !bodyString(body.apiKey) &&
+          opts.config.keys?.apiKeyStore === 'keyring'
+        ) {
+          const secret = await keyringGet(DRAFT_KEY_SLOT);
+          if (!secret) {
+            sendJson(res, 400, {
+              ok: false,
+              error: '「密钥」里保存的 runtime key 取不出来，请到「密钥」页面重新保存一次',
+            });
+            return;
+          }
+          body.apiKey = secret;
+        }
+        /* 用「直接填写」存的那把同理：新建时留空就把配置里的待用钥匙补进去 */
+        if (
+          bodyString(body.keyMode) === 'inline' &&
+          !bodyString(body.apiKey) &&
+          opts.config.keys?.apiKey
+        ) {
+          body.apiKey = opts.config.keys.apiKey;
         }
         const parsed = parseTunnelPayload(body, opts.config, 'create');
         if (!parsed.ok) {

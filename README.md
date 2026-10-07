@@ -192,6 +192,7 @@ The panel binds to `127.0.0.1` only (changing that with `--host` is **not** reco
 | GET | `/api/logs/<tunnel>?lines=200` | Log tail (max 2000 lines) |
 | POST | `/api/tunnels/<tunnel>/start` | Start that tunnel |
 | POST | `/api/tunnels/<tunnel>/stop` | Stop that tunnel |
+| POST | `/api/keys` | Save / update / clear the reusable tunnel key and runtime key (the Keys panel) |
 | GET | `/api/version` | Version information |
 
 ```bash

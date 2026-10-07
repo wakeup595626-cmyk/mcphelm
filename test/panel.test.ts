@@ -94,6 +94,64 @@ describe('panel 安全与 API', () => {
     assert.equal(keep.ui.language, 'zh');
   });
 
+  it('「密钥」板块：保存 / 状态 / 清空三态都对得上', async () => {
+    const { base, token } = await boot();
+    const save = (payload: unknown) =>
+      fetch(base + '/api/keys', {
+        method: 'POST',
+        headers: { 'x-mcphelm-token': token, 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    const readState = async () =>
+      (await (await fetch(base + '/api/state', { headers: { 'x-mcphelm-token': token } })).json()) as {
+        keys: { tunnelId?: string; tunnelIdMasked?: string; apiKeyReady: boolean; apiKeyStore: string | null };
+      };
+
+    // 格式不对的隧道密钥要被挡下，不能把脏数据写进配置
+    assert.equal((await save({ tunnelId: 'not-a-tunnel' })).status, 400);
+
+    const full = 'tunnel_' + 'a'.repeat(32);
+    assert.equal((await save({ tunnelId: full, keyMode: 'inline', apiKey: 'sk-draft-1' })).status, 200);
+    const kept = await readState();
+    assert.equal(kept.keys.tunnelId, full);
+    assert.equal(kept.keys.tunnelIdMasked, 'tunnel_aaaa***');
+    assert.equal(kept.keys.apiKeyReady, true);
+    assert.equal(kept.keys.apiKeyStore, 'inline');
+
+    // 清空之后两把钥匙都要消失，配置里不留空壳
+    assert.equal((await save({ tunnelId: '', keyMode: 'clear' })).status, 200);
+    const cleared = await readState();
+    assert.ok(!cleared.keys.tunnelId);
+    assert.ok(!cleared.keys.tunnelIdMasked);
+    assert.equal(cleared.keys.apiKeyReady, false);
+  });
+
+  it('新建隧道留空即复用「密钥」里存好的 runtime key', async () => {
+    const config = emptyConfig();
+    config.servers.push({ name: 'demo', kind: 'stdio', command: 'node -v' });
+    const { base, token } = await boot(config);
+    const post = (path: string, payload: unknown) =>
+      fetch(base + path, {
+        method: 'POST',
+        headers: { 'x-mcphelm-token': token, 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    const readState = async () =>
+      (await (await fetch(base + '/api/state', { headers: { 'x-mcphelm-token': token } })).json()) as {
+        tunnels: { name: string; key: { ready: boolean } }[];
+      };
+
+    // 还没有待用钥匙时，直接建隧道要给出「要填 runtime key」而不是悄悄建一条跑不起来的
+    assert.equal((await post('/api/tunnels', { name: 't1', tunnelId: 'tunnel_' + 'b'.repeat(32), server: 'demo', keyMode: 'inline' })).status, 400);
+
+    await post('/api/keys', { tunnelId: 'tunnel_' + 'b'.repeat(32), keyMode: 'inline', apiKey: 'sk-draft-2' });
+    const created = await post('/api/tunnels', { name: 't1', tunnelId: 'tunnel_' + 'b'.repeat(32), server: 'demo', keyMode: 'inline' });
+    assert.equal(created.status, 200);
+    const state = await readState();
+    assert.equal(state.tunnels.length, 1);
+    assert.equal(state.tunnels[0]?.key.ready, true);
+  });
+
   it('伪造域名 Host 头会被 403 拒绝', async () => {
     const { base, token } = await boot();
     const status = await new Promise<number>((done, reject) => {

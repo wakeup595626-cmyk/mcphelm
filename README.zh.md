@@ -192,6 +192,7 @@ mcphelm panel --no-open       # 不自动打开浏览器
 | GET | `/api/logs/<隧道名>?lines=200` | 日志尾部（行数上限 2000） |
 | POST | `/api/tunnels/<隧道名>/start` | 启动该隧道 |
 | POST | `/api/tunnels/<隧道名>/stop` | 停止该隧道 |
+| POST | `/api/keys` | 保存 / 更新 / 清空「密钥」板块里的待用隧道密钥与 runtime key |
 | GET | `/api/version` | 版本信息 |
 
 ```bash

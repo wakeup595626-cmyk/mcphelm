@@ -28,6 +28,39 @@ const I18N = {
     metaLogsT: '日志', metaLogsS: '查看每条隧道的运行输出',
     metaDoctorT: '体检', metaDoctorS: '自动检查环境和配置有没有问题',
     metaSettingsT: '设置', metaSettingsS: '界面偏好、路径、密钥状态与帮助入口',
+    /* 「密钥」板块：隧道密钥与 API 密钥集中在「服务器 / 隧道」之前，先备钥匙再动手 */
+    navKeys: '密钥',
+    metaKeysT: '密钥', metaKeysS: '先把隧道密钥和 API 密钥存好，建隧道时会自动带上',
+    keysIntroT: '先存两把钥匙，后面两步就顺了',
+    keysIntroD: '建隧道一共要用两样东西：一把「隧道密钥」（Tunnel ID，tunnel_ 开头）和一把「API 密钥」（runtime key，sk- 开头）。在这里存一次就行，之后新建隧道会自动带上，不用来回跑平台复制。',
+    keysCard1T: '① 隧道密钥（Tunnel ID）', keysCard1D: '在 OpenAI 平台的隧道页面创建隧道后拿到的那串 ID。',
+    keysCard1B1: '打开 OpenAI 平台，进入「Tunnels / 隧道」页面（登录你自己的账号）。',
+    keysCard1B2: '新建一条隧道，名字随便起（例如 my-first-tunnel），创建完复制它给出的 Tunnel ID。',
+    keysCard1B3: '回到这一页，把 tunnel_ 开头的这串 ID 粘贴到下面的输入框里。',
+    keysCard1B4: '点「保存隧道密钥」，右边状态变成「已保存」就成功了。',
+    keysField1: '隧道密钥（Tunnel ID）', keysPh1: 'tunnel_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', keysSave1: '保存隧道密钥',
+    keysSaved1: '隧道密钥已保存', keysEmpty1: '还没保存，照着上面 4 步做一遍就行',
+    keysCard2T: '② API 密钥（runtime key）', keysCard2D: '隧道连上 OpenAI 平台要用的密钥，在平台的 API keys 页面创建。',
+    keysCard2B1: '打开 OpenAI 平台的「API keys」页面（就是拿 runtime key 的地方）。',
+    keysCard2B2: '点「Create new secret key」新建一把密钥并复制（离开页面后就不再完整显示了）。',
+    keysCard2B3: '回到这一页选保存方式：推荐「密钥保险箱」，密钥只进 Windows 凭据管理器，磁盘上不留明文。',
+    keysCard2B4: '把密钥粘贴进输入框，点「保存 API 密钥」，状态变成「已就绪」就成了。',
+    keysField2: 'API 密钥（runtime key）', keysSave2: '保存 API 密钥',
+    keysSaved2: 'API 密钥已保存', keysEmpty2: '还没保存，照着上面 4 步做一遍就行',
+    keysStoreLabel: '保存方式', keysReady: '已就绪', keysNotReady: '未保存',
+    keysSource: '来源：{s}',
+    keysReuse: '存好之后新建隧道会自动带上：隧道 ID 直接帮你预填好；API 密钥在隧道表单里选「密钥保险箱」并留空即可复用。',
+    keysClearKey: '清除 API 密钥', keysClearTunnel: '清除隧道密钥',
+    keysClearedT: '已清除', keysClearedTunnel: '隧道密钥已清除', keysClearedKey: '已保存的 API 密钥已清除',
+    keysNeedValue: '先把内容粘进来再保存',
+    keysNextT: '钥匙存好之后，接着做这两步',
+    keysNext1T: '创建 MCP 服务器', keysNext1D: '把本机的 MCP 服务器登记进 MCPHelm：命令可以自己填，也能从模板或组件市场里挑一个现成的。', keysNext1B: '去「服务器」',
+    keysNext2T: '打通隧道', keysNext2D: '新建一条隧道，把服务器和 ChatGPT 接起来。隧道 ID 已经帮你预填好，选一个服务器就能建。', keysNext2B: '去「隧道」',
+    keysOpenTunnels: '打开隧道管理', keysOpenApiKeys: '打开 API 密钥页',
+    keysNewTunnelTip: '提示：还没有服务器时隧道建不了，先去「服务器」加一个（组件市场里点「安装」也可以）。',
+    keysKeyringOff: '这台电脑的密钥保险箱不可用，先用「直接填写」保存；它会把这把密钥写进本地配置文件。',
+    keysInlineHint: '这把密钥会写进本机配置文件（明文保存），保险箱不可用时再用它。',
+    keysNoServerHint: '还没有 MCP 服务器：先去「服务器」页加一个，再回来建隧道。',
     refresh: '刷新', refreshing: '刷新中…', refreshed: '已刷新', refreshHint: '重新同步最新数据', newTunnel: '新建隧道', downloadRuntime: '下载运行环境',
     close: '关闭', cancel: '取消', confirm: '确定', delete: '删除', save: '保存修改',
     opFailed: '操作失败', deleteTunnel: '删除隧道',
@@ -78,6 +111,8 @@ const I18N = {
     tunnelEmptyH: '还没有隧道',
     tunnelEmptyP: '隧道是连接本地服务器和 ChatGPT 的桥梁。先确认已添加服务器，再创建第一条隧道。',
     createFirstTunnel: '创建第一条隧道',
+    tunnelEmptyKeys: '两把钥匙还没存？先去「密钥」板块存好，新建隧道时就会自动带上。',
+    tunnelEmptyKeysBtn: '先去「密钥」存好',
     serverEmptyH: '还没有登记 MCP 服务器',
     serverEmptyP: '把你想给 ChatGPT 用的本地 MCP 服务器登记在这里——可以是一条启动命令（stdio），也可以是一个本机 HTTP 地址。',
     fromTemplate: '从模板新建', importConfig: '导入已有配置', fromMarket: '从组件市场选',
@@ -167,10 +202,12 @@ const I18N = {
     tmCreateTitle: '创建隧道', tmEditTitle: '编辑隧道', tmSub: '把一台本地服务器接到 ChatGPT',
     fServerBind: '绑定服务器', fTunnelId: '隧道 ID',
     fTunnelIdHint: '在 {a} 创建隧道后获得，格式 tunnel_ + 32 位字符', fTunnelIdA: 'OpenAI 平台 · 隧道管理',
+    fTunnelIdPrefill: '已从「密钥」板块自动带过来，不用再粘一次',
     fKey: '密钥（runtime key）',
     keyModeEnv: '环境变量', keyModeKeyring: '密钥保险箱（推荐）', keyModeInline: '直接填写',
     fKeyEnv: '环境变量名', fKeyEnvHint: '密钥不落盘，启动时从该环境变量读取',
     fKeyKeyringHint: '密钥只存进 Windows 凭据管理器，不写进任何配置文件，本机最安全的方式',
+    fKeyReuseHint: '「密钥」板块里已经存好了，这里留空就会自动复用它',
     fKeyInlinePh: '粘贴 OpenAI 平台生成的 runtime key',
     fKeyInlineHint: '在 {a} 生成', fKeyInlineA: 'OpenAI 平台 · API 密钥', fKeyKeep: '；已保存过密钥，留空表示保持不变',
     fHealthPort: '健康检查端口（可选）',
@@ -217,12 +254,13 @@ const I18N = {
     gs3S3: '从组件市场选：主流开源 MCP 服务器一键装好，启动命令都帮你填好。',
     gs3S4: '在用 Claude / Cursor / VS Code？点「导入已有配置」一键搬过来。',
     gs4T: '去 OpenAI 平台拿两把钥匙',
-    gs4D: '这一步要拿两样东西：tunnel_ 开头的隧道 ID，和 sk- 开头的 runtime key。两把「钥匙」只保存在你自己的电脑上。',
+    gs4D: '这一步要拿两样东西：tunnel_ 开头的隧道 ID，和 sk- 开头的 runtime key。两把「钥匙」只保存在你自己的电脑上；拿到后到左边「密钥」板块存一次，后面建隧道会自动带上。',
     gs4S1: '点「打开隧道管理」，登录 OpenAI 账号，创建一条隧道，复制 tunnel_ 开头的隧道 ID。',
     gs4S2: '点「打开 API 密钥」，生成一把 runtime key（只完整显示一次，先复制再关页面）。',
-    gs4S3: '两把钥匙先放在手边，下一步创建隧道时要粘贴。',
-    gs4S4: '都拿到了？点下面的「我已经拿到这两把钥匙」，再到下一步。',
+    gs4S3: '把两把钥匙存进左边「密钥」板块（点下面的「去「密钥」存好」），存一次以后新建隧道都能复用。',
+    gs4S4: '钥匙存好之后，点「我已经拿到这两把钥匙」做个标记，再到下一步。',
     gs4B1: '打开隧道管理', gs4B2: '打开 API 密钥',
+    gs4BKeys: '去「密钥」存好', gs4BKeysTip: '隧道 ID 和 runtime key 在「密钥」板块各存一次，新建隧道时隧道 ID 自动预填、runtime key 勾「密钥保险箱」就能直接复用。',
     gs4B3: '我已经拿到这两把钥匙', gs4B3On: '已标记拿到钥匙（点此撤销）',
     gs4B3Note: '钥匙已经到手了。接着点「下一步」，把隧道 ID 和 runtime key 粘进隧道表单就行。',
     /* 第三步图文教程：真实截图上叠编号方框，回答「去哪创建隧道 / 去哪拿 runtime key」 */
@@ -305,6 +343,39 @@ const I18N = {
     metaLogsT: 'Logs', metaLogsS: 'Live output of every tunnel',
     metaDoctorT: 'Doctor', metaDoctorS: 'Check environment and config automatically',
     metaSettingsT: 'Settings', metaSettingsS: 'Preferences, paths, key status and help',
+    /* Keys board: the tunnel key and the API key live here, before Servers and Tunnels */
+    navKeys: 'Keys',
+    metaKeysT: 'Keys', metaKeysS: 'Save the tunnel key and the API key first — new tunnels reuse them automatically',
+    keysIntroT: 'Two keys first, then everything else is easy',
+    keysIntroD: 'A tunnel needs two things: a tunnel key (Tunnel ID, starting with tunnel_) and an API key (runtime key, starting with sk-). Save them once here and new tunnels pick them up automatically.',
+    keysCard1T: '1. Tunnel key (Tunnel ID)', keysCard1D: 'The ID you get after creating a tunnel on the OpenAI platform.',
+    keysCard1B1: 'Open the OpenAI platform and go to the Tunnels page (sign in with your own account).',
+    keysCard1B2: 'Create a tunnel — any name works, e.g. my-first-tunnel — then copy its Tunnel ID.',
+    keysCard1B3: 'Come back to this page and paste the tunnel_ ID into the field below.',
+    keysCard1B4: 'Click Save tunnel key; the status turns into Saved once it worked.',
+    keysField1: 'Tunnel key (Tunnel ID)', keysPh1: 'tunnel_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', keysSave1: 'Save tunnel key',
+    keysSaved1: 'Tunnel key saved', keysEmpty1: 'Nothing saved yet — follow the four steps above',
+    keysCard2T: '2. API key (runtime key)', keysCard2D: 'The key your tunnel uses to reach the OpenAI platform; create it on the API keys page.',
+    keysCard2B1: 'Open the API keys page on the OpenAI platform.',
+    keysCard2B2: 'Create a new secret key and copy it right away (it is shown in full only once).',
+    keysCard2B3: 'Back here, pick how to store it: the key vault is recommended — it keeps the key in Windows Credential Manager, no plaintext on disk.',
+    keysCard2B4: 'Paste it into the field and click Save API key; the status turns Ready once it worked.',
+    keysField2: 'API key (runtime key)', keysSave2: 'Save API key',
+    keysSaved2: 'API key saved', keysEmpty2: 'Nothing saved yet — follow the four steps above',
+    keysStoreLabel: 'Storage', keysReady: 'Ready', keysNotReady: 'Not saved',
+    keysSource: 'Source: {s}',
+    keysReuse: 'Once saved, new tunnels reuse both: the tunnel ID is pre-filled for you, and picking the key vault in the tunnel form (leaving it empty) reuses the stored API key.',
+    keysClearKey: 'Clear API key', keysClearTunnel: 'Clear tunnel key',
+    keysClearedT: 'Cleared', keysClearedTunnel: 'Tunnel key cleared', keysClearedKey: 'Stored API key cleared',
+    keysNeedValue: 'Paste something before saving',
+    keysNextT: 'Once the keys are in, do these two steps',
+    keysNext1T: 'Add an MCP server', keysNext1D: 'Register a local MCP server in MCPHelm: type the command yourself, or pick one from a template or the marketplace.', keysNext1B: 'Go to Servers',
+    keysNext2T: 'Bring the tunnel up', keysNext2D: 'Create a tunnel to connect a server with ChatGPT. The tunnel ID is already pre-filled — just pick a server.', keysNext2B: 'Go to Tunnels',
+    keysOpenTunnels: 'Open tunnel manager', keysOpenApiKeys: 'Open API keys page',
+    keysNewTunnelTip: 'Note: a tunnel needs a server first — add one on the Servers page (installing from the marketplace works too).',
+    keysKeyringOff: 'The key vault is unavailable on this machine, so use Paste directly — the key will be written into the local config file.',
+    keysInlineHint: 'This key is written into the local config file in plaintext — use it only when the vault is unavailable.',
+    keysNoServerHint: 'No MCP server yet: add one on the Servers page first, then come back to create the tunnel.',
     refresh: 'Refresh', refreshing: 'Refreshing…', refreshed: 'Refreshed', refreshHint: 'Re-sync latest data', newTunnel: 'New Tunnel', downloadRuntime: 'Download Runtime',
     close: 'Close', cancel: 'Cancel', confirm: 'OK', delete: 'Delete', save: 'Save',
     opFailed: 'Operation failed', deleteTunnel: 'Delete tunnel',
@@ -354,6 +425,8 @@ const I18N = {
     tunnelEmptyH: 'No tunnels yet',
     tunnelEmptyP: 'A tunnel is the bridge between a local server and ChatGPT. Add a server first, then create your first tunnel.',
     createFirstTunnel: 'Create my first tunnel',
+    tunnelEmptyKeys: 'Keys not saved yet? Store them in the Keys panel first — new tunnels pick them up automatically.',
+    tunnelEmptyKeysBtn: 'Save them in Keys first',
     serverEmptyH: 'No MCP servers registered',
     serverEmptyP: 'Register the local MCP servers you want ChatGPT to use — either a launch command (stdio) or a local HTTP address.',
     fromTemplate: 'From a template', importConfig: 'Import existing config', fromMarket: 'From the marketplace',
@@ -443,10 +516,12 @@ const I18N = {
     tmCreateTitle: 'Create tunnel', tmEditTitle: 'Edit tunnel', tmSub: 'Wire a local server into ChatGPT',
     fServerBind: 'Bound server', fTunnelId: 'Tunnel ID',
     fTunnelIdHint: 'Create a tunnel at {a} to get one — format tunnel_ + 32 chars', fTunnelIdA: 'OpenAI Platform · Tunnels',
+    fTunnelIdPrefill: 'Pre-filled from the Keys panel — no need to paste it again',
     fKey: 'Key (runtime key)',
     keyModeEnv: 'Env variable', keyModeKeyring: 'Key vault (recommended)', keyModeInline: 'Paste directly',
     fKeyEnv: 'Env variable name', fKeyEnvHint: 'The key never touches disk; it is read from this variable at start',
     fKeyKeyringHint: 'The key goes only into Windows Credential Manager — nothing is written to any config file',
+    fKeyReuseHint: 'Already saved in the Keys panel — leave this empty to reuse it',
     fKeyInlinePh: 'Paste the runtime key from the OpenAI platform',
     fKeyInlineHint: 'Generate one at {a}', fKeyInlineA: 'OpenAI Platform · API keys', fKeyKeep: '; a key is already saved — leave empty to keep it',
     fHealthPort: 'Health check port (optional)',
@@ -493,12 +568,13 @@ const I18N = {
     gs3S3: 'From the marketplace: one-click installs of popular open-source MCP servers, launch command included.',
     gs3S4: 'On Claude / Cursor / VS Code already? Import existing config in one click.',
     gs4T: 'Get the two keys from the OpenAI platform',
-    gs4D: 'Two things are needed here: the tunnel_ ID and an sk- runtime key. Both stay only on your own machine.',
+    gs4D: 'Two things are needed here: the tunnel_ ID and an sk- runtime key. Both stay only on your own machine — save them once in the Keys panel on the left and later tunnels reuse them automatically.',
     gs4S1: 'Open Tunnels, sign in, create a tunnel and copy its tunnel_ ID.',
     gs4S2: 'Open API keys and create a runtime key (shown in full once — copy it before closing the page).',
-    gs4S3: 'Keep both keys at hand; the next step pastes them into the tunnel form.',
-    gs4S4: 'Got both? Click "I already have both keys" below, then continue.',
+    gs4S3: 'Save both into the Keys panel on the left (click "Save them in Keys" below) — every new tunnel can reuse them afterwards.',
+    gs4S4: 'Once they are saved, click "I already have both keys" to mark this step, then continue.',
     gs4B1: 'Open Tunnels', gs4B2: 'Open API keys',
+    gs4BKeys: 'Save them in Keys', gs4BKeysTip: 'Store the tunnel ID and the runtime key once in the Keys panel: new tunnels pre-fill the ID and reuse the key when you pick the key vault.',
     gs4B3: 'I already have both keys', gs4B3On: 'Marked as obtained (click to undo)',
     gs4B3Note: 'Keys in hand. Click Next and paste the tunnel ID and the runtime key into the tunnel form.',
     /* Step 3 illustrated tutorial: real screenshots with numbered boxes */
@@ -642,6 +718,7 @@ const ICONS = {
   warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
   info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
   key: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M11 12L21 2M15 8l3 3M18 5l2 2"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2"/></svg>',
   clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
   link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
   ext: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>',
@@ -684,6 +761,7 @@ const app = {
 function viewMeta(v) {
   const map = {
     dashboard: ['metaDashboardT', 'metaDashboardS'],
+    keys: ['metaKeysT', 'metaKeysS'],
     tunnels: ['metaTunnelsT', 'metaTunnelsS'],
     servers: ['metaServersT', 'metaServersS'],
     market: ['metaMarketT', 'metaMarketS'],
@@ -945,7 +1023,7 @@ function applyLanguage() {
   document.documentElement.lang = currentLang === 'en' ? 'en' : 'zh-CN';
   document.title = 'MCPHelm \u00b7 ' + t('tagline');
   const brandSub = $('#brandSub'); if (brandSub) brandSub.textContent = t('brandSub');
-  const navLabels = { dashboard: 'navDashboard', tunnels: 'navTunnels', servers: 'navServers', market: 'navMarket', logs: 'navLogs', doctor: 'navDoctor', settings: 'navSettings' };
+  const navLabels = { dashboard: 'navDashboard', keys: 'navKeys', servers: 'navServers', market: 'navMarket', tunnels: 'navTunnels', logs: 'navLogs', doctor: 'navDoctor', settings: 'navSettings' };
   $$('#nav .nav-item').forEach((b) => {
     const lbl = $('.nav-label', b);
     if (lbl && navLabels[b.dataset.view]) lbl.textContent = t(navLabels[b.dataset.view]);
@@ -992,7 +1070,11 @@ function renderShell() {
   else if (errCount > 0) { envDot.className = 'dot dot-err'; envText.textContent = t('envBadCfg', { n: errCount }); }
   else { envDot.className = 'dot dot-ok'; envText.textContent = t('envOk'); }
   // 导航角标
-  const nbT = $('#navBadgeTunnels'), nbS = $('#navBadgeServers'), nbD = $('#navBadgeDoctor');
+  const nbT = $('#navBadgeTunnels'), nbS = $('#navBadgeServers'), nbD = $('#navBadgeDoctor'), nbK = $('#navBadgeKeys');
+  /* 密钥角标：两把钥匙缺几把就显示几，都备齐了角标消失 */
+  const keysState = s.keys || {};
+  const keysMissing = (keysState.tunnelId ? 0 : 1) + (keysState.apiKeyReady ? 0 : 1);
+  if (nbK) { nbK.textContent = keysMissing; nbK.classList.toggle('hidden', keysMissing === 0); }
   nbT.textContent = s.counts.running + '/' + s.counts.tunnels;
   nbT.classList.toggle('hidden', s.counts.tunnels === 0);
   nbS.textContent = s.counts.servers;
@@ -1019,6 +1101,7 @@ function renderView() {
   const c = $('#content');
   const keepScroll = c.scrollTop; // 刷新时保持用户当前的滚动位置
   if (app.view === 'dashboard') renderDashboard(c, s);
+  else if (app.view === 'keys') renderKeys(c, s);
   else if (app.view === 'tunnels') renderTunnels(c, s);
   else if (app.view === 'servers') renderServers(c, s);
   else if (app.view === 'market') renderMarket(c, s);
@@ -1047,6 +1130,9 @@ function setupSteps(s) {
   const docs = s.docs || {};
   const hasKey = (s.tunnels || []).some((x) => x.key && x.key.ready);
   const keysDone = keysFlagOn();
+  /* 「密钥」板块里两把钥匙都存好了，第三步就是真的做完了，不用再靠手动标记 */
+  const draft = s.keys || {};
+  const draftKeysReady = !!(draft.tunnelId && draft.apiKeyReady);
   return [
     {
       name: t('gs2T'), desc: t('gs2D'), done: !!s.runtime.found,
@@ -1063,12 +1149,13 @@ function setupSteps(s) {
       ],
     },
     {
-      name: t('gs4T'), desc: t('gs4D'), done: hasKey || keysDone,
+      name: t('gs4T'), desc: t('gs4D'), done: hasKey || keysDone || draftKeysReady,
       details: [t('gs4S1'), t('gs4S2'), t('gs4S3'), t('gs4S4')],
-      note: keysDone && !hasKey ? t('gs4B3Note') : '',
+      note: draftKeysReady ? t('gs4BKeysTip') : (keysDone && !hasKey ? t('gs4B3Note') : ''),
       actions: [
         { label: t('gs4B1'), kind: 'accent', icon: 'ext', href: docs.platformTunnels },
         { label: t('gs4B2'), kind: 'accent', icon: 'ext', href: docs.platformApiKeys },
+        { label: t('gs4BKeys'), kind: draftKeysReady ? 'soft' : 'accent', icon: 'key', fn: () => setView('keys') },
         { label: keysDone ? t('gs4B3On') : t('gs4B3'), kind: keysDone ? 'soft' : 'accent', icon: 'check', fn: () => toggleKeysFlag() },
       ],
     },
@@ -1392,15 +1479,143 @@ async function tunnelAction(tn, act, btn) {
   setTimeout(() => refreshState(true), 600);
 }
 
+/* ---------------- 密钥页 ---------------- */
+/*
+ * 「密钥」板块：还没绑定隧道的两把钥匙先收在这里，顺序排在「服务器 / 隧道」前面。
+ * 存好的钥匙会被隧道表单复用：隧道 ID 直接预填，runtime key 在表单里选「密钥保险箱」留空即可。
+ */
+function renderKeys(c, s) {
+  const k = s.keys || {};
+  const docs = s.docs || {};
+  const tunnelReady = !!k.tunnelId;
+  const apiReady = !!k.apiKeyReady;
+  const storeMode = k.apiKeyStore === 'inline' ? 'inline' : (k.apiKeyStore === 'keyring' ? 'keyring' : (app.keyringSupported ? 'keyring' : 'inline'));
+  const steps = (arr) => '<ol class="keys-steps">' + arr.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ol>';
+  const extLink = (href, label) => '<a class="btn ghost" href="' + esc(href || '#') + '" target="_blank" rel="noopener"><span class="ico">' + icon('ext') + '</span>' + esc(label) + '</a>';
+
+  let html = '<div class="notice info"><span class="ico">' + icon('key') + '</span><div><strong>' + esc(t('keysIntroT')) + '</strong><br>' + esc(t('keysIntroD')) + '</div></div>';
+  html += '<div class="keys-grid">';
+
+  /* ① 隧道密钥（Tunnel ID） */
+  html += '<div class="card"><div class="card-head"><div>' +
+      '<div class="card-title"><span class="ico">' + icon('key') + '</span>' + esc(t('keysCard1T')) + '</div>' +
+      '<div class="card-sub">' + esc(t('keysCard1D')) + '</div></div>' +
+      '<span class="pill ' + (tunnelReady ? 'ok' : 'muted') + '">' + esc(tunnelReady ? t('keysSaved1') : t('keysNotReady')) + '</span>' +
+    '</div><div class="card-body">' +
+    steps([t('keysCard1B1'), t('keysCard1B2'), t('keysCard1B3'), t('keysCard1B4')]) +
+    (tunnelReady && k.tunnelIdMasked
+      ? '<div class="keys-mask"><span class="keys-mask-k">' + esc(t('keysField1')) + '</span><span class="keys-mask-v mono">' + esc(k.tunnelIdMasked) + '</span></div>'
+      : '') +
+    '<div class="keys-form">' +
+      '<div class="field" style="margin-bottom:0"><label class="field-label" for="k_tunnel">' + esc(t('keysField1')) + '</label>' +
+      '<input class="input mono" id="k_tunnel" placeholder="' + esc(t('keysPh1')) + '" value="' + esc(k.tunnelId || '') + '">' +
+      '<div class="field-hint">' + t('fTunnelIdHint', { a: '<a href="' + esc(docs.platformTunnels || '#') + '" target="_blank" rel="noopener">' + esc(t('fTunnelIdA')) + '</a>' }) + '</div></div>' +
+      '<div class="keys-row">' +
+        extLink(docs.platformTunnels, t('keysOpenTunnels')) +
+        '<button class="btn primary" id="k_saveTunnel"><span class="ico">' + icon('check') + '</span>' + esc(t('keysSave1')) + '</button>' +
+        (tunnelReady ? '<button class="btn danger-soft" id="k_clearTunnel"><span class="ico">' + icon('trash') + '</span>' + esc(t('keysClearTunnel')) + '</button>' : '') +
+      '</div>' +
+    '</div>' +
+    '</div></div>';
+
+  /* ② API 密钥（runtime key）：保存方式与隧道表单保持一致（保险箱优先） */
+  const keyringBtn = app.keyringSupported
+    ? '<button data-k="keyring" type="button" class="' + (storeMode === 'keyring' ? 'active' : '') + '">' + esc(t('keyModeKeyring')) + '</button>'
+    : '';
+  html += '<div class="card"><div class="card-head"><div>' +
+      '<div class="card-title"><span class="ico">' + icon('lock') + '</span>' + esc(t('keysCard2T')) + '</div>' +
+      '<div class="card-sub">' + esc(t('keysCard2D')) + '</div></div>' +
+      '<span class="pill ' + (apiReady ? 'ok' : 'muted') + '">' + esc(apiReady ? t('keysReady') : t('keysNotReady')) + '</span>' +
+    '</div><div class="card-body">' +
+    steps([t('keysCard2B1'), t('keysCard2B2'), t('keysCard2B3'), t('keysCard2B4')]) +
+    (apiReady && k.apiKeySource
+      ? '<div class="keys-mask"><span class="keys-mask-k">' + esc(t('keysStoreLabel')) + '</span><span class="keys-mask-v">' + esc(t('keysSource', { s: k.apiKeySource })) + '</span></div>'
+      : '') +
+    '<div class="keys-form">' +
+      '<div class="field" style="margin-bottom:0"><label class="field-label">' + esc(t('keysStoreLabel')) + '</label>' +
+      '<div class="seg" id="k_store">' + keyringBtn +
+        '<button data-k="inline" type="button" class="' + (storeMode === 'inline' ? 'active' : '') + '">' + esc(t('keyModeInline')) + '</button>' +
+      '</div>' +
+      '<div class="field-hint" id="k_storeHint">' + esc(app.keyringSupported ? t('fKeyKeyringHint') : t('keysKeyringOff')) + '</div></div>' +
+      '<div class="field" style="margin-bottom:0"><label class="field-label" for="k_apikey">' + esc(t('keysField2')) + '</label>' +
+      '<input class="input mono" id="k_apikey" type="password" placeholder="' + esc(t('fKeyInlinePh')) + '" value="">' +
+      '<div class="field-hint">' + t('fKeyInlineHint', { a: '<a href="' + esc(docs.platformApiKeys || '#') + '" target="_blank" rel="noopener">' + esc(t('fKeyInlineA')) + '</a>' }) + '</div></div>' +
+      '<div class="keys-row">' +
+        extLink(docs.platformApiKeys, t('keysOpenApiKeys')) +
+        '<button class="btn primary" id="k_saveKey"><span class="ico">' + icon('check') + '</span>' + esc(t('keysSave2')) + '</button>' +
+        (apiReady ? '<button class="btn danger-soft" id="k_clearKey"><span class="ico">' + icon('trash') + '</span>' + esc(t('keysClearKey')) + '</button>' : '') +
+      '</div>' +
+      '<div class="keys-hint-text">' + esc(t('keysReuse')) + '</div>' +
+    '</div>' +
+    '</div></div>';
+
+  html += '</div>';
+
+  /* 钥匙备好之后的两步：先服务器，再隧道，顺序和新用户实际流程一致 */
+  html += '<div class="section-title"><span class="ico">' + icon('zap') + '</span>' + esc(t('keysNextT')) + '</div>';
+  html += '<div class="keys-next">' +
+    '<div class="guide-tip"><div class="t"><span class="ico">' + icon('servers') + '</span>' + esc(t('keysNext1T')) + '</div>' +
+      '<div class="d">' + esc(t('keysNext1D')) + '</div>' +
+      '<button class="btn soft" data-goto="servers"><span class="ico">' + icon('arrow') + '</span>' + esc(t('keysNext1B')) + '</button></div>' +
+    '<div class="guide-tip"><div class="t"><span class="ico">' + icon('tunnels') + '</span>' + esc(t('keysNext2T')) + '</div>' +
+      '<div class="d">' + esc(t('keysNext2D')) + '</div>' +
+      '<button class="btn soft" data-goto="tunnels"><span class="ico">' + icon('arrow') + '</span>' + esc(t('keysNext2B')) + '</button></div>' +
+    '</div>';
+  if (s.counts.servers === 0) {
+    html += '<div class="notice warn" style="margin-top:14px"><span class="ico">' + icon('warn') + '</span><div>' + esc(t('keysNewTunnelTip')) + '</div></div>';
+  }
+
+  c.innerHTML = html;
+
+  const save = async (body, okMsg) => {
+    try {
+      await api('/api/keys', { method: 'POST', body });
+      toast(okMsg, 'ok');
+      refreshState(true, true);
+    } catch (e) { toast(e.message, 'err'); }
+  };
+  $('#k_saveTunnel', c).addEventListener('click', () => {
+    const val = $('#k_tunnel', c).value.trim();
+    if (!val) { toast(t('keysNeedValue'), 'err'); return; }
+    save({ tunnelId: val }, t('keysSaved1'));
+  });
+  const clearTunnel = $('#k_clearTunnel', c);
+  if (clearTunnel) clearTunnel.addEventListener('click', () => save({ tunnelId: '' }, t('keysClearedTunnel')));
+  $('#k_saveKey', c).addEventListener('click', () => {
+    const seg = $('#k_store button.active', c);
+    const mode = seg ? seg.dataset.k : 'inline';
+    const val = $('#k_apikey', c).value.trim();
+    if (!val) { toast(t('keysNeedValue'), 'err'); return; }
+    save({ keyMode: mode, apiKey: val }, t('keysSaved2'));
+  });
+  const clearKey = $('#k_clearKey', c);
+  if (clearKey) clearKey.addEventListener('click', () => save({ keyMode: 'clear' }, t('keysClearedKey')));
+  const segEl = $('#k_store', c);
+  $$('button', segEl).forEach((b) => b.addEventListener('click', () => {
+    $$('button', segEl).forEach((x) => x.classList.toggle('active', x === b));
+    const hint = $('#k_storeHint', c);
+    if (hint) hint.textContent = b.dataset.k === 'inline' ? t('keysInlineHint') : t('fKeyKeyringHint');
+  }));
+  $$('[data-goto]', c).forEach((b) => b.addEventListener('click', () => setView(b.dataset.goto)));
+}
+
 /* ---------------- 隧道列表页 ---------------- */
 function renderTunnels(c, s) {
   let html = '';
   if (s.tunnels.length === 0) {
+    /* 一条隧道都没有时，先把「密钥」板块没存齐的钥匙提示出来，避免新用户卡在弹窗里 */
+    const dk = s.keys || {};
+    const keysReady = !!(dk.tunnelId && dk.apiKeyReady);
     html = '<div class="empty"><div class="empty-ico">' + icon('tunnels') + '</div>' +
       '<h3>' + esc(t('tunnelEmptyH')) + '</h3><p>' + esc(t('tunnelEmptyP')) + '</p>' +
-      '<button class="btn primary" id="emptyNewTunnel"><span class="ico">' + icon('plus') + '</span>' + esc(t('createFirstTunnel')) + '</button></div>';
+      (keysReady ? '' : '<div class="empty-sub">' + esc(t('tunnelEmptyKeys')) + '</div>') +
+      '<div class="empty-actions">' +
+      (keysReady ? '' : '<button class="btn ghost" id="emptyKeysBtn"><span class="ico">' + icon('key') + '</span>' + esc(t('tunnelEmptyKeysBtn')) + '</button>') +
+      '<button class="btn primary" id="emptyNewTunnel"><span class="ico">' + icon('plus') + '</span>' + esc(t('createFirstTunnel')) + '</button></div></div>';
     c.innerHTML = html;
     $('#emptyNewTunnel', c).addEventListener('click', () => showTunnelModal(null));
+    const keysBtn = $('#emptyKeysBtn', c);
+    if (keysBtn) keysBtn.addEventListener('click', () => setView('keys'));
     return;
   }
   html += '<div style="display:flex;justify-content:flex-end;margin-bottom:14px"><button class="btn primary" id="newTunnelBtn"><span class="ico">' + icon('plus') + '</span>' + esc(t('newTunnel')) + '</button></div>';
@@ -2021,9 +2236,14 @@ async function showTunnelModal(editName) {
     } catch (e) { toast(e.message, 'err'); return; }
   }
   const d = s.docs || {};
+  /* 「密钥」板块里存好的两把钥匙：隧道 ID 直接预填，runtime key 留空就复用 */
+  const draftKeys = s.keys || {};
+  const draftStore = draftKeys.apiKeyReady ? draftKeys.apiKeyStore : null;
   const initKeyMode = existing
     ? (existing.apiKeyEnv ? 'env' : (existing.apiKeyStore === 'keyring' ? 'keyring' : (existing.apiKeySet ? 'inline' : 'env')))
-    : (app.keyringSupported ? 'keyring' : 'env');
+    : (draftStore === 'keyring' && app.keyringSupported
+        ? 'keyring'
+        : (draftStore === 'inline' ? 'inline' : (app.keyringSupported ? 'keyring' : 'env')));
   const keyringBtn = app.keyringSupported
     ? '<button data-k="keyring" class="' + (initKeyMode === 'keyring' ? 'active' : '') + '">' + esc(t('keyModeKeyring')) + '</button>'
     : '';
@@ -2038,8 +2258,9 @@ async function showTunnelModal(editName) {
       '</select></div>' +
     '</div>' +
     '<div class="field"><label class="field-label">' + esc(t('fTunnelId')) + '<span class="req">*</span></label>' +
-    '<input class="input mono" id="f_tid" placeholder="tunnel_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value="' + esc(existing ? existing.tunnelId : '') + '">' +
-    '<div class="field-hint">' + t('fTunnelIdHint', { a: '<a href="' + esc(d.platformTunnels || '#') + '" target="_blank" rel="noopener">' + esc(t('fTunnelIdA')) + '</a>' }) + '</div></div>' +
+    '<input class="input mono" id="f_tid" placeholder="tunnel_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value="' + esc(existing ? existing.tunnelId : (draftKeys.tunnelId || '')) + '">' +
+    '<div class="field-hint">' + t('fTunnelIdHint', { a: '<a href="' + esc(d.platformTunnels || '#') + '" target="_blank" rel="noopener">' + esc(t('fTunnelIdA')) + '</a>' }) +
+      (!existing && draftKeys.tunnelId ? ' <span class="hint-ok">' + esc(t('fTunnelIdPrefill')) + '</span>' : '') + '</div></div>' +
     '<div class="field"><label class="field-label">' + esc(t('fKey')) + '<span class="req">*</span></label>' +
     '<div class="seg" id="f_keymode">' +
       keyringBtn +
@@ -2051,10 +2272,12 @@ async function showTunnelModal(editName) {
     '<div class="field-hint">' + esc(t('fKeyEnvHint')) + '</div></div>' +
     '<div class="field hidden" id="wrap_keykeyring"><label class="field-label">runtime key</label>' +
     '<input class="input mono" id="f_keykeyring" type="password" placeholder="' + esc(t('fKeyInlinePh')) + '" value="">' +
-    '<div class="field-hint">' + esc(t('fKeyKeyringHint')) + (existing && existing.apiKeySet ? esc(t('fKeyKeep')) : '') + '</div></div>' +
+    '<div class="field-hint">' + esc(t('fKeyKeyringHint')) + (existing && existing.apiKeySet ? esc(t('fKeyKeep')) : '') +
+      (!existing && draftStore === 'keyring' ? ' <span class="hint-ok">' + esc(t('fKeyReuseHint')) + '</span>' : '') + '</div></div>' +
     '<div class="field hidden" id="wrap_keyinline"><label class="field-label">runtime key</label>' +
     '<input class="input mono" id="f_keyinline" type="password" placeholder="' + esc(t('fKeyInlinePh')) + '" value="">' +
-    '<div class="field-hint">' + t('fKeyInlineHint', { a: '<a href="' + esc(d.platformApiKeys || '#') + '" target="_blank" rel="noopener">' + esc(t('fKeyInlineA')) + '</a>' }) + (existing && existing.apiKeySet ? esc(t('fKeyKeep')) : '') + '</div></div>' +
+    '<div class="field-hint">' + t('fKeyInlineHint', { a: '<a href="' + esc(d.platformApiKeys || '#') + '" target="_blank" rel="noopener">' + esc(t('fKeyInlineA')) + '</a>' }) + (existing && existing.apiKeySet ? esc(t('fKeyKeep')) : '') +
+      (!existing && draftStore === 'inline' ? ' <span class="hint-ok">' + esc(t('fKeyReuseHint')) + '</span>' : '') + '</div></div>' +
     '<div class="field"><label class="field-label">' + esc(t('fHealthPort')) + '</label>' +
     '<input class="input mono" id="f_tport" placeholder="8080" value="' + esc(existing && existing.healthPort ? String(existing.healthPort) : '') + '"></div>';
 
@@ -2091,11 +2314,14 @@ async function showTunnelModal(editName) {
           } else if (keyMode === 'keyring') {
             const keyVal = $('#f_keykeyring', bodyEl).value.trim();
             if (keyVal) payload.apiKey = keyVal;
+            /* 新建时可以留空：服务端会从「密钥」板块里把存好的 runtime key 取出来复用 */
+            else if (!existing && draftStore === 'keyring') { /* 留空复用 */ }
             else if (!existing || existing.apiKeyStore !== 'keyring') throw new Error(t('fillKey'));
             else payload.keyMode = 'keep';
           } else {
             const keyVal = $('#f_keyinline', bodyEl).value.trim();
             if (keyVal) payload.apiKey = keyVal;
+            else if (!existing && draftStore === 'inline') { /* 留空复用 */ }
             else if (!existing || !existing.apiKeySet) throw new Error(t('fillKey'));
             else payload.keyMode = 'keep';
           }

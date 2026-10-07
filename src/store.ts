@@ -38,10 +38,27 @@ export interface TunnelConfig {
 
 export type PanelLanguage = 'zh' | 'en';
 
+/**
+ * 「密钥」板块里保存的两把钥匙（0.1.11 新增）。
+ *
+ * 这两把钥匙是「还没绑定隧道」的待用件：用户在左侧「密钥」页先把它们收好，
+ * 新建隧道时表单会自动填入，不用再回头翻平台页面抄一遍。
+ */
+export interface DraftKeys {
+  /** 隧道密钥：OpenAI 平台生成的隧道 ID（tunnel_ + 32 位小写十六进制） */
+  tunnelId?: string;
+  /** API 密钥（runtime key）已存进 Windows 凭据管理器（保险箱，不落盘） */
+  apiKeyStore?: 'keyring';
+  /** 保险箱不可用时的兜底：直接写进配置文件（不推荐，仅本地临时用） */
+  apiKey?: string;
+}
+
 export interface AppConfig {
   version: 1;
   servers: McpServerConfig[];
   tunnels: TunnelConfig[];
+  /** 「密钥」板块保存的待用钥匙（新建隧道时自动填入） */
+  keys?: DraftKeys;
   defaults?: {
     healthPort?: number;
   };
@@ -195,6 +212,7 @@ export function loadConfig(paths: AppPaths): LoadResult {
     version: 1,
     servers: Array.isArray(candidate.servers) ? candidate.servers : [],
     tunnels: Array.isArray(candidate.tunnels) ? candidate.tunnels : [],
+    keys: candidate.keys && typeof candidate.keys === 'object' ? candidate.keys : undefined,
     defaults: candidate.defaults ?? { healthPort: 8080 },
     ui: candidate.ui && typeof candidate.ui === 'object' ? candidate.ui : undefined,
   };
