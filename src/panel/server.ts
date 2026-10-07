@@ -19,9 +19,11 @@ import { listStatuses, probeHealth, readLogTail, readState, startTunnel, stopTun
 import {
   findServer,
   findTunnel,
+  invalidateKeyringPresence,
   isValidName,
   isValidTunnelId,
   resolveApiKeyAsync,
+  resolveApiKeyPresence,
   saveConfig,
   serverTarget,
   validateConfig,
@@ -251,6 +253,8 @@ function parseTunnelPayload(
 }
 
 async function applyTunnelKey(tunnel: TunnelConfig, key: TunnelKeyPayload): Promise<{ warning: string | null }> {
+  // 密钥来源/内容要变了：先让「密钥是否就绪」的缓存失效，避免界面继续显示旧结果
+  invalidateKeyringPresence(tunnel.name);
   switch (key.mode) {
     case 'env':
       tunnel.apiKeyEnv = key.envName;
@@ -451,7 +455,9 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
       const health =
         status.state === 'running' && status.healthAddr ? await probeHealth(status.healthAddr, 1500) : null;
       const cfg = findTunnel(opts.config, status.name);
-      const key = cfg ? await resolveApiKeyAsync(cfg) : { ok: false, error: '隧道配置缺失' };
+      // 只问「有没有密钥」并且结果缓存 60 秒：避免每 2.5 秒轮询都去 PowerShell
+      // 读一遍 Windows 凭据管理器（单次约 300ms）
+      const key = cfg ? await resolveApiKeyPresence(cfg) : { ready: false, source: null };
       tunnels.push({
         name: status.name,
         tunnelIdMasked: status.tunnelIdMasked,
@@ -468,8 +474,8 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         health,
         lastError: status.lastError,
         key: {
-          ready: key.ok,
-          source: key.ok ? (key.source ?? null) : null,
+          ready: key.ready,
+          source: key.source,
           envName: cfg?.apiKeyEnv ?? null,
         },
       });
@@ -540,8 +546,17 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
   }
 
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const url = new URL(req.url ?? '/', 'http://localhost');
-    const path = decodeURIComponent(url.pathname);
+    // 畸形 URL 绝不能把面板带崩：以前这两行写在 try 之外，一条 GET /%zz 就会抛
+    // URIError，变成未处理的 Promise 拒绝，直接把面板进程（桌面版是整个应用）带走。
+    let url: URL;
+    let path: string;
+    try {
+      url = new URL(req.url ?? '/', 'http://localhost');
+      path = decodeURIComponent(url.pathname);
+    } catch {
+      sendText(res, 400, 'bad request');
+      return;
+    }
     const method = req.method ?? 'GET';
     const address = server.address() as AddressInfo | null;
     const panelPort = address && typeof address === 'object' ? address.port : opts.port;
@@ -851,6 +866,7 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
         }
         opts.config.tunnels.splice(opts.config.tunnels.indexOf(tunnel), 1);
         await keyringDelete(name);
+        invalidateKeyringPresence(name);
         saveConfig(opts.paths, opts.config);
         opts.onLog?.('面板删除了隧道：' + name);
         sendJson(res, 200, { ok: true, message: '已删除隧道：' + name });
@@ -1300,7 +1316,17 @@ export async function startPanel(opts: PanelOptions): Promise<PanelHandle> {
   }
 
   const server = createServer((req, res) => {
-    void handle(req, res);
+    // handle() 里有异步分支（写配置、读日志、起进程），任何漏网异常都不该变成
+    // 未处理的 Promise 拒绝；统一兜底成 500，面板继续服务。
+    void handle(req, res).catch((err: unknown) => {
+      opts.onLog?.('面板请求处理失败：' + (err instanceof Error ? err.message : String(err)));
+      try {
+        if (!res.headersSent) sendJson(res, 500, { ok: false, error: '面板内部错误，请重试' });
+        else res.end();
+      } catch {
+        // 连接可能已经断开，忽略
+      }
+    });
   });
 
   await new Promise<void>((ready, fail) => {

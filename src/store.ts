@@ -243,6 +243,50 @@ export async function resolveApiKeyAsync(
   return { ok: true, value: secret, source: 'Windows 凭据管理器' };
 }
 
+const KEYRING_SOURCE_LABEL = 'Windows 凭据管理器';
+
+/**
+ * 面板状态接口专用的「密钥就绪」检查。
+ *
+ * /api/state 每 2.5–8 秒被前端轮询一次，桌面壳还有 10 秒一次的健康检查；如果每次都
+ * 去 PowerShell 里读一遍 Windows 凭据管理器，每条隧道要白花约 300ms（实测 291–714ms），
+ * 三条隧道就能让一次状态刷新接近 1 秒。
+ *
+ * 这里只回答「保险箱里有没有这条隧道的密钥」，并把布尔结果缓存 60 秒；
+ * 真正需要密钥明文的路径（启动隧道、体检）依旧走 resolveApiKeyAsync，不经过缓存。
+ */
+const keyringPresenceCache = new Map<string, { at: number; present: boolean }>();
+const KEYRING_PRESENCE_TTL_MS = 60_000;
+
+/** 写入 / 清空密钥后调用，让缓存立刻失效，避免界面显示过期的「已就绪」 */
+export function invalidateKeyringPresence(tunnelName?: string): void {
+  if (tunnelName === undefined) keyringPresenceCache.clear();
+  else keyringPresenceCache.delete(tunnelName);
+}
+
+export async function resolveApiKeyPresence(
+  tunnel: TunnelConfig,
+  env: NodeJS.ProcessEnv = process.env
+): Promise<{ ready: boolean; source: string | null }> {
+  const sync = resolveApiKey(tunnel, env);
+  if (!sync.pendingKeyring) {
+    return { ready: sync.ok, source: sync.ok ? (sync.source ?? null) : null };
+  }
+  const now = Date.now();
+  const cached = keyringPresenceCache.get(tunnel.name);
+  if (cached && now - cached.at < KEYRING_PRESENCE_TTL_MS) {
+    return { ready: cached.present, source: cached.present ? KEYRING_SOURCE_LABEL : null };
+  }
+  const { keyringHas, keyringSupported } = await import('./keyring.ts');
+  if (!keyringSupported()) {
+    keyringPresenceCache.set(tunnel.name, { at: now, present: false });
+    return { ready: false, source: null };
+  }
+  const present = await keyringHas(tunnel.name);
+  keyringPresenceCache.set(tunnel.name, { at: now, present });
+  return { ready: present, source: present ? KEYRING_SOURCE_LABEL : null };
+}
+
 export function describeKey(tunnel: TunnelConfig, env: NodeJS.ProcessEnv = process.env): string {
   if (tunnel.apiKeyStore === 'keyring') return '已存入 Windows 凭据管理器（不落盘）';
   const resolved = resolveApiKey(tunnel, env);

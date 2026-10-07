@@ -103,10 +103,24 @@ process.env.MCPHELM_HOME = DATA_ROOT;
 
 /* 启动诊断：最早可写日志的位置，打包后排查“双击无窗口”用，正常后保持静默无异常 */
 const BOOT_LOG = path.join(DATA_ROOT, 'desktop', 'logs', 'boot.log');
+/**
+ * 日志里不写面板口令：面板地址形如 http://127.0.0.1:端口/#token=xxx，
+ * 口令等同于面板钥匙（拿到就能调所有 API），不能留在可被分享的日志里。
+ */
+function redactUrl(url) {
+  return String(url).replace(/#.*$/, '#<口令已隐去>');
+}
 function bootDbg(msg) {
   try {
+    const fs = require('node:fs');
     mkdirSync(path.dirname(BOOT_LOG), { recursive: true });
-    require('node:fs').appendFileSync(BOOT_LOG, new Date().toISOString() + ' ' + msg + '\n', 'utf8');
+    // 单文件超过 1MB 滚动一次，长期使用不至于无限膨胀
+    try {
+      if (fs.statSync(BOOT_LOG).size > 1024 * 1024) fs.renameSync(BOOT_LOG, BOOT_LOG + '.1');
+    } catch {
+      // 日志文件还不存在
+    }
+    fs.appendFileSync(BOOT_LOG, new Date().toISOString() + ' ' + msg + '\n', 'utf8');
   } catch { /* 日志写不进也不能影响启动 */ }
 }
 bootDbg('main loaded, isPackaged=' + app.isPackaged + ' exe=' + app.getPath('exe') + ' DATA_ROOT=' + DATA_ROOT);
@@ -165,6 +179,10 @@ let panel = null;
 let context = null;
 let quitting = false;
 let updateWatcher = null;
+/** 最近一次更新检查的失败原因（写在日志里，手动检查时弹给用户看） */
+let lastUpdateError = null;
+/** 只有用户手动点「检查更新」时才弹结果框，自动检查保持安静 */
+let manualUpdateCheck = false;
 
 async function startBackend() {
   const { resolvePaths } = await importDist('paths.js');
@@ -370,10 +388,62 @@ function setupAutoUpdate() {
         });
     }
   });
-  autoUpdater.on('error', () => {
-    // stay quiet on update check failure; the app keeps working offline
+  autoUpdater.on('update-not-available', () => {
+    if (!manualUpdateCheck) return;
+    manualUpdateCheck = false;
+    dialog.showMessageBox({
+      type: 'info',
+      title: '检查更新',
+      message: '当前已是最新版本（v' + app.getVersion() + '）',
+    });
   });
-  autoUpdater.checkForUpdates().catch(() => {});
+  autoUpdater.on('error', (err) => {
+    // 以前这里是完全静默的：0.1.7 的 Release 漏传 latest.yml，所有 0.1.7 用户都
+    // 收不到更新却毫无提示。现在至少把原因写进启动日志，手动检查时还能看到弹窗。
+    lastUpdateError = String((err && err.message) || err);
+    bootDbg('autoUpdater error: ' + lastUpdateError);
+    if (!manualUpdateCheck) return;
+    manualUpdateCheck = false;
+    dialog.showMessageBox({
+      type: 'warning',
+      title: '检查更新失败',
+      message: '暂时查不到新版本',
+      detail:
+        lastUpdateError +
+        '\n\n常见原因：网络不通，或该版本在 GitHub Release 上缺少 latest.yml。软件本身不受影响。',
+    });
+  });
+  autoUpdater.checkForUpdates().catch((err) => {
+    lastUpdateError = String((err && err.message) || err);
+    bootDbg('checkForUpdates failed: ' + lastUpdateError);
+  });
+}
+
+/** 菜单里的「检查更新」：打包版走 electron-updater，开发模式直接说明 */
+async function checkUpdatesManually() {
+  if (!app.isPackaged || !autoUpdater) {
+    dialog.showMessageBox({
+      type: 'info',
+      title: '检查更新',
+      message: '开发模式下不检查更新',
+      detail: '打包安装后的 MCPHelm 才会自动检查更新。',
+    });
+    return;
+  }
+  manualUpdateCheck = true;
+  try {
+    await autoUpdater.checkForUpdates();
+  } catch (err) {
+    manualUpdateCheck = false;
+    lastUpdateError = String((err && err.message) || err);
+    bootDbg('manual checkForUpdates failed: ' + lastUpdateError);
+    dialog.showMessageBox({
+      type: 'warning',
+      title: '检查更新失败',
+      message: '暂时查不到新版本',
+      detail: lastUpdateError,
+    });
+  }
 }
 
 function buildMenu() {
@@ -385,6 +455,13 @@ function buildMenu() {
         { type: 'separator' },
         { label: '打开配置所在文件夹', click: () => context && shell.openPath(path.dirname(context.paths.configFile)) },
         { label: '打开日志文件夹', click: () => context && shell.openPath(context.paths.logsDir) },
+        { type: 'separator' },
+        {
+          label: '检查更新…',
+          click: () => {
+            void checkUpdatesManually();
+          },
+        },
         { type: 'separator' },
         {
           label: '登录系统后自动启动',
@@ -513,7 +590,7 @@ async function boot() {
   try {
     dbg('calling startBackend');
     const handle = await startBackend();
-    dbg('startBackend ok url=' + handle.url);
+    dbg('startBackend ok url=' + redactUrl(handle.url));
     buildMenu();
     applyLoginItem();
     ensureTray();
@@ -534,6 +611,12 @@ app.setName('MCPHelm');
 // 父应用按钮上（例如从其它 Electron 应用内启动时），导致图标显示成别的软件。
 // 声明后无论从哪里启动，任务栏都会显示独立的 MCPHelm 按钮与舵轮图标。
 if (process.platform === 'win32') app.setAppUserModelId('dev.mcphelm.app');
+
+// 主进程兜底：面板和桌面壳在同一个进程里，任何一个漏网的 Promise 异常以前都会
+// 直接把整个应用带走（窗口无声消失）。这里记录到启动日志并继续运行。
+process.on('unhandledRejection', (reason) => {
+  bootDbg('unhandledRejection: ' + String((reason && reason.stack) || reason));
+});
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

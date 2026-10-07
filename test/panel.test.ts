@@ -158,4 +158,45 @@ describe('panel 安全与 API', () => {
     });
     assert.equal(res.status, 400);
   });
+
+  it('畸形 URL（/%zz）返回 400，面板不会被带崩', async () => {
+    const { base, token } = await boot();
+    // 以前 decodeURIComponent 在 try 之外，/%zz 会抛 URIError 变成未处理的
+    // Promise 拒绝，桌面版里等于整个应用直接退出。
+    const status = await new Promise<number>((done, reject) => {
+      const req = get(base + '/%zz', (res) => {
+        res.resume();
+        done(res.statusCode ?? 0);
+      });
+      req.on('error', reject);
+    });
+    assert.equal(status, 400);
+    // 关键：面板仍然存活，能继续服务正常请求
+    const after = await fetch(base + '/api/state', { headers: { 'x-mcphelm-token': token } });
+    assert.equal(after.status, 200);
+  });
+
+  it('保险箱密钥的就绪检查带缓存，轮询不会每次都去读凭据管理器', async () => {
+    const config = emptyConfig();
+    config.tunnels.push({
+      name: 'demo',
+      tunnelId: 'tunnel_' + 'a'.repeat(32),
+      server: 'demo',
+      apiKeyStore: 'keyring',
+    });
+    const { base, token } = await boot(config);
+    const poll = async () => {
+      const res = await fetch(base + '/api/state', { headers: { 'x-mcphelm-token': token } });
+      assert.equal(res.status, 200);
+      return (await res.json()) as { tunnels: Array<{ key: { ready: boolean; envName: string | null } }> };
+    };
+    const first = await poll(); // 这一次会真的去读一次凭据管理器，并写入缓存
+    assert.equal(first.tunnels.length, 1);
+    assert.deepEqual(first.tunnels[0]!.key, { ready: false, source: null, envName: null });
+    const started = Date.now();
+    for (let i = 0; i < 6; i += 1) await poll();
+    const elapsed = Date.now() - started;
+    // 不缓存的话 6 次要 1.7 秒以上（单次约 300ms），缓存后应接近 0ms
+    assert.ok(elapsed < 600, '6 次轮询应命中缓存，实测 ' + elapsed + 'ms');
+  });
 });
