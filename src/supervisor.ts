@@ -18,11 +18,15 @@ import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { existsSync, writeFileSync } from 'node:fs';
 
-const WATCH_MS = 800;
+/* 测试模式（MCPHELM_SUPERVISOR_FAST=1）把退避全部压到毫秒级，
+   单元测试几秒钟就能跑完 crash-restart 场景；生产环境不设置这个变量时
+   保持原来的秒级退避，防止故障进程被拉成 CPU 空转。 */
+const FAST_MODE = process.env.MCPHELM_SUPERVISOR_FAST === '1';
+const WATCH_MS = FAST_MODE ? 40 : 800;
 const MAX_RAPID_CRASHES = 5;
-const RAPID_WINDOW_MS = 120_000;
-const BASE_DELAY_MS = 2_000;
-const MAX_DELAY_MS = 60_000;
+const RAPID_WINDOW_MS = FAST_MODE ? 2_000 : 120_000;
+const BASE_DELAY_MS = FAST_MODE ? 60 : 2_000;
+const MAX_DELAY_MS = FAST_MODE ? 200 : 60_000;
 
 function log(line: string): void {
   process.stdout.write('[' + new Date().toISOString() + '][supervisor] ' + line + '\n');

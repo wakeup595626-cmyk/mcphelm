@@ -1065,6 +1065,7 @@ function applyLanguage() {
 
 function schedulePoll() {
   clearTimeout(app.pollTimer);
+  if (document.hidden) return;
   const anyRunning = app.state && app.state.tunnels.some((t) => t.status.state === 'running');
   const jobRunning = app.state && app.state.runtimeJob && app.state.runtimeJob.running;
   app.pollTimer = setTimeout(() => refreshState(true), (anyRunning || jobRunning) ? 2500 : 8000);
@@ -1483,7 +1484,7 @@ function bindTunnelCards(c, s) {
 }
 
 async function tunnelAction(tn, act, btn) {
-  if (act === 'logs') { app.logTunnel = tn.name; setView('logs'); return; }
+  if (act === 'logs') { app.logTunnel = tn.name; app.logCache = null; setView('logs'); return; }
   if (act === 'edit') { showTunnelModal(tn.name); return; }
   if (act === 'remove') {
     const okGo = await confirmModal(t('deleteTunnel'), t('deleteTunnelMsg', { n: esc(tn.name) }), t('delete'), true);
@@ -1501,7 +1502,7 @@ async function tunnelAction(tn, act, btn) {
     else toast(t(act === 'start' ? 'tunnelStarted' : act === 'stop' ? 'tunnelStopped' : 'tunnelRestarted', { n: tn.name }), 'ok');
   } catch (e) { toast(e.message, 'err'); }
   finally { btn.disabled = false; btn.classList.remove('loading'); }
-  setTimeout(() => refreshState(true), 600);
+  if (!document.hidden) setTimeout(() => refreshState(true), 600);
 }
 
 /* ---------------- 密钥页 ---------------- */
@@ -1927,7 +1928,7 @@ async function renderLogs(c, s) {
     $('#emptyGoTunnel', c).addEventListener('click', () => showTunnelModal(null));
     return;
   }
-  if (!app.logTunnel || !s.tunnels.find((t) => t.name === app.logTunnel)) app.logTunnel = s.tunnels[0].name;
+  if (!app.logTunnel || !s.tunnels.find((t) => t.name === app.logTunnel)) { app.logTunnel = s.tunnels[0].name; app.logCache = null; }
   let html = '<div class="card"><div class="card-head">' +
     '<div><div class="card-title"><span class="ico">' + icon('logs') + '</span>' + esc(t('logTitle')) + '</div><div class="card-sub">' + esc(t('logSub')) + '</div></div>' +
     '<div class="log-toolbar">' +
@@ -1941,7 +1942,7 @@ async function renderLogs(c, s) {
     '<div class="card-body"><div class="log-viewer" id="logViewer"><span class="log-empty">' + esc(t('logLoading')) + '</span></div>' +
     '<div style="display:flex;justify-content:space-between;margin-top:10px;font-size:12.5px;color:var(--text-3)"><span id="logFilePath"></span><span id="logTrunc"></span></div></div></div>';
   c.innerHTML = html;
-  $('#logTunnelSel', c).addEventListener('change', (e) => { app.logTunnel = e.target.value; loadLog(true); });
+  $('#logTunnelSel', c).addEventListener('change', (e) => { app.logTunnel = e.target.value; app.logCache = null; loadLog(true); });
   $('#logAutoChk', c).addEventListener('change', (e) => { app.logAuto = e.target.checked; scheduleLogPoll(); });
   $('#logRefreshBtn', c).addEventListener('click', () => loadLog(false));
   $('#logOpenDir', c).addEventListener('click', async () => {
@@ -1953,6 +1954,7 @@ async function renderLogs(c, s) {
 
 function scheduleLogPoll() {
   clearInterval(app.logTimer);
+  if (document.hidden) return;
   if (app.view === 'logs' && app.logAuto) app.logTimer = setInterval(() => loadLog(true), 2500);
 }
 
@@ -1962,13 +1964,32 @@ async function loadLog(silent) {
   try {
     const data = await api('/api/logs/' + encodeURIComponent(app.logTunnel) + '?lines=400', { method: 'GET' });
     const atBottom = viewer.scrollHeight - viewer.scrollTop - viewer.clientHeight < 40;
-    if (data.lines && data.lines.length > 0) {
-      viewer.textContent = data.lines.join('\n');
+    const lines = data.lines || [];
+    const cached = app.logCache && app.logCache.tunnel === app.logTunnel ? app.logCache.lines : null;
+    /* 日志整体替换时滚动位置会丢（真机体验：看历史时每次轮询都被拉回底部）。
+       做增量追加：只有出现新行才动 DOM，滚动位置才能稳。 */
+    if (lines.length === 0) {
+      if (!cached) viewer.innerHTML = '<span class="log-empty">' + esc(t('logNone')) + '</span>';
+      app.logCache = { tunnel: app.logTunnel, lines: [] };
     } else {
-      viewer.innerHTML = '<span class="log-empty">' + esc(t('logNone')) + '</span>';
+      let overlap = 0;
+      if (cached) {
+        for (let n = Math.min(cached.length, lines.length); n > 0; n--) {
+          let same = true;
+          for (let k = 0; k < n; k++) {
+            if (cached[cached.length - n + k] !== lines[k]) { same = false; break; }
+          }
+          if (same) { overlap = n; break; }
+        }
+      }
+      const fresh = lines.slice(overlap);
+      if (fresh.length > 0 || !cached) {
+        if (!cached) viewer.textContent = lines.join('\n');
+        else viewer.textContent += (viewer.textContent ? '\n' : '') + fresh.join('\n');
+        app.logCache = { tunnel: app.logTunnel, lines };
+        if (atBottom || !silent) viewer.scrollTop = viewer.scrollHeight;
+      }
     }
-    if (silent && atBottom) viewer.scrollTop = viewer.scrollHeight;
-    if (!silent) viewer.scrollTop = viewer.scrollHeight;
     const fp = $('#logFilePath'); if (fp) fp.textContent = data.logFile || '';
     const tr = $('#logTrunc'); if (tr) tr.textContent = data.truncated ? t('logTruncated') : '';
   } catch (e) {
@@ -2548,7 +2569,7 @@ async function pollRuntimeJob(bodyEl) {
       if (job.ok) {
         paintRuntimeProgress(bodyEl, 100, 'done');
         toast(t('runtimeReadyToast'), 'ok');
-        setTimeout(() => { closeModal(); refreshState(true); }, 900);
+        setTimeout(() => { closeModal(); if (!document.hidden) refreshState(true); }, 900);
       } else {
         const fill = $('.progress-fill', bodyEl);
         if (fill) { fill.style.width = '100%'; fill.style.background = 'var(--red)'; }
@@ -2556,7 +2577,7 @@ async function pollRuntimeJob(bodyEl) {
         const lab = $('#dlStage', bodyEl);
         if (lab) lab.textContent = t('dlStage_failed');
         toast(t('downloadFailed') + (job.error || t('unknownError')), 'err');
-        refreshState(true);
+        if (!document.hidden) refreshState(true);
       }
       return;
     }
@@ -2791,6 +2812,16 @@ document.addEventListener('DOMContentLoaded', () => {
     app.tutClosed[d.dataset.tut] = !d.open;
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+  /* 窗口缩到托盘 / 标签页切到后台时暂停所有轮询，回来时立即补一次刷新 */
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      clearTimeout(app.pollTimer);
+      clearInterval(app.logTimer);
+    } else {
+      refreshState(true);
+      if (app.view === 'logs' && app.logAuto) scheduleLogPoll();
+    }
+  });
   // 支持入口统一走事件委托：侧边栏常驻入口、概览提示条、设置页「关于」都用同一套动作
   document.addEventListener('click', (e) => {
     const el = e.target && e.target.closest ? e.target.closest('[data-support]') : null;

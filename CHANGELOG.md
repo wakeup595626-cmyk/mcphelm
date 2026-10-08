@@ -7,6 +7,19 @@
 
 ## [Unreleased]
 
+## [0.1.15] - 2026-10-08
+
+### Changed
+
+- **面板最小化或切到后台时暂停所有轮询**：原来 `setTimeout` / `setInterval` 在窗口不可见时照常跑，缩到托盘 / 切走标签页都还在每 2.5~8 秒打一次 `/api/state` + `/api/logs/*`。现在监听 `visibilitychange`：不可见时全部暂停，回到前台立刻补一次刷新，省电也省 CPU。
+- **静态资源缓存策略按内容类型分流**：以前所有面板资源都发 `cache-control: no-store`，每次开面板 ~240KB 的 JS/CSS/图片全部重新下载。现在 HTML 保持 `no-store`（结构可能变），`app.js` / `style.css` / 教程图片带 `?v=<版本号>` 查询串并标记 `immutable`，开面板能省一轮下载，发新版时版本号变化自然破缓存。
+- **单元测试加速约 7 倍（28s → 4s）**：`supervisor.ts` 新增 `MCPHELM_SUPERVISOR_FAST=1` 环境变量分支，把崩溃重启的退避从秒级压到毫秒级；`test/supervisor.test.ts` 默认开启。生产环境不设置该变量时行为完全不变。
+- **日志页改为增量追加**：以前每次轮询都用最新 400 行整体替换 `textContent`，看历史日志时滚动位置会被反复拉回底部。现在做行级 diff，只把新增行追加到末尾，没有新行时不动 DOM，滚动位置保持稳定。
+
+### Internal
+
+- 清理 `release/` 目录下 0.1.0 ~ 0.1.13 的历史 Setup/Portable 包（共 42 个文件，约 2.93 GB），只保留当前版本；GitHub 上对应版本的 Release 资产不受影响。
+
 ## [0.1.14] - 2026-10-07
 
 ### Added

@@ -31,9 +31,11 @@ afterEach(async () => {
 function runSupervisor(runtime: string, args: string[], env: NodeJS.ProcessEnv) {
   const logFile = join(dir, 'out.log');
   const fd = openSync(logFile, 'a');
+  /* 单元测试不需要等秒级退避：MCPHELM_SUPERVISOR_FAST=1 会把 supervisor
+     内部的等待压到毫秒级，整套测试从 ~30 秒降到 ~3 秒。 */
   const child = spawn(process.execPath, ['--experimental-strip-types', SUPERVISOR, runtime, '--', ...args], {
     stdio: ['ignore', fd, fd],
-    env,
+    env: { ...env, MCPHELM_SUPERVISOR_FAST: '1' },
     windowsHide: true,
   });
   children.push(child);

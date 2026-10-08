@@ -112,10 +112,16 @@ function serveStatic(res: ServerResponse, urlPath: string): void {
   }
   try {
     const body = readFileSync(target);
+    /* 面板静态资源按内容类型分流：HTML 每次都重新拉（结构可能变），
+       JS / CSS / 图片这些带版本号名字的资源走长缓存，开面板时省一轮下载。
+       版本号由 copy-assets.mjs 在拷贝时按包版本写入查询串，因此发新版自然破缓存。 */
+    const cacheControl = target.endsWith('.html')
+      ? 'no-store'
+      : 'public, max-age=31536000, immutable';
     res.writeHead(200, {
       'content-type': MIME[extname(target)] ?? 'application/octet-stream',
       'content-length': body.byteLength,
-      'cache-control': 'no-store',
+      'cache-control': cacheControl,
     });
     res.end(body);
   } catch {
@@ -1586,4 +1592,3 @@ export function panelBanner(url: string, configFile: string): string {
 export function panelStopHint(): string {
   return yellow('面板已停止');
 }
-
